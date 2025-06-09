@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/css/output.css">
+    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
     <title>Caesura</title>
 </head>
 <body class="bg-gray-100">
@@ -24,9 +25,24 @@
     </div>
 
     <!-- Page Content Placeholder -->
-    <div class="pt-20 px-4">
-        <h1 class="text-3xl font-bold">Welcome to the site!</h1>
-        <p class="mt-4 text-gray-600">This is your content below the top bar.</p>
+    <div class="flex pt-16">
+        <div class="w-1/2 flex-col items-center justify-center">
+            <div class="flex">
+                <div class="mr-2">Instrument:</div><div id="chosen-instrument" class="mr-2"></div>
+            </div>
+        </div>
+        <div class="w-1/2 flex-col items-center justify-center">
+            <div class="flex">
+                <p class="mr-2">Filter instruments:</p>
+                <input type="text" name="token" hx-get="/instruments" hx-trigger="load, keyup changed delay:500ms" hx-target="#results" placeholder="Type to filter"/>
+            </div>
+            <div id="results" class="pt-8">
+                <ul class="max-w-md space-y-2">
+                    <!-- Items will be dynamically inserted here -->
+                    <li>Loading...</li>
+                </ul>
+            </div>
+        </div>
     </div>
 </body>
 </html>

@@ -12,3 +12,7 @@ var templatesFS embed.FS
 func Index() []byte {
 	return utils.Must(templatesFS.ReadFile("templates/index.html"))
 }
+
+func List() []byte {
+	return utils.Must(templatesFS.ReadFile("templates/list.html"))
+}
