@@ -1,0 +1,9 @@
+<ul id="{{.Id}}" class="max-w-md space-y-2">
+    {{range .Items}}
+      <li hx-get="/choice" hx-trigger="click" hx-target="#chosen-instrument" hx-vals='{"instrument": "{{.}}"}'
+        hx-swap="innerHTML"
+        class="cursor-pointer hover:text-blue-800 hover:underline transition">{{.}}</li>
+    {{else}}
+      <li>No items found.</li>
+    {{end}}
+</ul>
