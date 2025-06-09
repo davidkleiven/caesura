@@ -12,6 +12,8 @@ import (
 func main() {
 	http.HandleFunc("/", api.RootHandler)
 	http.Handle("/css/", web.CssServer())
+	http.HandleFunc("/instruments", api.InstrumentSearchHandler)
+	http.HandleFunc("/choice", api.ChoiceHandler)
 
 	port := api.Port()
 	slog.Info("Starting server", "port", port)
