@@ -31,3 +31,12 @@ func ChoiceHandler(w http.ResponseWriter, r *http.Request) {
 	result := instrument + "\n<input type=\"text\" placeholder=\"Enter part number\" id=\"part-number\"/>"
 	w.Write([]byte(result))
 }
+
+func Setup() *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", RootHandler)
+	mux.Handle("/css/", web.CssServer())
+	mux.HandleFunc("/instruments", InstrumentSearchHandler)
+	mux.HandleFunc("/choice", ChoiceHandler)
+	return mux
+}
