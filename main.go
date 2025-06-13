@@ -6,17 +6,13 @@ import (
 	"net/http"
 
 	"github.com/davidkleiven/caesura/api"
-	"github.com/davidkleiven/caesura/web"
 )
 
 func main() {
-	http.HandleFunc("/", api.RootHandler)
-	http.Handle("/css/", web.CssServer())
-	http.HandleFunc("/instruments", api.InstrumentSearchHandler)
-	http.HandleFunc("/choice", api.ChoiceHandler)
+	mux := api.Setup()
 
 	port := api.Port()
 	slog.Info("Starting server", "port", port)
-	log.Fatal(http.ListenAndServe(api.Port(), api.LogRequest(http.DefaultServeMux)))
+	log.Fatal(http.ListenAndServe(api.Port(), api.LogRequest(mux)))
 	slog.Info("Server stopped")
 }
