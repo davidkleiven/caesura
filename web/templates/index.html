@@ -34,9 +34,9 @@
         <div class="w-1/2 flex-col items-center justify-center">
             <div class="flex">
                 <p class="mr-2">Filter instruments:</p>
-                <input type="text" name="token" hx-get="/instruments" hx-trigger="load, keyup changed delay:500ms" hx-target="#results" placeholder="Type to filter"/>
+                <input type="text" name="token" hx-get="/instruments" hx-trigger="load, keyup changed delay:500ms" hx-target="#instrument-list" placeholder="Type to filter"/>
             </div>
-            <div id="results" class="pt-8">
+            <div id="instrument-list" class="pt-8">
                 <ul class="max-w-md space-y-2">
                     <!-- Items will be dynamically inserted here -->
                     <li>Loading...</li>
