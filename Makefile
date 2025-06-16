@@ -3,7 +3,7 @@ COVEROUT ?= coverage.html
 .PHONY: test build
 
 test:
-	go test ./... -coverprofile=coverage.out -covermode=atomic
+	go test -v ./... -coverprofile=coverage.out -covermode=atomic
 	go tool cover -html=coverage.out -o ${COVEROUT}
 
 build:
