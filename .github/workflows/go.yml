@@ -20,6 +20,9 @@ jobs:
     - name: Build
       run: go build -v ./...
 
+    - name: Install playwright
+      run: go run github.com/playwright-community/playwright-go/cmd/playwright install chromium-headless-shell
+
     - name: Test
       run: go test ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
 
