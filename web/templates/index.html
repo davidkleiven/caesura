@@ -27,11 +27,11 @@
     <!-- Page Content Placeholder -->
     <div class="flex-col pt-16">
         <div class="flex items-center justify-center">
-            <div id="upload-form" class="bg-white p-8 rounded-2xl shadow-lg max-w-lg w-full">
+            <form id="upload-form" hx-post="/upload" hx-target="#split-workbench" hx-swap="innerHTML" enctype="multipart/form-data"
+                class="bg-white p-8 rounded-2xl shadow-lg max-w-lg w-full">
                 <input
                     type="file"
-                    name="myfile"
-                    id="file-input"
+                    name="file-upload"
                     class="block w-full box-border text-sm text-gray-500
                             file:mr-4 file:py-2 file:px-4
                             file:rounded-full file:border-0
@@ -40,8 +40,8 @@
                             hover:file:bg-blue-100
                             transition cursor-pointer"
                     />
-                <button type="button" onclick="alert('Clicked!')" class="w-full box-border bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">Split</button>
-            </div>
+                <button type="submit" class="w-full box-border bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">Split</button>
+            </form>
         </div>
         <div class="flex p-8">
             <div class="w-2/3 flex-col items-center justify-center">
