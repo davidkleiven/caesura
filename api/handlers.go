@@ -32,11 +32,16 @@ func ChoiceHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(result))
 }
 
+func UploadHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("<div>Upload handler not implemented</div>"))
+}
+
 func Setup() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", RootHandler)
 	mux.Handle("/css/", web.CssServer())
 	mux.HandleFunc("/instruments", InstrumentSearchHandler)
 	mux.HandleFunc("/choice", ChoiceHandler)
+	mux.HandleFunc("/upload", UploadHandler)
 	return mux
 }
