@@ -13,6 +13,7 @@ import (
 	"math"
 	"time"
 
+	"github.com/davidkleiven/caesura/config"
 	"github.com/hhrutter/tiff"
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
@@ -24,6 +25,7 @@ var ErrGrayConversion = errors.New("gray conversion failed")
 type ImageSet struct {
 	Images  []bytes.Buffer
 	Updated time.Time
+	Options config.AdaptiveGaussianConfig
 }
 
 func (is *ImageSet) DigestImage(img model.Image, hasOneImagePerPage bool, maxPageDigits int) error {
@@ -32,7 +34,7 @@ func (is *ImageSet) DigestImage(img model.Image, hasOneImagePerPage bool, maxPag
 		return errors.Join(ErrGrayConversion, fmt.Errorf("failed to convert image %s on page %d to grayscale: %w", img.Name, img.PageNr, err))
 	}
 
-	thresholdedImage := GaussianAdaptiveThreshold(grayImage, 15, 2)
+	thresholdedImage := GaussianAdaptiveThreshold(grayImage, is.Options.BlockSize, is.Options.ThresholdShift)
 	var buf bytes.Buffer
 	if err := png.Encode(&buf, thresholdedImage); err != nil {
 		return fmt.Errorf("failed to encode image %s on page %d to PNG: %w", img.Name, img.PageNr, err)
@@ -41,14 +43,13 @@ func (is *ImageSet) DigestImage(img model.Image, hasOneImagePerPage bool, maxPag
 	is.Images = append(is.Images, buf)
 	is.Updated = time.Now()
 	slog.Info("Processed image", "name", img.Name, "page", img.PageNr, "size", buf.Len())
-
 	return nil
 }
 
-func ProcessImages(rs io.ReadSeeker) *ImageSet {
-	images := ImageSet{}
-	api.ExtractImages(rs, []string{}, images.DigestImage, nil)
-	return &images
+func ProcessImages(rs io.ReadSeeker, options config.AdaptiveGaussianConfig) (*ImageSet, error) {
+	images := ImageSet{Options: options}
+	err := api.ExtractImages(rs, []string{}, images.DigestImage, nil)
+	return &images, err
 }
 
 func ToImageGray(img model.Image) (*image.Gray, error) {
@@ -88,7 +89,7 @@ func GaussianAdaptiveThreshold(img *image.Gray, blockSize int, c int) *image.Pal
 	Assert(blockSize > 0, "Block size must be greater than zero")
 
 	gaussians := PreCalculateGaussians(blockSize)
-	slog.Info("Pre-calculated Gaussian weights", "blockSize", blockSize, "numWeights", len(gaussians))
+	slog.Info("Pre-calculated Gaussian weights", "blockSize", blockSize, "numWeights", len(gaussians), "shift", c)
 	bounds := img.Bounds()
 	thresholdedImg := image.NewPaletted(bounds, color.Palette{color.Black, color.White})
 
@@ -99,6 +100,7 @@ func GaussianAdaptiveThreshold(img *image.Gray, blockSize int, c int) *image.Pal
 
 	for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
 		for x := bounds.Min.X; x < bounds.Max.X; x++ {
+
 			// Calculate the local mean and standard deviation using the Gaussian weights
 			localSum := 0.0
 			localWeightSum := 0.0

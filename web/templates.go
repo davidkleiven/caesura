@@ -16,3 +16,7 @@ func Index() []byte {
 func List() []byte {
 	return utils.Must(templatesFS.ReadFile("templates/list.html"))
 }
+
+func Scans() []byte {
+	return utils.Must(templatesFS.ReadFile("templates/scans.html"))
+}

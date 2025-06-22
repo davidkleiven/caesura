@@ -22,10 +22,10 @@ type AdaptiveGaussianConfig struct {
 func NewDefaultConfig() *Config {
 	return &Config{
 		Port:             ":8080",
-		MaxRequestSizeMB: 10,
+		MaxRequestSizeMB: 100,
 		AdaptiveGaussian: AdaptiveGaussianConfig{
 			BlockSize:      15,
-			ThresholdShift: 2,
+			ThresholdShift: 20,
 		},
 	}
 }
