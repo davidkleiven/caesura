@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"net/http"
 
+	"github.com/davidkleiven/caesura/config"
 	"github.com/davidkleiven/caesura/pkg"
 	"github.com/davidkleiven/caesura/web"
 )
@@ -34,12 +35,25 @@ func ChoiceHandler(w http.ResponseWriter, r *http.Request) {
 
 type ImageHandler struct {
 	Images map[string]pkg.ImageSet
+	Config *config.Config
 }
 
-func NewImageHandler() *ImageHandler {
-	return &ImageHandler{
-		Images: make(map[string]pkg.ImageSet),
+func WithConfig(config *config.Config) func(ih *ImageHandler) {
+	return func(ih *ImageHandler) {
+		ih.Config = config
 	}
+}
+
+func NewImageHandler(opts ...func(ih *ImageHandler)) *ImageHandler {
+	imgHandler := &ImageHandler{
+		Images: make(map[string]pkg.ImageSet),
+		Config: config.NewDefaultConfig(),
+	}
+
+	for _, opt := range opts {
+		opt(imgHandler)
+	}
+	return imgHandler
 }
 
 func (ih *ImageHandler) UploadHandler(w http.ResponseWriter, r *http.Request) {

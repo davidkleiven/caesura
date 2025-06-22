@@ -10,15 +10,30 @@ import (
 	"time"
 
 	"github.com/davidkleiven/caesura/api"
+	"github.com/davidkleiven/caesura/config"
 )
 
 func main() {
-	imageHandler := api.NewImageHandler()
+	configuration := config.NewDefaultConfig()
+	if filename, ok := os.LookupEnv("CAESURA_CONFIG"); ok {
+		file, err := os.Open(filename)
+		if err != nil {
+			slog.Error("Failed to open configuration file", "error", err)
+			os.Exit(1)
+		}
+		defer file.Close()
+		if err := config.UpdateFromReader(configuration, file); err != nil {
+			slog.Error("Failed to load configuration", "error", err)
+			os.Exit(1)
+		}
+	}
+	config.UpdateFromEnv(configuration)
+
+	imageHandler := api.NewImageHandler(api.WithConfig(configuration))
 	mux := api.Setup(imageHandler)
-	port := api.Port()
 
 	server := &http.Server{
-		Addr:    port,
+		Addr:    configuration.Port,
 		Handler: api.LogRequest(mux),
 	}
 
@@ -26,7 +41,7 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		slog.Info("Starting server", "port", port)
+		slog.Info("Starting server", "port", configuration.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("Server failed", "error", err)
 		}

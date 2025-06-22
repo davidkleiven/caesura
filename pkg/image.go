@@ -27,10 +27,6 @@ type ImageSet struct {
 }
 
 func (is *ImageSet) DigestImage(img model.Image, hasOneImagePerPage bool, maxPageDigits int) error {
-	if !hasOneImagePerPage {
-		return errors.Join(ErrMultipleImagesPerPage, fmt.Errorf("page %d has multiple images", img.PageNr))
-	}
-
 	grayImage, err := ToImageGray(img)
 	if err != nil {
 		return errors.Join(ErrGrayConversion, fmt.Errorf("failed to convert image %s on page %d to grayscale: %w", img.Name, img.PageNr, err))
