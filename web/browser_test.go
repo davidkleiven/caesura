@@ -31,7 +31,7 @@ func withBrowser(testFunc func(t *testing.T, page playwright.Page)) func(t *test
 			return
 		}
 
-		mux := api.Setup()
+		mux := api.Setup(api.NewImageHandler())
 		server := httptest.NewServer(mux)
 		defer server.Close()
 

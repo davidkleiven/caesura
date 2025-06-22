@@ -13,7 +13,8 @@ import (
 )
 
 func main() {
-	mux := api.Setup()
+	imageHandler := api.NewImageHandler()
+	mux := api.Setup(imageHandler)
 	port := api.Port()
 
 	server := &http.Server{
