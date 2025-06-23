@@ -1,12 +1,18 @@
 package web_test
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
 	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/davidkleiven/caesura/api"
+	pdfapi "github.com/pdfcpu/pdfcpu/pkg/api"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/primitives"
 	"github.com/playwright-community/playwright-go"
 )
 
@@ -126,4 +132,116 @@ func TestFieldPopulatedOnClick(t *testing.T) {
 		}
 
 	})(t)
+}
+
+func createTextBox(txt string) *primitives.TextBox {
+	return &primitives.TextBox{
+		Value:    txt,
+		Position: [2]float64{100, 100},
+		Font: &primitives.FormFont{
+			Name: "Helvetica",
+			Size: 12,
+		},
+	}
+}
+
+func createTwoPagePdf(w io.Writer) error {
+	desc := primitives.PDF{
+		Pages: map[string]*primitives.PDFPage{
+			"1": {
+				Content: &primitives.Content{
+					TextBoxes: []*primitives.TextBox{
+						createTextBox("This is page 1"),
+					},
+				},
+			},
+			"2": {
+				Content: &primitives.Content{
+					TextBoxes: []*primitives.TextBox{
+						createTextBox("This is page 2"),
+					},
+				},
+			},
+		},
+	}
+
+	data, err := json.Marshal(desc)
+	if err != nil {
+		return err
+	}
+	return pdfapi.Create(nil, bytes.NewBuffer(data), w, nil)
+
+}
+
+func TestLoadPdf(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		// Ensure that Page shows 0 / 0
+		currentPage, err := page.Locator("#page-num").TextContent()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		if currentPage != "0" {
+			t.Errorf("Expected current page to be '0', but got: %s", currentPage)
+		}
+
+		pageCount, err := page.Locator("#page-count").TextContent()
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		if pageCount != "0" {
+			t.Errorf("Expected page count to be '0', but got: %s", pageCount)
+		}
+
+		f, err := os.CreateTemp("", "test*.pdf")
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer os.Remove(f.Name())
+		if err := createTwoPagePdf(f); err != nil {
+			t.Error(err)
+			return
+		}
+
+		if err := page.Locator("#file-input").SetInputFiles(f.Name()); err != nil {
+			t.Error(err)
+			return
+		}
+
+		nextPage := page.Locator("#next-page")
+		prevPage := page.Locator("#prev-page")
+
+		for i, action := range []struct {
+			f            func() error
+			expectedPage string
+		}{
+			{func() error { return nil }, "1"},
+			{func() error { return nextPage.Click() }, "2"},
+			{func() error { return nextPage.Click() }, "2"}, // Should stay on page 2
+			{func() error { return prevPage.Click() }, "1"},
+			{func() error { return prevPage.Click() }, "1"}, // Should stay on page 1
+		} {
+			if err := action.f(); err != nil {
+				t.Errorf("Test #%d: %s", i, err)
+				return
+			}
+
+			time.Sleep(500 * time.Millisecond) // Wait for the page to update
+
+			currentPage, err = page.Locator("#page-num").TextContent()
+			if err != nil {
+				t.Error(err)
+				return
+			}
+			if currentPage != action.expectedPage {
+				t.Errorf("Action #%d: Expected current page to be %s, but got: %s", i, action.expectedPage, currentPage)
+			}
+		}
+
+	})(t)
+
 }

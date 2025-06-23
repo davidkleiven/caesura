@@ -38,5 +38,6 @@ func Setup() *http.ServeMux {
 	mux.Handle("/css/", web.CssServer())
 	mux.HandleFunc("/instruments", InstrumentSearchHandler)
 	mux.HandleFunc("/choice", ChoiceHandler)
+	mux.Handle("/js/", web.JsServer())
 	return mux
 }
