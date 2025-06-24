@@ -326,6 +326,12 @@ func TestAssign(t *testing.T) {
 			}
 		}
 
+		// Enter delete mode
+		if err := page.Locator("#delete-on-click").Check(); err != nil {
+			t.Error("Failed to check delete mode checkbox")
+			return
+		}
+
 		// Check that assignment tab is deleted when clocking it
 		if err := page.Locator("#piccolotrumpet").Click(); err != nil {
 			t.Error(err)

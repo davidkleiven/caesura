@@ -1,7 +1,9 @@
 package api
 
 import (
+	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -65,5 +67,50 @@ func TestChoiceHandler(t *testing.T) {
 	expectedResponse := "flute<input type=\"text\" placeholder=\"Enter part number\" id=\"part-number\"/>"
 	if recorder.Body.String() != expectedResponse {
 		t.Errorf("Expected response body to be '%s', got '%s'", expectedResponse, recorder.Body.String())
+	}
+}
+
+func TestDeleteMode(t *testing.T) {
+	for _, test := range []struct {
+		value    string
+		expected string
+	}{
+		{"1", "(Click to remove)"},
+		{"0", "(Click to jump)"},
+		{"", "(Click to jump)"},
+	} {
+		form := url.Values{}
+		form.Set("delete-mode", test.value)
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest("POST", "/delete-mode", strings.NewReader(form.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		DeleteMode(recorder, request)
+
+		if recorder.Code != 200 {
+			t.Errorf("Expected status code 200, got %d", recorder.Code)
+			return
+		}
+
+		if recorder.Body.String() != test.expected {
+			t.Errorf("Expected response body to be '%s', got '%s'", test.expected, recorder.Body.String())
+			return
+		}
+	}
+}
+
+func TestDeleteModeWhenFormNotPopulated(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("POST", "/delete-mode", strings.NewReader("bad=%ZZ")) // malformed encoding
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	DeleteMode(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code 400, got %d", recorder.Code)
+		return
+	}
+
+	expectedError := "Failed to parse form"
+	if !strings.Contains(recorder.Body.String(), expectedError) {
+		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
 	}
 }

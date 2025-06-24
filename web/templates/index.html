@@ -53,12 +53,20 @@
                 </div>
                 <div id="split-workbench" class="pt-4 pr-4">
                     <!-- Result will be dynamically inserted here -->
-                     <div id="assignments" class="flex">
-                        <div class="flex-col">
-                            <p class="mr-2 font-semibold">Assignments:</p>
-                            <p class="mr-2 text-gray-500 text-sm">(Click to remove)</p>
+                    <div id="assigntment-container" class="flex justify-between">
+                        <div id="assignment-info" class="flex items-center justify-center">
+                            <div id="assignments" class="flex">
+                                <div class="flex-col">
+                                    <p class="mr-2 font-semibold">Assignments:</p>
+                                    <p id="click-action" class="mr-2 text-gray-500 text-sm">(Click to jump)</p>
+                                </div>
+                            </div>
                         </div>
-                     </div>
+                        <div>
+                            <span>Delete mode</span>
+                            <input type="checkbox" id="delete-on-click" name="delete-mode" hx-post="/delete-mode" hx-trigger="change" hx-target="#click-action" hx-swap="innerHTML" value="1"/>
+                        </div>
+                    </div>
                     <div id="controls" class="flex mt-4 items-center justify-between">
                         <button id="prev-page" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">Previous</button>
                         <span class="pl-4 pr-4">Page: <span id="page-num">0</span> / <span id="page-count">0</span></span>
