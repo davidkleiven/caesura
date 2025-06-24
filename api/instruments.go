@@ -63,6 +63,12 @@ var flutes = []string{
 	"Bass Flute",
 }
 
+var conductor = []string{
+	"Conductor",
+	"Score",
+	"Partitura",
+}
+
 func allInstruments() []string {
 	var allInstruments []string
 	allInstruments = append(allInstruments, clarinets...)
@@ -73,6 +79,7 @@ func allInstruments() []string {
 	allInstruments = append(allInstruments, stringInstruments...)
 	allInstruments = append(allInstruments, otherReeds...)
 	allInstruments = append(allInstruments, percussion...)
+	allInstruments = append(allInstruments, conductor...)
 	return allInstruments
 }
 
