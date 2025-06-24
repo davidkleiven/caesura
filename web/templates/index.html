@@ -49,21 +49,28 @@
             <div class="w-2/3 flex-col items-center justify-center">
 
                 <div class="flex">
-                    <div class="mr-2">Instrument:</div><div id="chosen-instrument" class="mr-2"></div>
+                    <div class="mr-2 font-semibold">Instrument:</div><div id="chosen-instrument" class="mr-2"></div>
                 </div>
                 <div id="split-workbench" class="pt-4 pr-4">
                     <!-- Result will be dynamically inserted here -->
+                     <div id="assignments" class="flex">
+                        <div class="flex-col">
+                            <p class="mr-2 font-semibold">Assignments:</p>
+                            <p class="mr-2 text-gray-500 text-sm">(Click to remove)</p>
+                        </div>
+                     </div>
                     <div id="controls" class="flex mt-4 items-center justify-between">
                         <button id="prev-page" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">Previous</button>
                         <span class="pl-4 pr-4">Page: <span id="page-num">0</span> / <span id="page-count">0</span></span>
                         <button id="next-page" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">Next</button>
+                        <button id="assign-page" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition">Assign</button>
                     </div>
                     <canvas id="pdf-canvas" class="w-full box-border h-auto rounded-lg shadow-md"></canvas>
                 </div>
             </div>
             <div class="w-1/3 flex-col items-center justify-center">
                 <div class="flex">
-                    <p class="mr-2">Filter instruments:</p>
+                    <p class="mr-2 font-semibold">Filter groups:</p>
                     <input type="text" name="token" hx-get="/instruments" hx-trigger="load, keyup changed delay:500ms" hx-target="#instrument-list" placeholder="Type to filter"/>
                 </div>
                 <div id="instrument-list" class="pt-8">
