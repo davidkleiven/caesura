@@ -71,6 +71,8 @@ func allInstruments() []string {
 	allInstruments = append(allInstruments, choir...)
 	allInstruments = append(allInstruments, flutes...)
 	allInstruments = append(allInstruments, stringInstruments...)
+	allInstruments = append(allInstruments, otherReeds...)
+	allInstruments = append(allInstruments, percussion...)
 	return allInstruments
 }
 
