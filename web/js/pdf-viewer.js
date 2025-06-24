@@ -72,14 +72,13 @@ const renderPage = (num) => {
 function addAssignment() {
     const chosenInstrument = document.getElementById('chosen-instrument');
     const currentPage = pageNumSpan.textContent;
-    const assignmentDesc = chosenInstrument.textContent + document.getElementById('part-number')?.value || "";
+    const assignmentDesc = (chosenInstrument.textContent || "") + (document.getElementById('part-number')?.value || "");
+    const assignmentId = assignmentDesc.toLowerCase().replace(/\s+/g, '');
 
-    if (!assignmentDesc) {
-        alert('Please select an instrument and enter a part number.');
+    if (!assignmentId) {
+        alert('Please select an instrument and enter a part number before assigning a page.');
         return 1;
     }
-
-    const assignmentId = assignmentDesc.toLowerCase().replace(/\s+/g, '');
 
     const assignmentDiv = document.getElementById(assignmentId);
     if (!assignmentDiv) {
@@ -105,12 +104,12 @@ function addAssignment() {
             alert('Attempting to assign a page before the current first page. If you want to change the first page, please remove the assignment and reassign it.');
             return 1;
         }
-    }
+        }
+
     return 0;
 }
 
 function assignementColor(assignmentId) {
-    console.log("Assignement ID: ", assignmentId);
     if (assignmentId.toLowerCase().includes("trumpet") || assignmentId.toLowerCase().includes("cornet")) {
         return "bg-red-400 hover:bg-red-500";
     } else if (assignmentId.toLowerCase().includes("trombone")) {
