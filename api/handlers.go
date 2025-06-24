@@ -28,7 +28,7 @@ func InstrumentSearchHandler(w http.ResponseWriter, r *http.Request) {
 func ChoiceHandler(w http.ResponseWriter, r *http.Request) {
 	instrument := r.URL.Query().Get("instrument")
 
-	result := instrument + "\n<input type=\"text\" placeholder=\"Enter part number\" id=\"part-number\"/>"
+	result := instrument + "<input type=\"text\" placeholder=\"Enter part number\" id=\"part-number\"/>"
 	w.Write([]byte(result))
 }
 

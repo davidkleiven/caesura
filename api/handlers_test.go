@@ -62,7 +62,7 @@ func TestChoiceHandler(t *testing.T) {
 		return
 	}
 
-	expectedResponse := "flute\n<input type=\"text\" placeholder=\"Enter part number\" id=\"part-number\"/>"
+	expectedResponse := "flute<input type=\"text\" placeholder=\"Enter part number\" id=\"part-number\"/>"
 	if recorder.Body.String() != expectedResponse {
 		t.Errorf("Expected response body to be '%s', got '%s'", expectedResponse, recorder.Body.String())
 	}

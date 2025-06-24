@@ -243,5 +243,142 @@ func TestLoadPdf(t *testing.T) {
 		}
 
 	})(t)
+}
 
+func TestAssign(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		f, err := os.CreateTemp("", "test*.pdf")
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer os.Remove(f.Name())
+		if err := createTwoPagePdf(f); err != nil {
+			t.Error(err)
+			return
+		}
+
+		if err := page.Locator("#file-input").SetInputFiles(f.Name()); err != nil {
+			t.Error(err)
+			return
+		}
+
+		waitOpts := playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(5000)}
+		if _, err := page.WaitForFunction(`() => document.querySelector("#page-count").textContent === "2"`, waitOpts); err != nil {
+			t.Errorf("Failed to load PDF: %s", err)
+			return
+		}
+
+		assignButton := page.Locator("#assign-page")
+
+		// Add response to alerts
+		alertTriggered := false
+		page.On("dialog", func(dialog playwright.Dialog) {
+			alertTriggered = true
+			dialog.Accept()
+		})
+
+		// Click the assign button when no group is selected (should trigger an alert)
+		assignButton.Click()
+		if !alertTriggered {
+			t.Error("Expected alert to be triggered, but it was not.")
+			return
+		}
+
+		// Trigger population of the chosen instrument field
+		trumpetElement := page.Locator("li:text('Piccolo Trumpet')").First()
+		if err := trumpetElement.Click(); err != nil {
+			t.Error(err)
+			return
+		}
+
+		if txt, err := page.Locator("#chosen-instrument").TextContent(); txt != "Piccolo Trumpet" || err != nil {
+			t.Errorf("Expected chosen instrument to be 'Piccolo Trumpet', but got: %s (err: %v)", txt, err)
+			return
+		}
+
+		// Test that the assignment tab is updated when clicking subsequent times
+		for i, expect := range []struct {
+			from string
+			to   string
+		}{
+			{from: "1", to: "1"},
+			{from: "1", to: "2"},
+			{from: "1", to: "2"},
+		} {
+			assignButton.Click()
+
+			// Confirm that there is an element with id "trumpet"
+			trumpetElementAssignment := page.Locator("#piccolotrumpet")
+			if exists, err := trumpetElementAssignment.Count(); err != nil || exists != 1 {
+				t.Errorf("Click %d: Err %v number of occurences of #trumpet: %d", i, err, exists)
+				return
+			}
+
+			if txt, err := page.Locator("#piccolotrumpet-from").TextContent(); err != nil || txt != expect.from {
+				t.Errorf("Click %d: Expected #piccolotrumpet-from to be '%s', but got: %s (err: %v)", i, expect.to, txt, err)
+				return
+			}
+
+			if txt, err := page.Locator("#piccolotrumpet-to").TextContent(); err != nil || txt != expect.to {
+				t.Errorf("Click %d: Expected #piccolotrumpet-to to be '%s', but got: %s (err: %v)", i, expect.to, txt, err)
+				return
+			}
+		}
+
+		// Check that assignment tab is deleted when clocking it
+		if err := page.Locator("#piccolotrumpet").Click(); err != nil {
+			t.Error(err)
+			return
+		}
+		if exists, err := page.Locator("#piccolotrumpet").Count(); err != nil || exists != 0 {
+			t.Errorf("Expected #piccolotrumpet to be deleted, but it still exists (count: %d, err: %v)", exists, err)
+			return
+		}
+
+		if err := page.Locator("#part-number").Fill("1 brass part"); err != nil {
+			t.Error("Failed to fill part number field")
+			return
+		}
+
+		for i, check := range []struct {
+			from      string
+			to        string
+			alert     bool
+			preAction func()
+		}{
+			{from: "2", to: "2", alert: false, preAction: func() {}},
+
+			// Should trigger alert because we set the page back
+			{from: "2", to: "2", alert: true, preAction: func() {
+				page.Locator("#prev-page").Click()
+				if _, err := page.WaitForFunction(`() => document.querySelector("#page-num").textContent === "1"`, waitOpts); err != nil {
+					t.Errorf("Failed to load PDF: %s", err)
+					return
+				}
+			}},
+		} {
+			check.preAction()
+			alertTriggered = false
+			assignButton.Click()
+			if num, err := page.Locator("#piccolotrumpet1brasspart").Count(); err != nil || num != 1 {
+				t.Errorf("Click #%d: Expected #piccolotrumpet1brasspart to be created, but it does not exist (count: %d, err: %v)", i, num, err)
+				return
+			}
+
+			if alertTriggered != check.alert {
+				t.Errorf("Click #%d: Expected alert to be %v, but it was %v", i, check.alert, alertTriggered)
+				return
+			}
+
+			if txt, err := page.Locator("#piccolotrumpet1brasspart-from").TextContent(); err != nil || txt != check.from {
+				t.Errorf("Click #%d: Expected #piccolotrumpet1brasspart-from to be '%s', but got: %s (err: %v)", i, check.from, txt, err)
+				return
+			}
+			if txt, err := page.Locator("#piccolotrumpet1brasspart-to").TextContent(); err != nil || txt != check.to {
+				t.Errorf("Click #%d: Expected #piccolotrumpet1brasspart-to to be '%s', but got: %s (err: %v)", i, check.to, txt, err)
+				return
+			}
+		}
+	})(t)
 }
