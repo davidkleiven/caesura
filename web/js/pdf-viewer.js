@@ -9,6 +9,7 @@ const prevPageBtn = document.getElementById('prev-page');
 const nextPageBtn = document.getElementById('next-page');
 const assignPageBtn = document.getElementById('assign-page');
 const assignmentSection = document.getElementById('assignments');
+const deleteOnClickCheckBox = document.getElementById('delete-on-click');
 
 let pdfDoc = null;
 let currentPage = 1;
@@ -69,6 +70,12 @@ const renderPage = (num) => {
     }
     });
 
+function deleteIfChecked(elem) {
+    if (deleteOnClickCheckBox.checked) {
+        elem.parentElement.remove();
+    }
+}
+
 function addAssignment() {
     const chosenInstrument = document.getElementById('chosen-instrument');
     const currentPage = pageNumSpan.textContent;
@@ -85,7 +92,7 @@ function addAssignment() {
         const color = assignementColor(assignmentId);
         assignmentSection.innerHTML += `
             <div id="${assignmentId}-group" class="relative group inline-block pr-2">
-                <button id=${assignmentId} onclick="this.parentElement.remove()" class="flex text-white ${color} py-2 px-4 rounded-lg">
+                <button id=${assignmentId} onclick="deleteIfChecked(this)" class="flex text-white ${color} py-2 px-4 rounded-lg">
                     <span id="${assignmentId}-from">${currentPage}</span> -
                     <span id="${assignmentId}-to">${currentPage}</span>
                 </button>

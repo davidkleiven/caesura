@@ -2,6 +2,7 @@ package api
 
 import (
 	"html/template"
+	"log/slog"
 	"net/http"
 
 	"github.com/davidkleiven/caesura/pkg"
@@ -32,6 +33,22 @@ func ChoiceHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(result))
 }
 
+func DeleteMode(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	checkBoxValue := r.FormValue("delete-mode")
+	slog.Info("Received value", "delete-mode", checkBoxValue)
+
+	if checkBoxValue == "1" {
+		w.Write([]byte("(Click to remove)"))
+	} else {
+		w.Write([]byte("(Click to jump)"))
+	}
+}
+
 func Setup() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", RootHandler)
@@ -39,5 +56,6 @@ func Setup() *http.ServeMux {
 	mux.HandleFunc("/instruments", InstrumentSearchHandler)
 	mux.HandleFunc("/choice", ChoiceHandler)
 	mux.Handle("/js/", web.JsServer())
+	mux.HandleFunc("/delete-mode", DeleteMode)
 	return mux
 }
