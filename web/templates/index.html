@@ -55,14 +55,14 @@
                     <!-- Result will be dynamically inserted here -->
                     <div id="assigntment-container" class="flex justify-between">
                         <div id="assignment-info" class="flex items-center justify-center">
-                            <div id="assignments" class="flex">
-                                <div class="flex-col">
-                                    <p class="mr-2 font-semibold">Assignments:</p>
-                                    <p id="click-action" class="mr-2 text-gray-500 text-sm">(Click to jump)</p>
-                                </div>
+                            <div class="flex-col">
+                                <p class="mr-2 font-semibold">Assignments:</p>
+                                <p id="click-action" class="mr-2 text-gray-500 text-sm">(Click to jump)</p>
+                            </div>
+                            <div id="assignments" class="flex flex-wrap">
                             </div>
                         </div>
-                        <div>
+                        <div class="inline-flex items-center min-w-max px-2 py-1">
                             <span>Delete mode</span>
                             <input type="checkbox" id="delete-on-click" name="delete-mode" hx-post="/delete-mode" hx-trigger="change" hx-target="#click-action" hx-swap="innerHTML" value="1"/>
                         </div>
