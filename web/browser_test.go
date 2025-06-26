@@ -388,3 +388,56 @@ func TestAssign(t *testing.T) {
 		}
 	})(t)
 }
+
+func TestJumpToAssignedPage(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		f, err := os.CreateTemp("", "test*.pdf")
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer os.Remove(f.Name())
+		if err := createTwoPagePdf(f); err != nil {
+			t.Error(err)
+			return
+		}
+
+		if err := page.Locator("#file-input").SetInputFiles(f.Name()); err != nil {
+			t.Error(err)
+			return
+		}
+
+		waitOpts := playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(5000)}
+		if _, err := page.WaitForFunction(`() => document.querySelector("#page-count").textContent === "2"`, waitOpts); err != nil {
+			t.Errorf("Failed to load PDF: %s", err)
+			return
+		}
+
+		score := page.Locator("li:text('Score')").First()
+		if err := score.Click(); err != nil {
+			t.Error(err)
+			return
+		}
+
+		assignButton := page.Locator("#assign-page")
+		assignButton.Click()
+
+		// Now the page should be set to 2
+		pageNum := page.Locator("#page-num")
+		if currentPage, err := pageNum.TextContent(); err != nil || currentPage != "2" {
+			t.Errorf("Expected current page to be '2', but got: %s (err: %v)", currentPage, err)
+			return
+		}
+
+		if err := page.Locator("#score").Click(); err != nil {
+			t.Error(err)
+			return
+		}
+
+		// Now the page should be set to 1
+		if currentPage, err := pageNum.TextContent(); err != nil || currentPage != "1" {
+			t.Errorf("Expected current page to be '1', but got: %s (err: %v)", currentPage, err)
+			return
+		}
+	})(t)
+}
