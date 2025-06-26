@@ -140,9 +140,7 @@ function assignementColor(assignmentId) {
     } else if (assignmentId.toLowerCase().includes("trombone")) {
         return "bg-yellow-400 hover:bg-yellow-500";
     }
-    else if (assignmentId.toLowerCase().includes("tuba") || assignmentId.toLowerCase().includes("bass")) {
-        return "bg-yellow-600 hover:bg-yellow-700";
-    } else if (assignmentId.toLowerCase().includes("clarinet")) {
+    else if (assignmentId.toLowerCase().includes("clarinet")) {
         return "bg-green-400 hover:bg-green-500";
     }
     else if (assignmentId.toLowerCase().includes("saxophone")) {
@@ -156,6 +154,9 @@ function assignementColor(assignmentId) {
     }
     else if (assignmentId.toLowerCase().includes("bassoon")) {
         return "bg-blue-600 hover:bg-blue-700";
+    }
+    else if (assignmentId.toLowerCase().includes("tuba") || assignmentId.toLowerCase().includes("bass")) {
+        return "bg-yellow-600 hover:bg-yellow-700";
     }
     return "bg-gray-400 hover:bg-gray-500";
 }
