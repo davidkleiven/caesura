@@ -8,6 +8,7 @@ import (
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
 
 type Assignment struct {
@@ -27,28 +28,64 @@ func SplitPdf(rs io.ReadSeeker, assignments []Assignment) (*bytes.Buffer, error)
 	}
 
 	for _, assignment := range assignments {
-		var internalBuffer bytes.Buffer
-		pages := make([]int, assignment.To-assignment.From+1)
-		for i := range pages {
-			pages[i] = assignment.From + i
-		}
+		pdfProcessor := &PDFPipeline{zipWriter: zipWriter}
+		pdfProcessor.ExtractPages(ctx, assignment.From, assignment.To).
+			WriteContext().
+			CreateZipEntry(assignment.Id).
+			CopyToZip()
 
-		extractedCtx, err := pdfcpu.ExtractPages(ctx, pages, false)
-		if err != nil {
-			return &buf, err
-		}
-
-		if err := api.WriteContext(extractedCtx, &internalBuffer); err != nil {
-			return &buf, err
-		}
-
-		zipFile, err := zipWriter.Create(assignment.Id + ".pdf")
-		if err != nil {
-			return &buf, err
-		}
-		if _, err := io.Copy(zipFile, &internalBuffer); err != nil {
-			return &buf, err
+		if err := pdfProcessor.Error(); err != nil {
+			return &buf, fmt.Errorf("failed to process assignment %s: %w", assignment.Id, err)
 		}
 	}
 	return &buf, nil
+}
+
+type PDFPipeline struct {
+	ctx            *model.Context
+	internalBuffer bytes.Buffer
+	zipWriter      *zip.Writer
+	zipFile        io.Writer
+	err            error
+}
+
+func (p *PDFPipeline) ExtractPages(ctx *model.Context, fromPage int, toPage int) *PDFPipeline {
+	if p.err != nil {
+		return p
+	}
+
+	pages := make([]int, toPage-fromPage+1)
+	for i := fromPage; i <= toPage; i++ {
+		pages[i-fromPage] = i
+	}
+	p.ctx, p.err = pdfcpu.ExtractPages(ctx, pages, false)
+	return p
+}
+
+func (p *PDFPipeline) WriteContext() *PDFPipeline {
+	if p.err != nil {
+		return p
+	}
+	p.err = api.WriteContext(p.ctx, &p.internalBuffer)
+	return p
+}
+
+func (p *PDFPipeline) CreateZipEntry(assignmentID string) *PDFPipeline {
+	if p.err != nil {
+		return p
+	}
+	p.zipFile, p.err = p.zipWriter.Create(assignmentID + ".pdf")
+	return p
+}
+
+func (p *PDFPipeline) CopyToZip() *PDFPipeline {
+	if p.err != nil {
+		return p
+	}
+	_, p.err = io.Copy(p.zipFile, &p.internalBuffer)
+	return p
+}
+
+func (p *PDFPipeline) Error() error {
+	return p.err
 }
