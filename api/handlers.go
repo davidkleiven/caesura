@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -49,6 +50,46 @@ func DeleteMode(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func SubmitHandler(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseMultipartForm(100 << 20); err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		slog.Error("Failed to parse form", "error", err)
+		return
+	}
+
+	file, _, err := r.FormFile("document")
+	if err != nil {
+		http.Error(w, "Failed to retrieve file from form", http.StatusBadRequest)
+		slog.Error("Failed to retrieve file from form", "error", err)
+		return
+	}
+	defer file.Close()
+
+	var assignments []pkg.Assignment
+	raw := r.MultipartForm.Value["assignments"]
+	for _, rawAssignment := range raw {
+		var assignment pkg.Assignment
+		slog.Info("Processing assignment", "rawAssignment", rawAssignment)
+		if err := json.Unmarshal([]byte(rawAssignment), &assignment); err != nil {
+			http.Error(w, "Failed to parse assignments", http.StatusBadRequest)
+			slog.Error("Failed to parse assignments", "error", err)
+			return
+		}
+		assignments = append(assignments, assignment)
+	}
+
+	buf, err := pkg.SplitPdf(file, assignments)
+	if err != nil {
+		http.Error(w, "Failed to split PDF", http.StatusInternalServerError)
+		slog.Error("Failed to split PDF", "error", err)
+		return
+	}
+
+	_ = buf
+
+	w.Write([]byte("Submission received successfully!"))
+}
+
 func Setup() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", RootHandler)
@@ -57,5 +98,6 @@ func Setup() *http.ServeMux {
 	mux.HandleFunc("/choice", ChoiceHandler)
 	mux.Handle("/js/", web.JsServer())
 	mux.HandleFunc("/delete-mode", DeleteMode)
+	mux.HandleFunc("/submit", SubmitHandler)
 	return mux
 }
