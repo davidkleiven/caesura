@@ -10,6 +10,7 @@ const nextPageBtn = document.getElementById('next-page');
 const assignPageBtn = document.getElementById('assign-page');
 const assignmentSection = document.getElementById('assignments');
 const deleteOnClickCheckBox = document.getElementById('delete-on-click');
+const submitBtn = document.getElementById('submit-btn');
 
 let pdfDoc = null;
 let currentPage = 1;
@@ -83,6 +84,8 @@ const renderPage = (num) => {
         alert('Please upload a valid PDF file.');
     }
     });
+
+    submitBtn.addEventListener('click', submitPartitions)
 
 function deleteOrJump(elem) {
     if (deleteOnClickCheckBox.checked) {
@@ -159,4 +162,33 @@ function assignementColor(assignmentId) {
         return "bg-yellow-600 hover:bg-yellow-700";
     }
     return "bg-gray-400 hover:bg-gray-500";
+}
+
+async function submitPartitions() {
+    if (!fileInput.files.length) {
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('document', fileInput.files[0]);
+
+    for (const div of assignmentSection.children) {
+        if (div.id.endsWith('-group')) {
+            const assignmentId = div.id.replace('-group', '');
+            const fromPage = document.getElementById(`${assignmentId}-from`).textContent;
+            const toPage = document.getElementById(`${assignmentId}-to`).textContent;
+
+            formData.append('assignments', JSON.stringify({
+                id: assignmentId,
+                from: parseInt(fromPage),
+                to: parseInt(toPage)
+            }));
+        }
+    }
+
+    const response = await fetch("/submit", {method: 'POST', body: formData});
+    if (!response.ok) {
+        const errorText = await response.text();
+        alert(`Error submitting partition: ${errorText}`);
+    }
 }
