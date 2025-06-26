@@ -13,10 +13,14 @@ const deleteOnClickCheckBox = document.getElementById('delete-on-click');
 
 let pdfDoc = null;
 let currentPage = 1;
+let currentRenderTask = null;
 
 const renderPage = (num) => {
-    pdfDoc.getPage(num).then((page) => {
+    pdfDoc.getPage(num).then(async (page) => {
         if (!pdfDoc) return;
+        if (currentRenderTask) {
+            currentRenderTask.cancel();
+        }
         const viewport = page.getViewport({ scale: 1.5 });
         canvas.height = viewport.height;
         canvas.width = viewport.width;
@@ -25,8 +29,18 @@ const renderPage = (num) => {
         canvasContext: ctx,
         viewport: viewport,
         };
-        page.render(renderContext);
+        currentRenderTask = page.render(renderContext);
         pageNumSpan.textContent = num;
+
+        try {
+            await currentRenderTask.promise;
+        } catch(err) {
+            if (err.name === 'RenderingCancelledException') {
+                console.log('Rendering was cancelled.');
+            } else {
+                throw err;
+            }
+        }
     });
     };
 
@@ -70,9 +84,13 @@ const renderPage = (num) => {
     }
     });
 
-function deleteIfChecked(elem) {
+function deleteOrJump(elem) {
     if (deleteOnClickCheckBox.checked) {
         elem.parentElement.remove();
+    } else {
+        const assignmentId = elem.id;
+        const fromPage = parseInt(document.getElementById(`${assignmentId}-from`).textContent);
+        queueRenderPage(fromPage);
     }
 }
 
@@ -92,7 +110,7 @@ function addAssignment() {
         const color = assignementColor(assignmentId);
         assignmentSection.innerHTML += `
             <div id="${assignmentId}-group" class="relative group inline-block pr-2">
-                <button id=${assignmentId} onclick="deleteIfChecked(this)" class="flex text-white ${color} py-2 px-4 rounded-lg">
+                <button id=${assignmentId} onclick="deleteOrJump(this)" class="flex text-white ${color} py-2 px-4 rounded-lg">
                     <span id="${assignmentId}-from">${currentPage}</span> -
                     <span id="${assignmentId}-to">${currentPage}</span>
                 </button>
