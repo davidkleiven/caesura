@@ -9,6 +9,7 @@ import (
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
+	"github.com/pkg/errors"
 )
 
 type Assignment struct {
@@ -22,9 +23,9 @@ func SplitPdf(rs io.ReadSeeker, assignments []Assignment) (*bytes.Buffer, error)
 	zipWriter := zip.NewWriter(&buf)
 	defer zipWriter.Close()
 
-	ctx, err := api.ReadContext(rs, nil)
+	ctx, err := api.ReadValidateAndOptimize(rs, model.NewDefaultConfiguration())
 	if err != nil {
-		return &buf, fmt.Errorf("failed to read PDF context: %w", err)
+		return &buf, errors.Wrap(err, "failed to read and validate PDF context")
 	}
 
 	for _, assignment := range assignments {
