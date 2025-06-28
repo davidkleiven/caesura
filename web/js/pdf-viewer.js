@@ -172,19 +172,21 @@ async function submitPartitions() {
     const formData = new FormData();
     formData.append('document', fileInput.files[0]);
 
+    let assignments = [];
     for (const div of assignmentSection.children) {
         if (div.id.endsWith('-group')) {
             const assignmentId = div.id.replace('-group', '');
             const fromPage = document.getElementById(`${assignmentId}-from`).textContent;
             const toPage = document.getElementById(`${assignmentId}-to`).textContent;
 
-            formData.append('assignments', JSON.stringify({
+            assignments.append({
                 id: assignmentId,
                 from: parseInt(fromPage),
                 to: parseInt(toPage)
-            }));
+            });
         }
     }
+    formData.append('assignments', JSON.stringify(assignments));
 
     const response = await fetch("/submit", {method: 'POST', body: formData});
     if (!response.ok) {

@@ -72,16 +72,12 @@ func (s *StoreManager) SubmitHandler(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	var assignments []pkg.Assignment
+
 	raw := r.MultipartForm.Value["assignments"]
-	for _, rawAssignment := range raw {
-		var assignment pkg.Assignment
-		slog.Info("Processing assignment", "rawAssignment", rawAssignment)
-		if err := json.Unmarshal([]byte(rawAssignment), &assignment); err != nil {
-			http.Error(w, "Failed to parse assignments", http.StatusBadRequest)
-			slog.Error("Failed to parse assignments", "error", err)
-			return
-		}
-		assignments = append(assignments, assignment)
+	if err := json.Unmarshal([]byte(raw[0]), &assignments); err != nil {
+		http.Error(w, "Failed to parse assignments", http.StatusBadRequest)
+		slog.Error("Failed to parse assignments", "error", err)
+		return
 	}
 
 	buf, err := pkg.SplitPdf(file, assignments)
@@ -94,7 +90,7 @@ func (s *StoreManager) SubmitHandler(w http.ResponseWriter, r *http.Request) {
 	filename := fmt.Sprintf("%s_%s.zip", r.FormValue("title"), r.FormValue("composer"))
 	s.Store.Store(strings.ReplaceAll(filename, " ", ""), buf)
 
-	w.Write([]byte("Submission received successfully!"))
+	w.Write([]byte("File uploaded successfully!"))
 }
 
 func Setup(s *StoreManager) *http.ServeMux {
