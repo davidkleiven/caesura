@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/primitives"
@@ -25,7 +26,7 @@ func CreateNPagePdf(w io.Writer, n int) error {
 	pages := make(map[string]*primitives.PDFPage, n)
 	for i := 0; i < n; i++ {
 		pageNumber := i + 1
-		pages[fmt.Sprintf("%d", pageNumber)] = &primitives.PDFPage{
+		pages[strconv.Itoa(pageNumber)] = &primitives.PDFPage{
 			Content: &primitives.Content{
 				TextBoxes: []*primitives.TextBox{
 					createTextBox(fmt.Sprintf("This is page %d", pageNumber)),
