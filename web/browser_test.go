@@ -33,7 +33,10 @@ func withBrowser(testFunc func(t *testing.T, page playwright.Page)) func(t *test
 			return
 		}
 
-		mux := api.Setup()
+		storeMng := api.StoreManager{
+			Store: pkg.NewInMemoryStore(),
+		}
+		mux := api.Setup(&storeMng)
 		server := httptest.NewServer(mux)
 		defer server.Close()
 

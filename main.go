@@ -10,10 +10,14 @@ import (
 	"time"
 
 	"github.com/davidkleiven/caesura/api"
+	"github.com/davidkleiven/caesura/pkg"
 )
 
 func main() {
-	mux := api.Setup()
+	storeMng := api.StoreManager{
+		Store: pkg.NewInMemoryStore(),
+	}
+	mux := api.Setup(&storeMng)
 	port := api.Port()
 
 	server := &http.Server{

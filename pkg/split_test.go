@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
@@ -129,5 +130,33 @@ func TestEmptyBufferReturnedOnInvalidPdf(t *testing.T) {
 	// Ensure empty buffer is returned on error
 	if result.Len() == 0 {
 		t.Errorf("Expected empty buffer on error, got %d bytes", result.Len())
+	}
+}
+
+func TestProcessingAbortOnError(t *testing.T) {
+	var buffer bytes.Buffer
+
+	if err := CreateNPagePdf(&buffer, 10); err != nil {
+		t.Error(err)
+		return
+	}
+
+	assignments := []Assignment{
+		{Id: "Part1", From: 1000, To: 1500},
+	}
+	result, err := SplitPdf(bytes.NewReader(buffer.Bytes()), assignments)
+	if err == nil {
+		t.Error("Expected an error due to invalid assignment ID, but got none")
+		return
+	}
+
+	if result.Len() == 0 {
+		t.Errorf("Expected non-empty buffer on error, got %d bytes", result.Len())
+		return
+	}
+
+	if !strings.Contains(err.Error(), "failed to process assignment") {
+		t.Errorf("Expected error about invalid assignment ID, got: %v", err)
+		return
 	}
 }
