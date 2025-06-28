@@ -1,9 +1,6 @@
 package web_test
 
 import (
-	"bytes"
-	"encoding/json"
-	"io"
 	"net/http/httptest"
 	"os"
 	"strings"
@@ -11,8 +8,7 @@ import (
 	"time"
 
 	"github.com/davidkleiven/caesura/api"
-	pdfapi "github.com/pdfcpu/pdfcpu/pkg/api"
-	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/primitives"
+	"github.com/davidkleiven/caesura/pkg"
 	"github.com/playwright-community/playwright-go"
 )
 
@@ -134,45 +130,6 @@ func TestFieldPopulatedOnClick(t *testing.T) {
 	})(t)
 }
 
-func createTextBox(txt string) *primitives.TextBox {
-	return &primitives.TextBox{
-		Value:    txt,
-		Position: [2]float64{100, 100},
-		Font: &primitives.FormFont{
-			Name: "Helvetica",
-			Size: 12,
-		},
-	}
-}
-
-func createTwoPagePdf(w io.Writer) error {
-	desc := primitives.PDF{
-		Pages: map[string]*primitives.PDFPage{
-			"1": {
-				Content: &primitives.Content{
-					TextBoxes: []*primitives.TextBox{
-						createTextBox("This is page 1"),
-					},
-				},
-			},
-			"2": {
-				Content: &primitives.Content{
-					TextBoxes: []*primitives.TextBox{
-						createTextBox("This is page 2"),
-					},
-				},
-			},
-		},
-	}
-
-	data, err := json.Marshal(desc)
-	if err != nil {
-		return err
-	}
-	return pdfapi.Create(nil, bytes.NewBuffer(data), w, nil)
-
-}
-
 func TestLoadPdf(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
 		// Ensure that Page shows 0 / 0
@@ -202,7 +159,7 @@ func TestLoadPdf(t *testing.T) {
 			return
 		}
 		defer os.Remove(f.Name())
-		if err := createTwoPagePdf(f); err != nil {
+		if err := pkg.CreateNPagePdf(f, 2); err != nil {
 			t.Error(err)
 			return
 		}
@@ -253,7 +210,7 @@ func TestAssign(t *testing.T) {
 			return
 		}
 		defer os.Remove(f.Name())
-		if err := createTwoPagePdf(f); err != nil {
+		if err := pkg.CreateNPagePdf(f, 2); err != nil {
 			t.Error(err)
 			return
 		}
@@ -397,7 +354,7 @@ func TestJumpToAssignedPage(t *testing.T) {
 			return
 		}
 		defer os.Remove(f.Name())
-		if err := createTwoPagePdf(f); err != nil {
+		if err := pkg.CreateNPagePdf(f, 2); err != nil {
 			t.Error(err)
 			return
 		}
