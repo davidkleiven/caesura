@@ -179,7 +179,7 @@ async function submitPartitions() {
             const fromPage = document.getElementById(`${assignmentId}-from`).textContent;
             const toPage = document.getElementById(`${assignmentId}-to`).textContent;
 
-            assignments.append({
+            assignments.push({
                 id: assignmentId,
                 from: parseInt(fromPage),
                 to: parseInt(toPage)

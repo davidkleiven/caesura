@@ -133,6 +133,49 @@ func TestFieldPopulatedOnClick(t *testing.T) {
 	})(t)
 }
 
+func loadPdf(page playwright.Page, t *testing.T) func() {
+	f, err := os.CreateTemp("", "test*.pdf")
+	if err != nil {
+		t.Error(err)
+		return func() {}
+	}
+	removeFile := func() { os.Remove(f.Name()) }
+	if err := pkg.CreateNPagePdf(f, 2); err != nil {
+		t.Error(err)
+		return removeFile
+	}
+
+	if err := page.Locator("#file-input").SetInputFiles(f.Name()); err != nil {
+		t.Error(err)
+		return removeFile
+	}
+
+	waitOpts := playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(5000)}
+	if _, err := page.WaitForFunction(`() => document.querySelector("#page-count").textContent === "2"`, waitOpts); err != nil {
+		t.Errorf("Failed to load PDF: %s", err)
+		return removeFile
+	}
+	return removeFile
+}
+
+func assignPage(page playwright.Page, t *testing.T) {
+	score := page.Locator("li:text('Score')").First()
+	if err := score.Click(); err != nil {
+		t.Error(err)
+		return
+	}
+
+	assignButton := page.Locator("#assign-page")
+	assignButton.Click()
+
+	// Now the page should be set to 2
+	pageNum := page.Locator("#page-num")
+	if currentPage, err := pageNum.TextContent(); err != nil || currentPage != "2" {
+		t.Errorf("Expected current page to be '2', but got: %s (err: %v)", currentPage, err)
+		return
+	}
+}
+
 func TestLoadPdf(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
 		// Ensure that Page shows 0 / 0
@@ -156,21 +199,8 @@ func TestLoadPdf(t *testing.T) {
 			t.Errorf("Expected page count to be '0', but got: %s", pageCount)
 		}
 
-		f, err := os.CreateTemp("", "test*.pdf")
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		defer os.Remove(f.Name())
-		if err := pkg.CreateNPagePdf(f, 2); err != nil {
-			t.Error(err)
-			return
-		}
-
-		if err := page.Locator("#file-input").SetInputFiles(f.Name()); err != nil {
-			t.Error(err)
-			return
-		}
+		deletePdf := loadPdf(page, t)
+		defer deletePdf()
 
 		nextPage := page.Locator("#next-page")
 		prevPage := page.Locator("#prev-page")
@@ -207,27 +237,8 @@ func TestLoadPdf(t *testing.T) {
 
 func TestAssign(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
-		f, err := os.CreateTemp("", "test*.pdf")
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		defer os.Remove(f.Name())
-		if err := pkg.CreateNPagePdf(f, 2); err != nil {
-			t.Error(err)
-			return
-		}
-
-		if err := page.Locator("#file-input").SetInputFiles(f.Name()); err != nil {
-			t.Error(err)
-			return
-		}
-
-		waitOpts := playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(5000)}
-		if _, err := page.WaitForFunction(`() => document.querySelector("#page-count").textContent === "2"`, waitOpts); err != nil {
-			t.Errorf("Failed to load PDF: %s", err)
-			return
-		}
+		cancel := loadPdf(page, t)
+		defer cancel()
 
 		assignButton := page.Locator("#assign-page")
 
@@ -307,6 +318,8 @@ func TestAssign(t *testing.T) {
 			return
 		}
 
+		waitOpts := playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(5000)}
+
 		for i, check := range []struct {
 			from      string
 			to        string
@@ -351,43 +364,16 @@ func TestAssign(t *testing.T) {
 
 func TestJumpToAssignedPage(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
-		f, err := os.CreateTemp("", "test*.pdf")
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		defer os.Remove(f.Name())
-		if err := pkg.CreateNPagePdf(f, 2); err != nil {
-			t.Error(err)
-			return
-		}
-
-		if err := page.Locator("#file-input").SetInputFiles(f.Name()); err != nil {
-			t.Error(err)
-			return
-		}
-
-		waitOpts := playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(5000)}
-		if _, err := page.WaitForFunction(`() => document.querySelector("#page-count").textContent === "2"`, waitOpts); err != nil {
-			t.Errorf("Failed to load PDF: %s", err)
-			return
-		}
+		deletePdf := loadPdf(page, t)
+		defer deletePdf()
 
 		score := page.Locator("li:text('Score')").First()
 		if err := score.Click(); err != nil {
 			t.Error(err)
 			return
 		}
-
-		assignButton := page.Locator("#assign-page")
-		assignButton.Click()
-
-		// Now the page should be set to 2
+		assignPage(page, t)
 		pageNum := page.Locator("#page-num")
-		if currentPage, err := pageNum.TextContent(); err != nil || currentPage != "2" {
-			t.Errorf("Expected current page to be '2', but got: %s (err: %v)", currentPage, err)
-			return
-		}
 
 		if err := page.Locator("#score").Click(); err != nil {
 			t.Error(err)
@@ -399,5 +385,31 @@ func TestJumpToAssignedPage(t *testing.T) {
 			t.Errorf("Expected current page to be '1', but got: %s (err: %v)", currentPage, err)
 			return
 		}
+	})(t)
+}
+
+func TestSubmit(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		deletePdf := loadPdf(page, t)
+		defer deletePdf()
+		assignPage(page, t)
+
+		if err := page.Locator("#submit-btn").Click(); err != nil {
+			t.Error(err)
+			return
+		}
+
+		waitOpts := playwright.PageExpectResponseOptions{Timeout: playwright.Float(5000)}
+		resp, err := page.ExpectResponse("**/submit**", func() error { return nil }, waitOpts)
+		if err != nil {
+			t.Errorf("Failed to submit form: %s", err)
+			return
+		}
+
+		if !resp.Ok() {
+			t.Errorf("Expected response to be OK, but got status: %d", resp.Status())
+			return
+		}
+
 	})(t)
 }
