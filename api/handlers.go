@@ -2,9 +2,11 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/davidkleiven/caesura/pkg"
 	"github.com/davidkleiven/caesura/web"
@@ -50,7 +52,11 @@ func DeleteMode(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func SubmitHandler(w http.ResponseWriter, r *http.Request) {
+type StoreManager struct {
+	Store pkg.Storer
+}
+
+func (s *StoreManager) SubmitHandler(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(100 << 20); err != nil {
 		http.Error(w, "Failed to parse form", http.StatusBadRequest)
 		slog.Error("Failed to parse form", "error", err)
@@ -85,12 +91,13 @@ func SubmitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = buf
+	filename := fmt.Sprintf("%s_%s.zip", r.FormValue("title"), r.FormValue("composer"))
+	s.Store.Store(strings.ReplaceAll(filename, " ", ""), buf)
 
 	w.Write([]byte("Submission received successfully!"))
 }
 
-func Setup() *http.ServeMux {
+func Setup(s *StoreManager) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", RootHandler)
 	mux.Handle("/css/", web.CssServer())
@@ -98,6 +105,6 @@ func Setup() *http.ServeMux {
 	mux.HandleFunc("/choice", ChoiceHandler)
 	mux.Handle("/js/", web.JsServer())
 	mux.HandleFunc("/delete-mode", DeleteMode)
-	mux.HandleFunc("/submit", SubmitHandler)
+	mux.HandleFunc("/submit", s.SubmitHandler)
 	return mux
 }
