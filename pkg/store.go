@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -57,5 +59,61 @@ func (s *InMemoryStore) Get(name string) (io.Reader, error) {
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
 		data: make(map[string][]byte),
+	}
+}
+
+type FSStore struct {
+	directory string
+}
+
+func (s *FSStore) Store(name string, r io.Reader) error {
+	path := filepath.Join(s.directory, name)
+	file, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("error opening file %s: %w", name, err)
+	}
+	defer file.Close()
+
+	if _, err := io.Copy(file, r); err != nil {
+		return errors.Join(ErrRetrievingContent, err)
+	}
+	return nil
+}
+
+func (s *FSStore) List(prefix string) ([]string, error) {
+	files, err := os.ReadDir(s.directory)
+	var result []string
+	if err != nil {
+		return result, fmt.Errorf("error reading directory %s: %w", s.directory, err)
+	}
+
+	for _, file := range files {
+		if strings.HasPrefix(strings.ToLower(file.Name()), strings.ToLower(prefix)) {
+			result = append(result, file.Name())
+		}
+	}
+	return result, nil
+}
+
+func (s *FSStore) Delete(name string) error {
+	path := filepath.Join(s.directory, name)
+	if err := os.Remove(path); err != nil {
+		return nil
+	}
+	return nil
+}
+
+func (s *FSStore) Get(name string) (io.Reader, error) {
+	path := filepath.Join(s.directory, name)
+	file, err := os.Open(path)
+	if err != nil {
+		return bytes.NewBuffer([]byte{}), fmt.Errorf("error opening file %s: %w", name, err)
+	}
+	return file, nil
+}
+
+func NewFSStore(directory string) *FSStore {
+	return &FSStore{
+		directory: directory,
 	}
 }
