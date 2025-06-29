@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -52,6 +51,26 @@ func DeleteMode(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+type MetaData struct {
+	Title    string `json:"title"`
+	Composer string `json:"composer"`
+	Arranger string `json:"arranger"`
+}
+
+func (m *MetaData) String() string {
+	result := make([]string, 0, 3)
+	if m.Title != "" {
+		result = append(result, m.Title)
+	}
+	if m.Composer != "" {
+		result = append(result, m.Composer)
+	}
+	if m.Arranger != "" {
+		result = append(result, m.Arranger)
+	}
+	return strings.Join(result, "_")
+}
+
 type StoreManager struct {
 	Store pkg.Storer
 }
@@ -72,11 +91,38 @@ func (s *StoreManager) SubmitHandler(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	var assignments []pkg.Assignment
-
 	raw := r.MultipartForm.Value["assignments"]
+	if len(raw) == 0 {
+		http.Error(w, "No assignments provided", http.StatusBadRequest)
+		slog.Error("No assignments provided")
+		return
+	}
 	if err := json.Unmarshal([]byte(raw[0]), &assignments); err != nil {
 		http.Error(w, "Failed to parse assignments", http.StatusBadRequest)
 		slog.Error("Failed to parse assignments", "error", err)
+		return
+	}
+
+	var metaData MetaData
+	rawMeta := r.MultipartForm.Value["metadata"]
+
+	if len(rawMeta) == 0 {
+		http.Error(w, "No metadata provided", http.StatusBadRequest)
+		slog.Error("No metadata provided")
+		return
+	}
+
+	if err := json.Unmarshal([]byte(rawMeta[0]), &metaData); err != nil {
+		http.Error(w, "Failed to parse metadata", http.StatusBadRequest)
+		slog.Error("Failed to parse metadata", "error", err)
+		return
+	}
+
+	filename := pkg.SanitizeString(metaData.String()) + ".zip"
+
+	if filename == ".zip" {
+		http.Error(w, "Filename is empty. Note that only alphanumeric characters are allowed", http.StatusBadRequest)
+		slog.Error("Filename cannot be empty.", "title", metaData.Title, "composer", metaData.Composer, "arranger", metaData.Arranger)
 		return
 	}
 
@@ -87,9 +133,8 @@ func (s *StoreManager) SubmitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filename := fmt.Sprintf("%s_%s.zip", r.FormValue("title"), r.FormValue("composer"))
-	s.Store.Store(strings.ReplaceAll(filename, " ", ""), buf)
-
+	s.Store.Store(filename, buf)
+	slog.Info("File stored successfully", "filename", filename)
 	w.Write([]byte("File uploaded successfully!"))
 }
 

@@ -141,23 +141,40 @@ func TestSubmitBadRequestHandler(t *testing.T) {
 	}
 }
 
-func validMultipartForm() (*bytes.Buffer, string) {
-	var multipartBuffer bytes.Buffer
-	multipartWriter := multipart.NewWriter(&multipartBuffer)
-	multipartWriter.WriteField("composer", "Johan Sebastian Bach")
-	multipartWriter.WriteField("title", "Brandenburg Concerto No. 3")
-	multipartWriter.CreateFormField("filename.pdf")
-	contentWriter, err := multipartWriter.CreateFormFile("document", "filename.pdf")
+func withPdf(w *multipart.Writer) {
+	w.CreateFormField("filename.pdf")
+	contentWriter, err := w.CreateFormFile("document", "filename.pdf")
 	if err != nil {
 		panic(err)
 	}
 	pkg.CreateNPagePdf(contentWriter, 10)
+}
 
+func withInvalidPdf(w *multipart.Writer) {
+	w.CreateFormField("filename.txt")
+	contentWriter, err := w.CreateFormFile("document", "filename.txt")
+	if err != nil {
+		panic(err)
+	}
+	contentWriter.Write([]byte("This is not a PDF file."))
+	// Note: This is intentionally not a valid PDF to test error handling
+}
+
+func withInvalidMetaData(w *multipart.Writer) {
+	metaDataWriter, err := w.CreateFormField("metadata")
+	if err != nil {
+		panic(err)
+	}
+	// Invalid JSON for metadata
+	metaDataWriter.Write([]byte("invalid json"))
+}
+
+func withAssignments(w *multipart.Writer) {
 	assignments := []pkg.Assignment{
 		{Id: "Part1", From: 1, To: 5},
 		{Id: "Part2", From: 6, To: 10},
 	}
-	assignmentWriter, err := multipartWriter.CreateFormField("assignments")
+	assignmentWriter, err := w.CreateFormField("assignments")
 	if err != nil {
 		panic(err)
 	}
@@ -166,10 +183,54 @@ func validMultipartForm() (*bytes.Buffer, string) {
 		panic(err)
 	}
 	assignmentWriter.Write(jsonBytes)
+}
+
+func withMetaData(w *multipart.Writer) {
+	metaDataWriter, err := w.CreateFormField("metadata")
+	if err != nil {
+		panic(err)
+	}
+	metaData := MetaData{
+		Title:    "Brandenburg Concerto No. 3",
+		Composer: "Johan Sebastian Bach",
+		Arranger: "",
+	}
+	metaDataBytes, err := json.Marshal(metaData)
+	if err != nil {
+		panic(err)
+	}
+	metaDataWriter.Write(metaDataBytes)
+}
+
+func withEmptyMetaData(w *multipart.Writer) {
+	metaDataWriter, err := w.CreateFormField("metadata")
+	if err != nil {
+		panic(err)
+	}
+	// Empty metadata
+	metaDataWriter.Write([]byte("{}"))
+}
+
+func multipartForm(opts ...func(w *multipart.Writer)) (*bytes.Buffer, string) {
+	var multipartBuffer bytes.Buffer
+	multipartWriter := multipart.NewWriter(&multipartBuffer)
+
+	for _, opt := range opts {
+		opt(multipartWriter)
+	}
+
 	if err := multipartWriter.Close(); err != nil {
 		panic(err)
 	}
 	return &multipartBuffer, multipartWriter.FormDataContentType()
+}
+
+func validMultipartForm() (*bytes.Buffer, string) {
+	return multipartForm(
+		withPdf,
+		withAssignments,
+		withMetaData,
+	)
 }
 
 func TestSubmitHandlerValidRequest(t *testing.T) {
@@ -199,7 +260,7 @@ func TestSubmitHandlerValidRequest(t *testing.T) {
 	}
 
 	// Check content in the store
-	content, err := inMemStore.Get("BrandenburgConcertoNo.3_JohanSebastianBach.zip")
+	content, err := inMemStore.Get("brandenburgconcertono3_johansebastianbach.zip")
 	if err != nil {
 		t.Errorf("Failed to get file from store: %v", err)
 		return
@@ -299,24 +360,10 @@ func TestSubmitNonPdfFileAsDocument(t *testing.T) {
 	storeMng := &StoreManager{Store: inMemStore}
 	recorder := httptest.NewRecorder()
 
-	var multipartBuffer bytes.Buffer
-	multipartWriter := multipart.NewWriter(&multipartBuffer)
-	contentWriter, err := multipartWriter.CreateFormFile("document", "filename.txt")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	contentWriter.Write([]byte("This is not a PDF file."))
-	assignmentWriter, err := multipartWriter.CreateFormField("assignments")
-	if err != nil {
-		t.Error(err)
-		return
-	}
-	assignmentWriter.Write([]byte("[]"))
-	multipartWriter.Close()
+	multipartBuffer, contentType := multipartForm(withInvalidPdf, withAssignments, withMetaData)
 
-	request := httptest.NewRequest("POST", "/submit", &multipartBuffer)
-	request.Header.Set("Content-Type", multipartWriter.FormDataContentType())
+	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
+	request.Header.Set("Content-Type", contentType)
 
 	storeMng.SubmitHandler(recorder, request)
 
@@ -328,5 +375,111 @@ func TestSubmitNonPdfFileAsDocument(t *testing.T) {
 	expectedError := "Failed to split PDF"
 	if !strings.Contains(recorder.Body.String(), expectedError) {
 		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
+	}
+}
+
+func TestSubmitHandlerNoAssignments(t *testing.T) {
+	inMemStore := pkg.NewInMemoryStore()
+	storeMng := &StoreManager{Store: inMemStore}
+	recorder := httptest.NewRecorder()
+
+	multipartBuffer, contentType := multipartForm(withPdf, withMetaData)
+	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
+	request.Header.Set("Content-Type", contentType)
+
+	storeMng.SubmitHandler(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code 400, got %d", recorder.Code)
+		return
+	}
+
+	expectedError := "No assignments provided"
+	if !strings.Contains(recorder.Body.String(), expectedError) {
+		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
+	}
+}
+
+func TestSubmitHandlerNoMetaData(t *testing.T) {
+	inMemStore := pkg.NewInMemoryStore()
+	storeMng := &StoreManager{Store: inMemStore}
+	recorder := httptest.NewRecorder()
+
+	multipartBuffer, contentType := multipartForm(withPdf, withAssignments)
+	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
+	request.Header.Set("Content-Type", contentType)
+
+	storeMng.SubmitHandler(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code 400, got %d", recorder.Code)
+		return
+	}
+
+	expectedError := "No metadata provided"
+	if !strings.Contains(recorder.Body.String(), expectedError) {
+		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
+	}
+}
+
+func TestSubmitHandlerInvalidMetaData(t *testing.T) {
+	inMemStore := pkg.NewInMemoryStore()
+	storeMng := &StoreManager{Store: inMemStore}
+	recorder := httptest.NewRecorder()
+
+	multipartBuffer, contentType := multipartForm(withPdf, withAssignments, withInvalidMetaData)
+	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
+	request.Header.Set("Content-Type", contentType)
+
+	storeMng.SubmitHandler(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code 400, got %d", recorder.Code)
+		return
+	}
+
+	expectedError := "Failed to parse metadata"
+	if !strings.Contains(recorder.Body.String(), expectedError) {
+		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
+	}
+}
+
+func TestSubmitWithEmptyMetaData(t *testing.T) {
+	inMemStore := pkg.NewInMemoryStore()
+	storeMng := &StoreManager{Store: inMemStore}
+	recorder := httptest.NewRecorder()
+
+	multipartBuffer, contentType := multipartForm(withPdf, withAssignments, withEmptyMetaData)
+	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
+	request.Header.Set("Content-Type", contentType)
+
+	storeMng.SubmitHandler(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code 400, got %d", recorder.Code)
+		return
+	}
+
+	expectedResponse := "Filename is empty."
+	if !strings.Contains(recorder.Body.String(), expectedResponse) {
+		t.Errorf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
+	}
+}
+
+func TestMetaDataString(t *testing.T) {
+	for i, test := range []struct {
+		metaData MetaData
+		expected string
+	}{
+		{MetaData{Title: "Title", Composer: "Composer", Arranger: "Arranger"}, "Title_Composer_Arranger"},
+		{MetaData{Title: "", Composer: "", Arranger: ""}, ""},
+		{MetaData{Title: "Title", Composer: "", Arranger: ""}, "Title"},
+		{MetaData{Title: "", Composer: "Composer", Arranger: ""}, "Composer"},
+		{MetaData{Title: "", Composer: "", Arranger: "Arranger"}, "Arranger"},
+	} {
+		result := test.metaData.String()
+		if result != test.expected {
+			t.Errorf("Test %d failed. Expected '%s', got '%s'", i, test.expected, result)
+		}
 	}
 }

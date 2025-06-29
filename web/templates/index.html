@@ -28,7 +28,7 @@
     <!-- Page Content Placeholder -->
     <div class="flex-col pt-16">
         <div class="flex items-center justify-center">
-            <div id="upload-form" class="bg-white p-8 rounded-2xl shadow-lg max-w-lg w-full">
+            <div id="upload-form" class="flex bg-white p-8 rounded-2xl shadow-lg w-full">
                 <input
                     type="file"
                     name="myfile"
@@ -42,6 +42,20 @@
                             hover:file:bg-blue-100
                             transition cursor-pointer"
                     />
+                    <div id="meta-data-container" class="flex">
+                        <div class="flex items-center">
+                            <p class="font-bold pr-2">Title:</p>
+                            <input type="text" name="title" id="title-input" placeholder="Enter title"/>
+                        </div>
+                        <div class="flex items-center">
+                            <p class="font-bold pr-2">Composer:</p>
+                            <input type="text" name="composer" id="composer-input" placeholder="Enter composer"/>
+                        </div>
+                        <div class="flex items-center">
+                            <p class="font-bold pr-2">Arranger:</p>
+                            <input type="text" name="arranger" id="arranger-input" placeholder="Enter arranger"/>
+                        </div>
+                    </div>
             </div>
         </div>
         <div class="flex p-8">
