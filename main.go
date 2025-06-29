@@ -14,8 +14,25 @@ import (
 )
 
 func main() {
+	config := pkg.NewDefaultConfig()
+	cfgFile, ok := os.LookupEnv("CAESURA_CONFIG")
+
+	if ok {
+		var err error
+		config, err = pkg.OverrideFromFile(cfgFile, config)
+		if err != nil {
+			slog.Error("Failed to load configuration from file", "file", cfgFile, "error", err)
+			os.Exit(1)
+		}
+	}
+
+	if err := config.Validate(); err != nil {
+		slog.Error("Invalid configuration", "error", err)
+		os.Exit(1)
+	}
+
 	storeMng := api.StoreManager{
-		Store: pkg.NewInMemoryStore(),
+		Store: pkg.GetStore(config),
 	}
 	mux := api.Setup(&storeMng)
 	port := api.Port()
