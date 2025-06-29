@@ -11,6 +11,9 @@ const assignPageBtn = document.getElementById('assign-page');
 const assignmentSection = document.getElementById('assignments');
 const deleteOnClickCheckBox = document.getElementById('delete-on-click');
 const submitBtn = document.getElementById('submit-btn');
+const composerInput = document.getElementById('composer-input');
+const arrangerInput = document.getElementById('arranger-input');
+const titleInput = document.getElementById('title-input');
 
 let pdfDoc = null;
 let currentPage = 1;
@@ -169,6 +172,11 @@ async function submitPartitions() {
         return;
     }
 
+    const metadata = getMetaData();
+    if (!metadata) {
+        return;
+    }
+
     const formData = new FormData();
     formData.append('document', fileInput.files[0]);
 
@@ -187,10 +195,25 @@ async function submitPartitions() {
         }
     }
     formData.append('assignments', JSON.stringify(assignments));
+    formData.append('metadata', JSON.stringify(metadata));
 
     const response = await fetch("/submit", {method: 'POST', body: formData});
     if (!response.ok) {
         const errorText = await response.text();
         alert(`Error submitting partition: ${errorText}`);
     }
+}
+
+function getMetaData() {
+    data = {
+        composer: composerInput.value.trim(),
+        arranger: arrangerInput.value.trim(),
+        title: titleInput.value.trim()
+    }
+
+    if (!data.composer && !data.arranger && !data.title) {
+        alert('Please fill in at least one of title/composer/arranger');
+        return null;
+    }
+    return data;
 }

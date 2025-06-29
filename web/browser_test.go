@@ -176,6 +176,26 @@ func assignPage(page playwright.Page, t *testing.T) {
 	}
 }
 
+func populateMetaData(page playwright.Page, t *testing.T) {
+	titleInput := page.Locator("#title-input")
+	if err := titleInput.Fill("Brandenburg Concerto No. 3"); err != nil {
+		t.Error(err)
+		return
+	}
+
+	composerInput := page.Locator("#composer-input")
+	if err := composerInput.Fill("Johann Sebastian Bach"); err != nil {
+		t.Error(err)
+		return
+	}
+
+	arrangerInput := page.Locator("#arranger-input")
+	if err := arrangerInput.Fill("Unknown"); err != nil {
+		t.Error(err)
+		return
+	}
+}
+
 func TestLoadPdf(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
 		// Ensure that Page shows 0 / 0
@@ -393,6 +413,7 @@ func TestSubmit(t *testing.T) {
 		deletePdf := loadPdf(page, t)
 		defer deletePdf()
 		assignPage(page, t)
+		populateMetaData(page, t)
 
 		if err := page.Locator("#submit-btn").Click(); err != nil {
 			t.Error(err)
