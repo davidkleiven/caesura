@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io"
 
+	"github.com/davidkleiven/caesura/pkg"
 	"github.com/davidkleiven/caesura/utils"
 )
 
@@ -15,9 +16,7 @@ var templatesFS embed.FS
 func Index() []byte {
 	tmpl := template.Must(template.ParseFS(templatesFS, "templates/index.html", "templates/header.html"))
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, nil); err != nil {
-		panic(err)
-	}
+	pkg.PanicOnErr(tmpl.Execute(&buf, nil))
 	return buf.Bytes()
 }
 
