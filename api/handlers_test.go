@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/json"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -254,25 +253,15 @@ func TestSubmitHandlerValidRequest(t *testing.T) {
 		t.Errorf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
 	}
 
-	if files, err := inMemStore.List(""); len(files) != 1 || err != nil {
-		t.Errorf("Expected 1 file in store, got %d with error %v", len(files), err)
+	if len(inMemStore.Data) != 1 {
+		t.Errorf("Expected 1 file in store, got %d", len(inMemStore.Data))
 		return
 	}
 
 	// Check content in the store
-	content, err := inMemStore.Get("brandenburgconcertono3_johansebastianbach.zip")
-	if err != nil {
-		t.Errorf("Failed to get file from store: %v", err)
-		return
-	}
+	content := inMemStore.Data["brandenburgconcertono3_johansebastianbach.zip"]
 
-	allContent, err := io.ReadAll(content)
-	if err != nil {
-		t.Errorf("Failed to read file content: %v", err)
-		return
-	}
-
-	zipReader, err := zip.NewReader(bytes.NewReader(allContent), int64(len(allContent)))
+	zipReader, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
 	if err != nil {
 		t.Errorf("Failed to read zip file: %v", err)
 		return
