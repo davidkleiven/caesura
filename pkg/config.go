@@ -10,6 +10,7 @@ import (
 
 type LocalFSStoreConfig struct {
 	Directory string `yaml:"directory"`
+	Database  string `yaml:"database"`
 }
 
 type Config struct {

@@ -111,17 +111,28 @@ func TestDefaultConfigWhenInvalidYamlContent(t *testing.T) {
 }
 
 func TestGetStore(t *testing.T) {
+	fsStore, err := os.MkdirTemp("", "fsstore")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+	defer os.RemoveAll(fsStore)
 	config := NewDefaultConfig()
 	config.StoreType = "local-fs"
-	config.LocalFS.Directory = "/tmp/caesura"
+	config.LocalFS.Directory = fsStore
 
 	store := GetStore(config)
+
 	if _, ok := store.(*FSStore); !ok {
 		t.Errorf("expected store to be of type FSStore, got %T", store)
 	}
 
 	config.StoreType = "in-memory"
 	store = GetStore(config)
+	if err != nil {
+		t.Error(err)
+		return
+	}
 	if _, ok := store.(*InMemoryStore); !ok {
 		t.Errorf("expected store to be of type InMemoryStore, got %T", store)
 	}

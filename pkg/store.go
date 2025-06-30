@@ -2,68 +2,122 @@ package pkg
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
+type StoreStatus string
+
+const (
+	StoreStatusPending  StoreStatus = "pending"
+	StoreStatusFinished StoreStatus = "finished"
+)
+
+type MetaData struct {
+	Title           string        `json:"title"`
+	Composer        string        `json:"composer"`
+	Arranger        string        `json:"arranger"`
+	Genre           string        `json:"genre"`
+	Year            string        `json:"year"`
+	Instrumentation string        `json:"instrumentation"`
+	Duration        time.Duration `json:"duration"`
+	Publisher       string        `json:"publisher"`
+	Isnm            string        `json:"ismn"`
+	Tags            string        `json:"tags"`
+	Notes           string        `json:"notes"`
+	Status          StoreStatus   `json:"status"`
+}
+
+func (m *MetaData) ResourceName() string {
+	result := make([]string, 0, 3)
+	if m.Title != "" {
+		result = append(result, m.Title)
+	}
+	if m.Composer != "" {
+		result = append(result, m.Composer)
+	}
+	if m.Arranger != "" {
+		result = append(result, m.Arranger)
+	}
+	return SanitizeString(strings.Join(result, "_")) + ".zip"
+}
+
+func (m *MetaData) MarshalJSON() ([]byte, error) {
+	type Alias MetaData
+	return json.Marshal(&struct {
+		*Alias
+		Recource string `json:"resource"`
+		Id       string `json:"id"`
+	}{
+		Alias:    (*Alias)(m),
+		Recource: m.ResourceName(),
+		Id:       m.ResourceId(),
+	})
+}
+
+func (m *MetaData) ResourceId() string {
+	hash := md5.Sum([]byte(m.ResourceName()))
+	return hex.EncodeToString(hash[:])
+}
+
 type Storer interface {
+	Register(m *MetaData) error
 	Store(name string, r io.Reader) error
-	List(prefix string) ([]string, error)
-	Delete(name string) error
-	Get(name string) (io.Reader, error)
+	RegisterSuccess(Id string) error
 }
 
 type InMemoryStore struct {
-	data map[string][]byte
+	Data     map[string][]byte
+	Metadata map[string]MetaData
 }
 
 var ErrFileNotFound = fmt.Errorf("file not found")
 var ErrRetrievingContent = fmt.Errorf("error retrieving content")
+var ErrResourceMetadataNotFound = fmt.Errorf("resource metadata not found")
+var ErrUpdateMetadata = fmt.Errorf("error updating metadata")
 
 func (s *InMemoryStore) Store(name string, r io.Reader) error {
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return errors.Join(ErrRetrievingContent, err)
 	}
-	s.data[name] = data
+	s.Data[name] = data
 	return nil
 }
 
-func (s *InMemoryStore) List(prefix string) ([]string, error) {
-	var files []string
-	for key := range s.data {
-		if strings.HasPrefix(strings.ToLower(key), strings.ToLower(prefix)) {
-			files = append(files, key)
-		}
-	}
-	return files, nil
-}
-
-func (s *InMemoryStore) Delete(name string) error {
-	delete(s.data, name)
+func (s *InMemoryStore) Register(m *MetaData) error {
+	s.Metadata[m.ResourceId()] = *m
 	return nil
 }
 
-func (s *InMemoryStore) Get(name string) (io.Reader, error) {
-	data, exists := s.data[name]
+func (s *InMemoryStore) RegisterSuccess(Id string) error {
+	meta, exists := s.Metadata[Id]
 	if !exists {
-		return nil, errors.Join(ErrFileNotFound, fmt.Errorf("file %s not found", name))
+		return errors.Join(ErrResourceMetadataNotFound, fmt.Errorf("%s not found", Id))
 	}
-	return io.NopCloser(bytes.NewReader(data)), nil
+	meta.Status = StoreStatusFinished
+	s.Metadata[Id] = meta
+	return nil
 }
 
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
-		data: make(map[string][]byte),
+		Data:     make(map[string][]byte),
+		Metadata: make(map[string]MetaData),
 	}
 }
 
 type FSStore struct {
 	directory string
+	staged    map[string]MetaData
 }
 
 func (s *FSStore) Store(name string, r io.Reader) error {
@@ -80,40 +134,52 @@ func (s *FSStore) Store(name string, r io.Reader) error {
 	return nil
 }
 
-func (s *FSStore) List(prefix string) ([]string, error) {
-	files, err := os.ReadDir(s.directory)
-	var result []string
-	if err != nil {
-		return result, fmt.Errorf("error reading directory %s: %w", s.directory, err)
-	}
-
-	for _, file := range files {
-		if strings.HasPrefix(strings.ToLower(file.Name()), strings.ToLower(prefix)) {
-			result = append(result, file.Name())
-		}
-	}
-	return result, nil
-}
-
-func (s *FSStore) Delete(name string) error {
-	path := filepath.Join(s.directory, name)
-	if err := os.Remove(path); err != nil {
-		return nil
-	}
-	return nil
-}
-
 func (s *FSStore) Get(name string) (io.Reader, error) {
 	path := filepath.Join(s.directory, name)
 	file, err := os.Open(path)
 	if err != nil {
-		return bytes.NewBuffer([]byte{}), fmt.Errorf("error opening file %s: %w", name, err)
+		return bytes.NewBuffer([]byte{}), errors.Join(ErrFileNotFound, err)
 	}
 	return file, nil
+}
+
+func (s *FSStore) Register(m *MetaData) error {
+	if _, ok := s.staged[m.ResourceId()]; ok {
+		return ErrUpdateMetadata
+	}
+	s.staged[m.ResourceId()] = *m
+	return nil
+}
+
+func (s *FSStore) RegisterSuccess(Id string) error {
+	meta, exists := s.staged[Id]
+	if !exists {
+		return errors.Join(ErrResourceMetadataNotFound, fmt.Errorf("%s not found", Id))
+	}
+	meta.Status = StoreStatusFinished
+
+	metaDataFile := strings.TrimSuffix(meta.ResourceName(), filepath.Ext(meta.ResourceName())) + ".json"
+	metaDataPath := filepath.Join(s.directory, metaDataFile)
+	file, err := os.Create(metaDataPath)
+	if err != nil {
+		return fmt.Errorf("error creating metadata file %s: %w", metaDataFile, err)
+	}
+	defer file.Close()
+
+	metaDataBytes, err := json.MarshalIndent(meta, "", "  ")
+	if err != nil {
+		return fmt.Errorf("error marshalling metadata to JSON: %w", err)
+	}
+	if _, err := file.Write(metaDataBytes); err != nil {
+		return fmt.Errorf("error writing metadata to file %s: %w", metaDataFile, err)
+	}
+	delete(s.staged, Id)
+	return nil
 }
 
 func NewFSStore(directory string) *FSStore {
 	return &FSStore{
 		directory: directory,
+		staged:    make(map[string]MetaData),
 	}
 }
