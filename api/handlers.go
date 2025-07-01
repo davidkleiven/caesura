@@ -1,11 +1,13 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"html/template"
+	"io"
 	"log/slog"
 	"net/http"
-	"strings"
+	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
 	"github.com/davidkleiven/caesura/web"
@@ -51,28 +53,9 @@ func DeleteMode(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type MetaData struct {
-	Title    string `json:"title"`
-	Composer string `json:"composer"`
-	Arranger string `json:"arranger"`
-}
-
-func (m *MetaData) String() string {
-	result := make([]string, 0, 3)
-	if m.Title != "" {
-		result = append(result, m.Title)
-	}
-	if m.Composer != "" {
-		result = append(result, m.Composer)
-	}
-	if m.Arranger != "" {
-		result = append(result, m.Arranger)
-	}
-	return strings.Join(result, "_")
-}
-
 type StoreManager struct {
-	Store pkg.Storer
+	Store   pkg.Storer
+	Timeout time.Duration
 }
 
 func (s *StoreManager) SubmitHandler(w http.ResponseWriter, r *http.Request) {
@@ -103,7 +86,7 @@ func (s *StoreManager) SubmitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var metaData MetaData
+	var metaData pkg.MetaData
 	rawMeta := r.MultipartForm.Value["metadata"]
 
 	if len(rawMeta) == 0 {
@@ -118,9 +101,8 @@ func (s *StoreManager) SubmitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filename := pkg.SanitizeString(metaData.String()) + ".zip"
-
-	if filename == ".zip" {
+	resourceName := metaData.ResourceName()
+	if resourceName == ".zip" {
 		http.Error(w, "Filename is empty. Note that only alphanumeric characters are allowed", http.StatusBadRequest)
 		slog.Error("Filename cannot be empty.", "title", metaData.Title, "composer", metaData.Composer, "arranger", metaData.Arranger)
 		return
@@ -133,12 +115,107 @@ func (s *StoreManager) SubmitHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.Store.Store(filename, buf)
-	slog.Info("File stored successfully", "filename", filename)
+	ctx, cancel := context.WithTimeout(r.Context(), s.Timeout)
+	defer cancel()
+
+	if err := s.Submit(ctx, &metaData, buf); err != nil {
+		http.Error(w, "Failed to store file", http.StatusInternalServerError)
+		slog.Error("Failed to store file", "error", err)
+		return
+	}
+	slog.Info("File stored successfully", "filename", resourceName)
 	w.Write([]byte("File uploaded successfully!"))
 }
 
-func Setup(s *StoreManager) *http.ServeMux {
+func (s *StoreManager) Submit(ctx context.Context, meta *pkg.MetaData, r io.Reader) error {
+	done := make(chan error, 1)
+
+	go func() {
+		if err := s.Store.Register(meta); err != nil {
+			slog.Error("Failed to register metadata", "error", err)
+			done <- err
+			return
+		}
+
+		name := meta.ResourceName()
+		if err := s.Store.Store(name, r); err != nil {
+			slog.Error("Failed to store file", "error", err)
+			done <- err
+			return
+		}
+
+		if err := s.Store.RegisterSuccess(meta.ResourceId()); err != nil {
+			slog.Error("Failed to register success", "error", err)
+			done <- err
+			return
+		}
+		slog.Info("File submitted successfully", "filename", name, "metadata", meta)
+		done <- nil
+	}()
+
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case err := <-done:
+		return err
+	}
+}
+
+type FetchManager struct {
+	Fetcher pkg.Fetcher
+	Timeout time.Duration
+}
+
+func (fm *FetchManager) OverviewSearchHandler(w http.ResponseWriter, r *http.Request) {
+	filterValue := r.URL.Query().Get("resource-filter")
+	pattern := &pkg.MetaData{
+		Title:    filterValue,
+		Composer: filterValue,
+		Arranger: filterValue,
+	}
+
+	ctx, cancel := context.WithTimeout(r.Context(), fm.Timeout)
+	defer cancel()
+	meta, err := fm.Meta(ctx, pattern)
+	if err != nil {
+		http.Error(w, "Failed to fetch metadata", http.StatusInternalServerError)
+		slog.Error("Failed to fetch metadata", "error", err)
+		return
+	}
+	web.ResourceList(w, meta)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+}
+
+func (fm *FetchManager) Meta(ctx context.Context, pattern *pkg.MetaData) ([]pkg.MetaData, error) {
+	done := make(chan []pkg.MetaData, 1)
+	errChan := make(chan error, 1)
+
+	go func() {
+		meta, err := fm.Fetcher.Meta(pattern)
+		if err != nil {
+			slog.Error("Failed to fetch metadata", "error", err)
+			errChan <- err
+			return
+		}
+		done <- meta
+	}()
+
+	select {
+	case <-ctx.Done():
+		return []pkg.MetaData{}, ctx.Err()
+	case meta := <-done:
+		return meta, nil
+	case err := <-errChan:
+		return []pkg.MetaData{}, err
+	}
+}
+
+func OverviewHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write(web.Overview())
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+}
+
+func Setup(s *StoreManager, fm *FetchManager) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", RootHandler)
 	mux.Handle("/css/", web.CssServer())
