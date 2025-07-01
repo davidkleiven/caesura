@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"gopkg.in/yaml.v2"
 )
@@ -16,6 +17,7 @@ type LocalFSStoreConfig struct {
 type Config struct {
 	StoreType string             `yaml:"store_type"`
 	LocalFS   LocalFSStoreConfig `yaml:"local_fs"`
+	Timeout   time.Duration      `yaml:"timeout"`
 }
 
 func (c *Config) Validate() error {
@@ -34,7 +36,7 @@ func (c *Config) Validate() error {
 }
 
 func NewDefaultConfig() *Config {
-	return &Config{StoreType: "in-memory"}
+	return &Config{StoreType: "in-memory", Timeout: 10 * time.Second}
 }
 
 func OverrideFromFile(filePath string, config *Config) (*Config, error) {

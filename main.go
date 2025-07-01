@@ -32,9 +32,15 @@ func main() {
 	}
 
 	storeMng := api.StoreManager{
-		Store: pkg.GetStore(config),
+		Store:   pkg.GetStore(config),
+		Timeout: config.Timeout,
 	}
-	mux := api.Setup(&storeMng)
+
+	fetchMng := api.FetchManager{
+		Fetcher: pkg.NewDemoFetcher(),
+		Timeout: config.Timeout,
+	}
+	mux := api.Setup(&storeMng, &fetchMng)
 	port := api.Port()
 
 	server := &http.Server{

@@ -3,13 +3,17 @@ package api
 import (
 	"archive/zip"
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
 )
@@ -189,7 +193,7 @@ func withMetaData(w *multipart.Writer) {
 	if err != nil {
 		panic(err)
 	}
-	metaData := MetaData{
+	metaData := pkg.MetaData{
 		Title:    "Brandenburg Concerto No. 3",
 		Composer: "Johan Sebastian Bach",
 		Arranger: "",
@@ -234,7 +238,7 @@ func validMultipartForm() (*bytes.Buffer, string) {
 
 func TestSubmitHandlerValidRequest(t *testing.T) {
 	inMemStore := pkg.NewInMemoryStore()
-	storeMng := &StoreManager{Store: inMemStore}
+	storeMng := &StoreManager{Store: inMemStore, Timeout: 10 * time.Second}
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := validMultipartForm()
@@ -455,20 +459,85 @@ func TestSubmitWithEmptyMetaData(t *testing.T) {
 	}
 }
 
-func TestMetaDataString(t *testing.T) {
-	for i, test := range []struct {
-		metaData MetaData
-		expected string
+type failingStore struct {
+	registerErr        error
+	storeErr           error
+	registerSuccessErr error
+}
+
+func (f *failingStore) Register(meta *pkg.MetaData) error {
+	return f.registerErr
+}
+
+func (f *failingStore) RegisterSuccess(id string) error {
+	return f.registerSuccessErr
+}
+
+func (f *failingStore) Store(name string, r io.Reader) error {
+	return f.storeErr
+}
+
+func TestSubmitHandlerStoreErrors(t *testing.T) {
+	expectedError := errors.New("something went wrong")
+	for _, test := range []struct {
+		store failingStore
 	}{
-		{MetaData{Title: "Title", Composer: "Composer", Arranger: "Arranger"}, "Title_Composer_Arranger"},
-		{MetaData{Title: "", Composer: "", Arranger: ""}, ""},
-		{MetaData{Title: "Title", Composer: "", Arranger: ""}, "Title"},
-		{MetaData{Title: "", Composer: "Composer", Arranger: ""}, "Composer"},
-		{MetaData{Title: "", Composer: "", Arranger: "Arranger"}, "Arranger"},
+		{store: failingStore{registerErr: expectedError}},
+		{store: failingStore{storeErr: expectedError}},
+		{store: failingStore{registerSuccessErr: expectedError}},
 	} {
-		result := test.metaData.String()
-		if result != test.expected {
-			t.Errorf("Test %d failed. Expected '%s', got '%s'", i, test.expected, result)
+		storeMng := &StoreManager{Store: &test.store, Timeout: 10 * time.Second}
+		ctx := context.Background()
+		err := storeMng.Submit(ctx, &pkg.MetaData{Title: "Test"}, bytes.NewBuffer([]byte{}))
+		if !errors.Is(err, expectedError) {
+			t.Errorf("Expected error '%v', got '%v'", expectedError, err)
 		}
+	}
+}
+
+type sleepyStore struct {
+	sleepDuration time.Duration
+}
+
+func (s *sleepyStore) Register(meta *pkg.MetaData) error {
+	time.Sleep(s.sleepDuration)
+	return nil
+}
+
+func (s *sleepyStore) RegisterSuccess(id string) error {
+	time.Sleep(s.sleepDuration)
+	return nil
+}
+
+func (s *sleepyStore) Store(name string, r io.Reader) error {
+	time.Sleep(s.sleepDuration)
+	return nil
+}
+
+func TestTimeoutHandler(t *testing.T) {
+	sleepyStore := &sleepyStore{sleepDuration: 2 * time.Second}
+	storeMng := &StoreManager{Store: sleepyStore, Timeout: 10 * time.Millisecond}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+	defer cancel()
+
+	err := storeMng.Submit(ctx, &pkg.MetaData{Title: "Test"}, bytes.NewBuffer([]byte{}))
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Errorf("Expected context deadline exceeded error, got '%v'", err)
+	}
+}
+
+func TestInternalServerErrorOnTimeout(t *testing.T) {
+	sleepyStore := &sleepyStore{sleepDuration: 2 * time.Second}
+	storeMng := &StoreManager{Store: sleepyStore, Timeout: 10 * time.Millisecond}
+	recorder := httptest.NewRecorder()
+
+	multipartBuffer, contentType := validMultipartForm()
+	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
+	request.Header.Set("Content-Type", contentType)
+	storeMng.SubmitHandler(recorder, request)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code 500, got %d", recorder.Code)
+		return
 	}
 }
