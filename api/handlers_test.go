@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -535,6 +536,114 @@ func TestInternalServerErrorOnTimeout(t *testing.T) {
 	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 	storeMng.SubmitHandler(recorder, request)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code 500, got %d", recorder.Code)
+		return
+	}
+}
+
+func TestOverHandler(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/overview", nil)
+
+	OverviewHandler(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Expected status code 200, got %d", recorder.Code)
+		return
+	}
+
+	if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+		return
+	}
+
+	if !strings.Contains(recorder.Body.String(), "Title") {
+		t.Error("Expected response body to contain 'Title'")
+		return
+	}
+}
+
+func TestOverviewSearchHandler(t *testing.T) {
+	fetchMng := &FetchManager{Fetcher: pkg.NewDemoFetcher(), Timeout: 10 * time.Second}
+
+	for _, test := range []struct {
+		resourceFilter string
+		expectedCount  int
+	}{
+		{"", 2},             // No filter, expect all resources
+		{"arranger+x", 1},   // Filter by arranger
+		{"demo+title+1", 1}, // Filter by title
+		{"nonexistent", 0},  // Non-existent filter, expect no results
+	} {
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest("GET", fmt.Sprintf("/overview/search?resource-filter=%s", test.resourceFilter), nil)
+
+		fetchMng.OverviewSearchHandler(recorder, request)
+
+		if recorder.Code != http.StatusOK {
+			t.Errorf("Expected status code 200, got %d", recorder.Code)
+			return
+		}
+
+		if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
+			t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+			return
+		}
+
+		numRows := strings.Count(recorder.Body.String(), "<tr id")
+		if numRows != test.expectedCount {
+			t.Errorf("Expected %d rows in response, got %d", test.expectedCount, numRows)
+			return
+		}
+	}
+}
+
+type sleepyFetcher struct{}
+
+func (s *sleepyFetcher) Meta(pattern *pkg.MetaData) ([]pkg.MetaData, error) {
+	time.Sleep(2 * time.Second) // Simulate a long-running fetch
+	return pkg.NewDemoFetcher().Meta(pattern)
+}
+
+func (s *sleepyFetcher) Resource(resource string) (io.Reader, error) {
+	time.Sleep(2 * time.Second) // Simulate a long-running fetch
+	return pkg.NewDemoFetcher().Resource(resource)
+}
+
+type failingFetcher struct {
+	err error
+}
+
+func (f *failingFetcher) Meta(pattern *pkg.MetaData) ([]pkg.MetaData, error) {
+	return nil, f.err
+}
+
+func (f *failingFetcher) Resource(resource string) (io.Reader, error) {
+	return nil, f.err
+}
+
+func TestInternalServerErrorOnFetchTimeout(t *testing.T) {
+	fetchMng := &FetchManager{Fetcher: &sleepyFetcher{}, Timeout: 10 * time.Millisecond}
+	recorder := httptest.NewRecorder()
+
+	request := httptest.NewRequest("GET", "/overview/search", nil)
+	fetchMng.OverviewSearchHandler(recorder, request)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code 500, got %d", recorder.Code)
+		return
+	}
+}
+
+func TestInternalServerErrorOnFailure(t *testing.T) {
+	expectedError := errors.New("fetch error")
+	fetchMng := FetchManager{Fetcher: &failingFetcher{err: expectedError}, Timeout: 10 * time.Second}
+	recorder := httptest.NewRecorder()
+
+	request := httptest.NewRequest("GET", "/overview/search?resource-filter=flute", nil)
+	fetchMng.OverviewSearchHandler(recorder, request)
 
 	if recorder.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status code 500, got %d", recorder.Code)
