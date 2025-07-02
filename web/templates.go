@@ -23,3 +23,15 @@ func Index() []byte {
 func List() []byte {
 	return utils.Must(templatesFS.ReadFile("templates/list.html"))
 }
+
+func Overview() []byte {
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/overview.html", "templates/header.html"))
+	var buf bytes.Buffer
+	pkg.PanicOnErr(tmpl.Execute(&buf, nil))
+	return buf.Bytes()
+}
+
+func ResourceList(w io.Writer, data []pkg.MetaData) {
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/resource_list.html"))
+	pkg.PanicOnErr(tmpl.Execute(w, data))
+}

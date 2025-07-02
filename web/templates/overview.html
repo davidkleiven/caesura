@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/output.css">
+    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
+    <title>Caesura</title>
+</head>
+<body class="bg-gray-100">
+  {{ template "header" . }}
+  <!-- Page Content Placeholder -->
+  <div id="page-content" class="flex-col pt-16">
+    <div class="flex items-center justify-center">  <p class="mr-2 font-semibold">Search:</p>
+        <input type="text" name="resource-filter" hx-get="/overview/search" hx-trigger="load, keyup changed delay:500ms" hx-target="#piece-list" placeholder="Type to search"/>
+    </div>
+    <div class="overflow-x-auto rounded-2xl shadow-md border border-gray-200 pt-8">
+        <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
+          <thead class="bg-gray-100 text-gray-700">
+            <tr>
+              <th class="px-4 py-3">Title</th>
+              <th class="px-4 py-3">Composer</th>
+              <th class="px-4 py-3">Arranger</th>
+              <th class="px-4 py-3">Duration</th>
+              <th class="px-4 py-3">Genre</th>
+              <th class="px-4 py-3">Tags</th>
+            </tr>
+          </thead>
+          <tbody id="piece-list" class="divide-y divide-gray-100 bg-white">
+          </tbody>
+        </table>
+      </div>
+  </div>
+</body>

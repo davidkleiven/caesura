@@ -224,5 +224,7 @@ func Setup(s *StoreManager, fm *FetchManager) *http.ServeMux {
 	mux.Handle("/js/", web.JsServer())
 	mux.HandleFunc("/delete-mode", DeleteMode)
 	mux.HandleFunc("/submit", s.SubmitHandler)
+	mux.HandleFunc("/overview", OverviewHandler)
+	mux.HandleFunc("/overview/search", fm.OverviewSearchHandler)
 	return mux
 }
