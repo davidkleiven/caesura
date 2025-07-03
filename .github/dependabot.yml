@@ -12,3 +12,14 @@ updates:
   directory: "/"
   schedule:
     interval: "weekly"
+- package-ecosystem: npm
+  directory: "/web/js/"
+  schedule:
+    interval: weekly
+  commit-message:
+    prefix: 'chore'
+    include: 'scope'
+  open-pull-requests-limit: 10
+  labels:
+    - dependencies
+  versioning-strategy: increase
