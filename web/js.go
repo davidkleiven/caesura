@@ -3,7 +3,8 @@ package web
 import (
 	"embed"
 	"encoding/json"
-	"net/http"
+	"io"
+	"text/template"
 
 	"github.com/davidkleiven/caesura/pkg"
 	"github.com/davidkleiven/caesura/utils"
@@ -12,8 +13,11 @@ import (
 //go:embed js/*
 var jsFS embed.FS
 
-func JsServer() http.Handler {
-	return http.FileServer(http.FS(jsFS))
+func PdfJs(w io.Writer) {
+	deps := LoadDependencies().Dependencies
+	content := string(utils.Must(jsFS.ReadFile("js/pdf-viewer.js")))
+	template := utils.Must(template.New("js").Parse(content))
+	pkg.PanicOnErr(template.Execute(w, deps))
 }
 
 type JsPackages struct {
@@ -21,7 +25,8 @@ type JsPackages struct {
 }
 
 type Dependencies struct {
-	HtmxVersion string `json:"htmx.org"`
+	HtmxVersion  string `json:"htmx.org"`
+	PdfJsVersion string `json:"pdfjs-dist"`
 }
 
 func LoadDependencies() JsPackages {

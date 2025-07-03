@@ -16,7 +16,7 @@ var templatesFS embed.FS
 func Index() []byte {
 	tmpl := template.Must(template.ParseFS(templatesFS, "templates/index.html", "templates/header.html"))
 	var buf bytes.Buffer
-	pkg.PanicOnErr(tmpl.Execute(&buf, LoadDependencies()))
+	pkg.PanicOnErr(tmpl.Execute(&buf, LoadDependencies().Dependencies))
 	return buf.Bytes()
 }
 
