@@ -215,13 +215,18 @@ func OverviewHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 }
 
+func JsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/javascript; charset=utf-8")
+	web.PdfJs(w)
+}
+
 func Setup(s *StoreManager, fm *FetchManager) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", RootHandler)
 	mux.Handle("/css/", web.CssServer())
 	mux.HandleFunc("/instruments", InstrumentSearchHandler)
 	mux.HandleFunc("/choice", ChoiceHandler)
-	mux.Handle("/js/", web.JsServer())
+	mux.HandleFunc("/js/pdf-viewer.js", JsHandler)
 	mux.HandleFunc("/delete-mode", DeleteMode)
 	mux.HandleFunc("/submit", s.SubmitHandler)
 	mux.HandleFunc("/overview", OverviewHandler)

@@ -1,4 +1,6 @@
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+import { getDocument, GlobalWorkerOptions } from 'https://unpkg.com/pdfjs-dist@{{.PdfJsVersion}}/build/pdf.min.mjs';
+GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@{{.PdfJsVersion}}/build/pdf.worker.min.mjs';
+
 const fileInput = document.getElementById('file-input');
 const canvas = document.getElementById('pdf-canvas');
 const ctx = canvas.getContext('2d');
@@ -30,15 +32,15 @@ const renderPage = (num) => {
         canvas.width = viewport.width;
 
         const renderContext = {
-        canvasContext: ctx,
-        viewport: viewport,
+            canvasContext: ctx,
+            viewport: viewport,
         };
         currentRenderTask = page.render(renderContext);
         pageNumSpan.textContent = num;
 
         try {
             await currentRenderTask.promise;
-        } catch(err) {
+        } catch (err) {
             if (err.name === 'RenderingCancelledException') {
                 console.log('Rendering was cancelled.');
             } else {
@@ -46,49 +48,48 @@ const renderPage = (num) => {
             }
         }
     });
-    };
+};
 
-    const queueRenderPage = (num) => {
-
+const queueRenderPage = (num) => {
     if (!pdfDoc || num < 1 || num > pdfDoc.numPages) return;
     currentPage = num;
     renderPage(currentPage);
-    };
+};
 
-    prevPageBtn.addEventListener('click', () => {
+prevPageBtn.addEventListener('click', () => {
     queueRenderPage(currentPage - 1);
-    });
+});
 
-    nextPageBtn.addEventListener('click', () => {
+nextPageBtn.addEventListener('click', () => {
     queueRenderPage(currentPage + 1);
-    })
+})
 
-    assignPageBtn.addEventListener('click', () => {
-        if (addAssignment() != 0) return;
-        queueRenderPage(currentPage + 1);
-    })
+assignPageBtn.addEventListener('click', () => {
+    if (addAssignment() != 0) return;
+    queueRenderPage(currentPage + 1);
+})
 
-    fileInput.addEventListener('change', (e) => {
+fileInput.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file && file.type === 'application/pdf') {
         const fileReader = new FileReader();
         fileReader.onload = function () {
-        const typedarray = new Uint8Array(this.result);
+            const typedarray = new Uint8Array(this.result);
 
-        pdfjsLib.getDocument(typedarray).promise.then((pdf) => {
-            pdfDoc = pdf;
-            pageCountSpan.textContent = pdf.numPages;
-            currentPage = 1;
-            renderPage(currentPage);
-        });
+            getDocument(typedarray).promise.then((pdf) => {
+                pdfDoc = pdf;
+                pageCountSpan.textContent = pdf.numPages;
+                currentPage = 1;
+                renderPage(currentPage);
+            });
         };
         fileReader.readAsArrayBuffer(file);
     } else {
         alert('Please upload a valid PDF file.');
     }
-    });
+});
 
-    submitBtn.addEventListener('click', submitPartitions)
+submitBtn.addEventListener('click', submitPartitions)
 
 function deleteOrJump(elem) {
     if (deleteOnClickCheckBox.checked) {
@@ -113,19 +114,25 @@ function addAssignment() {
 
     const assignmentDiv = document.getElementById(assignmentId);
     if (!assignmentDiv) {
-        const color = assignementColor(assignmentId);
-        assignmentSection.innerHTML += `
-            <div id="${assignmentId}-group" class="relative group inline-block pr-2">
-                <button id=${assignmentId} onclick="deleteOrJump(this)" class="flex text-white ${color} py-2 px-4 rounded-lg">
-                    <span id="${assignmentId}-from">${currentPage}</span> -
-                    <span id="${assignmentId}-to">${currentPage}</span>
-                </button>
-                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2
-                hidden group-hover:block bg-gray-800 text-white text-xs
-                rounded px-2 py-1 z-10 whitespace-nowrap">
-                ${assignmentDesc}
-            </div>
-        `;
+        const color = assignmentColor(assignmentId);
+        const div = document.createElement('div');
+        div.id = `${assignmentId}-group`;
+        div.className = 'relative group inline-block pr-2';
+
+        const btn = document.createElement('button');
+        btn.id = assignmentId;
+        btn.className = `flex text-white ${color} py-2 px-4 rounded-lg`;
+        btn.innerHTML = `<span id="${assignmentId}-from">${currentPage}</span> - <span id="${assignmentId}-to">${currentPage}</span>`;
+        btn.addEventListener('click', () => deleteOrJump(btn));
+
+        const desc = document.createElement('div');
+        desc.className = 'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 z-10 whitespace-nowrap';
+        desc.textContent = assignmentDesc;
+
+        div.appendChild(btn);
+        div.appendChild(desc);
+
+        assignmentSection.appendChild(div);
     } else {
         const currentFrom = parseInt(document.getElementById(`${assignmentId}-from`).textContent)
         const newTo = parseInt(currentPage);
@@ -135,12 +142,12 @@ function addAssignment() {
             alert('Attempting to assign a page before the current first page. If you want to change the first page, please remove the assignment and reassign it.');
             return 1;
         }
-        }
+    }
 
     return 0;
 }
 
-function assignementColor(assignmentId) {
+function assignmentColor(assignmentId) {
     if (assignmentId.toLowerCase().includes("trumpet") || assignmentId.toLowerCase().includes("cornet")) {
         return "bg-red-400 hover:bg-red-500";
     } else if (assignmentId.toLowerCase().includes("trombone")) {
@@ -197,7 +204,7 @@ async function submitPartitions() {
     formData.append('assignments', JSON.stringify(assignments));
     formData.append('metadata', JSON.stringify(metadata));
 
-    const response = await fetch("/submit", {method: 'POST', body: formData});
+    const response = await fetch("/submit", { method: 'POST', body: formData });
     if (!response.ok) {
         const errorText = await response.text();
         alert(`Error submitting partition: ${errorText}`);
@@ -205,7 +212,7 @@ async function submitPartitions() {
 }
 
 function getMetaData() {
-    data = {
+    const data = {
         composer: composerInput.value.trim(),
         arranger: arrangerInput.value.trim(),
         title: titleInput.value.trim()
