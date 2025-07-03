@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@tailwindcss/cli": "^4.1.8",
+    "@tailwindcss/cli": "^4.1.11",
     "tailwindcss": "^4.1.11",
     "htmx.org": "2.0.6"
   }
