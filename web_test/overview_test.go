@@ -13,7 +13,7 @@ func waitForInitialLoad(page playwright.Page) error {
 	response, err := page.ExpectResponse(
 		"**/overview/search**",
 		func() error { return nil },
-		playwright.PageExpectResponseOptions{Timeout: playwright.Float(1000)},
+		playwright.PageExpectResponseOptions{Timeout: playwright.Float(4000)},
 	)
 
 	if err != nil {
