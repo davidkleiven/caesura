@@ -12,7 +12,7 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
-func withBrowser(testFunc func(t *testing.T, page playwright.Page)) func(t *testing.T) {
+func withBrowser(testFunc func(t *testing.T, page playwright.Page), path string) func(t *testing.T) {
 	return func(t *testing.T) {
 		pw, err := playwright.Run()
 		if err != nil {
@@ -45,7 +45,7 @@ func withBrowser(testFunc func(t *testing.T, page playwright.Page)) func(t *test
 		server := httptest.NewServer(mux)
 		defer server.Close()
 
-		if _, err := page.Goto(server.URL); err != nil {
+		if _, err := page.Goto(server.URL + path); err != nil {
 			failInCi(t, err)
 			return
 		}
@@ -73,7 +73,7 @@ func TestInstrumentListIsLoaded(t *testing.T) {
 		if !strings.Contains(text, "Trumpet") {
 			t.Errorf("Expepected to find 'Trumpet' in the instrument list, but got: %s", text)
 		}
-	})(t)
+	}, "/")(t)
 }
 
 func TestFilterList(t *testing.T) {
@@ -113,7 +113,7 @@ func TestFilterList(t *testing.T) {
 				t.Errorf("Expected to find 'Flute' in the instrument list, but got: %s", text)
 			}
 		}
-	})(t)
+	}, "/")(t)
 
 }
 
@@ -135,7 +135,7 @@ func TestFieldPopulatedOnClick(t *testing.T) {
 			t.Errorf("Expected to find 'Trumpet' in the chosen instrument, but got: %s", text)
 		}
 
-	})(t)
+	}, "/")(t)
 }
 
 func loadPdf(page playwright.Page, t *testing.T) func() {
@@ -257,7 +257,7 @@ func TestLoadPdf(t *testing.T) {
 			}
 		}
 
-	})(t)
+	}, "/")(t)
 }
 
 func TestAssign(t *testing.T) {
@@ -384,7 +384,7 @@ func TestAssign(t *testing.T) {
 				return
 			}
 		}
-	})(t)
+	}, "/")(t)
 }
 
 func TestJumpToAssignedPage(t *testing.T) {
@@ -410,7 +410,7 @@ func TestJumpToAssignedPage(t *testing.T) {
 			t.Errorf("Expected current page to be '1', but got: %s (err: %v)", currentPage, err)
 			return
 		}
-	})(t)
+	}, "/")(t)
 }
 
 func TestSubmit(t *testing.T) {
@@ -437,5 +437,5 @@ func TestSubmit(t *testing.T) {
 			return
 		}
 
-	})(t)
+	}, "/")(t)
 }
