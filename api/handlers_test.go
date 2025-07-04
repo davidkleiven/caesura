@@ -127,12 +127,12 @@ func TestDeleteModeWhenFormNotPopulated(t *testing.T) {
 }
 
 func TestSubmitBadRequestHandler(t *testing.T) {
-	store := &StoreManager{Store: pkg.NewInMemoryStore()}
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("POST", "/submit", nil)
 	request.Header.Set("Content-Type", "multipart/form-data")
 
-	store.SubmitHandler(recorder, request)
+	handler := SubmitHandler(pkg.NewInMemoryStore(), 10*time.Second)
+	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
 		t.Errorf("Expected status code 400, got %d", recorder.Code)
@@ -239,14 +239,14 @@ func validMultipartForm() (*bytes.Buffer, string) {
 
 func TestSubmitHandlerValidRequest(t *testing.T) {
 	inMemStore := pkg.NewInMemoryStore()
-	storeMng := &StoreManager{Store: inMemStore, Timeout: 10 * time.Second}
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := validMultipartForm()
 	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
-	storeMng.SubmitHandler(recorder, request)
+	handler := SubmitHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
 
 	if recorder.Code != http.StatusOK {
 		t.Errorf("Expected status code 200, got %d", recorder.Code)
@@ -279,7 +279,6 @@ func TestSubmitHandlerValidRequest(t *testing.T) {
 
 func TestSubmitHandlerInvalidJson(t *testing.T) {
 	inMemStore := pkg.NewInMemoryStore()
-	storeMng := &StoreManager{Store: inMemStore}
 	recorder := httptest.NewRecorder()
 
 	var multipartBuffer bytes.Buffer
@@ -308,7 +307,8 @@ func TestSubmitHandlerInvalidJson(t *testing.T) {
 	request := httptest.NewRequest("POST", "/submit", &multipartBuffer)
 	request.Header.Set("Content-Type", multipartWriter.FormDataContentType())
 
-	storeMng.SubmitHandler(recorder, request)
+	handler := SubmitHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
 		t.Errorf("Expected status code 400, got %d", recorder.Code)
@@ -323,7 +323,6 @@ func TestSubmitHandlerInvalidJson(t *testing.T) {
 
 func TestSubmitFormWithoutDocument(t *testing.T) {
 	inMemStore := pkg.NewInMemoryStore()
-	storeMng := &StoreManager{Store: inMemStore}
 	recorder := httptest.NewRecorder()
 
 	var multipartBuffer bytes.Buffer
@@ -336,7 +335,8 @@ func TestSubmitFormWithoutDocument(t *testing.T) {
 	request := httptest.NewRequest("POST", "/submit", &multipartBuffer)
 	request.Header.Set("Content-Type", multipartWriter.FormDataContentType())
 
-	storeMng.SubmitHandler(recorder, request)
+	handler := SubmitHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
 		t.Errorf("Expected status code 400, got %d", recorder.Code)
@@ -351,7 +351,6 @@ func TestSubmitFormWithoutDocument(t *testing.T) {
 
 func TestSubmitNonPdfFileAsDocument(t *testing.T) {
 	inMemStore := pkg.NewInMemoryStore()
-	storeMng := &StoreManager{Store: inMemStore}
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := multipartForm(withInvalidPdf, withAssignments, withMetaData)
@@ -359,7 +358,8 @@ func TestSubmitNonPdfFileAsDocument(t *testing.T) {
 	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
-	storeMng.SubmitHandler(recorder, request)
+	handler := SubmitHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
 
 	if recorder.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status code 500, got %d", recorder.Code)
@@ -374,14 +374,14 @@ func TestSubmitNonPdfFileAsDocument(t *testing.T) {
 
 func TestSubmitHandlerNoAssignments(t *testing.T) {
 	inMemStore := pkg.NewInMemoryStore()
-	storeMng := &StoreManager{Store: inMemStore}
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := multipartForm(withPdf, withMetaData)
 	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
-	storeMng.SubmitHandler(recorder, request)
+	handler := SubmitHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
 		t.Errorf("Expected status code 400, got %d", recorder.Code)
@@ -396,14 +396,14 @@ func TestSubmitHandlerNoAssignments(t *testing.T) {
 
 func TestSubmitHandlerNoMetaData(t *testing.T) {
 	inMemStore := pkg.NewInMemoryStore()
-	storeMng := &StoreManager{Store: inMemStore}
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := multipartForm(withPdf, withAssignments)
 	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
-	storeMng.SubmitHandler(recorder, request)
+	handler := SubmitHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
 		t.Errorf("Expected status code 400, got %d", recorder.Code)
@@ -418,14 +418,14 @@ func TestSubmitHandlerNoMetaData(t *testing.T) {
 
 func TestSubmitHandlerInvalidMetaData(t *testing.T) {
 	inMemStore := pkg.NewInMemoryStore()
-	storeMng := &StoreManager{Store: inMemStore}
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := multipartForm(withPdf, withAssignments, withInvalidMetaData)
 	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
-	storeMng.SubmitHandler(recorder, request)
+	handler := SubmitHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
 		t.Errorf("Expected status code 400, got %d", recorder.Code)
@@ -440,14 +440,14 @@ func TestSubmitHandlerInvalidMetaData(t *testing.T) {
 
 func TestSubmitWithEmptyMetaData(t *testing.T) {
 	inMemStore := pkg.NewInMemoryStore()
-	storeMng := &StoreManager{Store: inMemStore}
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := multipartForm(withPdf, withAssignments, withEmptyMetaData)
 	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
-	storeMng.SubmitHandler(recorder, request)
+	handler := SubmitHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
 		t.Errorf("Expected status code 400, got %d", recorder.Code)
@@ -460,82 +460,23 @@ func TestSubmitWithEmptyMetaData(t *testing.T) {
 	}
 }
 
-type failingStore struct {
-	registerErr        error
-	storeErr           error
-	registerSuccessErr error
+type failingSubmitter struct {
+	err error
 }
 
-func (f *failingStore) Register(meta *pkg.MetaData) error {
-	return f.registerErr
-}
-
-func (f *failingStore) RegisterSuccess(id string) error {
-	return f.registerSuccessErr
-}
-
-func (f *failingStore) Store(name string, r io.Reader) error {
-	return f.storeErr
+func (f *failingSubmitter) Submit(ctx context.Context, meta *pkg.MetaData, r io.Reader) error {
+	return f.err
 }
 
 func TestSubmitHandlerStoreErrors(t *testing.T) {
-	expectedError := errors.New("something went wrong")
-	for _, test := range []struct {
-		store failingStore
-	}{
-		{store: failingStore{registerErr: expectedError}},
-		{store: failingStore{storeErr: expectedError}},
-		{store: failingStore{registerSuccessErr: expectedError}},
-	} {
-		storeMng := &StoreManager{Store: &test.store, Timeout: 10 * time.Second}
-		ctx := context.Background()
-		err := storeMng.Submit(ctx, &pkg.MetaData{Title: "Test"}, bytes.NewBuffer([]byte{}))
-		if !errors.Is(err, expectedError) {
-			t.Errorf("Expected error '%v', got '%v'", expectedError, err)
-		}
-	}
-}
-
-type sleepyStore struct {
-	sleepDuration time.Duration
-}
-
-func (s *sleepyStore) Register(meta *pkg.MetaData) error {
-	time.Sleep(s.sleepDuration)
-	return nil
-}
-
-func (s *sleepyStore) RegisterSuccess(id string) error {
-	time.Sleep(s.sleepDuration)
-	return nil
-}
-
-func (s *sleepyStore) Store(name string, r io.Reader) error {
-	time.Sleep(s.sleepDuration)
-	return nil
-}
-
-func TestTimeoutHandler(t *testing.T) {
-	sleepyStore := &sleepyStore{sleepDuration: 2 * time.Second}
-	storeMng := &StoreManager{Store: sleepyStore, Timeout: 10 * time.Millisecond}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
-	defer cancel()
-
-	err := storeMng.Submit(ctx, &pkg.MetaData{Title: "Test"}, bytes.NewBuffer([]byte{}))
-	if !errors.Is(err, context.DeadlineExceeded) {
-		t.Errorf("Expected context deadline exceeded error, got '%v'", err)
-	}
-}
-
-func TestInternalServerErrorOnTimeout(t *testing.T) {
-	sleepyStore := &sleepyStore{sleepDuration: 2 * time.Second}
-	storeMng := &StoreManager{Store: sleepyStore, Timeout: 10 * time.Millisecond}
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := validMultipartForm()
 	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
-	storeMng.SubmitHandler(recorder, request)
+
+	handler := SubmitHandler(&failingSubmitter{err: errors.New("what??")}, 10*time.Second)
+	handler(recorder, request)
 
 	if recorder.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status code 500, got %d", recorder.Code)
@@ -566,7 +507,6 @@ func TestOverHandler(t *testing.T) {
 }
 
 func TestOverviewSearchHandler(t *testing.T) {
-	fetchMng := &FetchManager{Fetcher: pkg.NewDemoFetcher(), Timeout: 10 * time.Second}
 
 	for _, test := range []struct {
 		resourceFilter string
@@ -580,7 +520,8 @@ func TestOverviewSearchHandler(t *testing.T) {
 		recorder := httptest.NewRecorder()
 		request := httptest.NewRequest("GET", fmt.Sprintf("/overview/search?resource-filter=%s", test.resourceFilter), nil)
 
-		fetchMng.OverviewSearchHandler(recorder, request)
+		handler := OverviewSearchHandler(pkg.NewDemoStore(), 10*time.Second)
+		handler(recorder, request)
 
 		if recorder.Code != http.StatusOK {
 			t.Errorf("Expected status code 200, got %d", recorder.Code)
@@ -600,50 +541,21 @@ func TestOverviewSearchHandler(t *testing.T) {
 	}
 }
 
-type sleepyFetcher struct{}
-
-func (s *sleepyFetcher) Meta(pattern *pkg.MetaData) ([]pkg.MetaData, error) {
-	time.Sleep(2 * time.Second) // Simulate a long-running fetch
-	return pkg.NewDemoFetcher().Meta(pattern)
-}
-
-func (s *sleepyFetcher) Resource(resource string) (io.Reader, error) {
-	time.Sleep(2 * time.Second) // Simulate a long-running fetch
-	return pkg.NewDemoFetcher().Resource(resource)
-}
-
 type failingFetcher struct {
 	err error
 }
 
-func (f *failingFetcher) Meta(pattern *pkg.MetaData) ([]pkg.MetaData, error) {
+func (f *failingFetcher) MetaByPattern(ctx context.Context, pattern *pkg.MetaData) ([]pkg.MetaData, error) {
 	return nil, f.err
-}
-
-func (f *failingFetcher) Resource(resource string) (io.Reader, error) {
-	return nil, f.err
-}
-
-func TestInternalServerErrorOnFetchTimeout(t *testing.T) {
-	fetchMng := &FetchManager{Fetcher: &sleepyFetcher{}, Timeout: 10 * time.Millisecond}
-	recorder := httptest.NewRecorder()
-
-	request := httptest.NewRequest("GET", "/overview/search", nil)
-	fetchMng.OverviewSearchHandler(recorder, request)
-
-	if recorder.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status code 500, got %d", recorder.Code)
-		return
-	}
 }
 
 func TestInternalServerErrorOnFailure(t *testing.T) {
 	expectedError := errors.New("fetch error")
-	fetchMng := FetchManager{Fetcher: &failingFetcher{err: expectedError}, Timeout: 10 * time.Second}
 	recorder := httptest.NewRecorder()
 
 	request := httptest.NewRequest("GET", "/overview/search?resource-filter=flute", nil)
-	fetchMng.OverviewSearchHandler(recorder, request)
+	handler := OverviewSearchHandler(&failingFetcher{err: expectedError}, 10*time.Second)
+	handler(recorder, request)
 
 	if recorder.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status code 500, got %d", recorder.Code)
