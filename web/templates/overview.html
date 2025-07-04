@@ -11,24 +11,43 @@
   {{ template "header" . }}
   <!-- Page Content Placeholder -->
   <div id="page-content" class="flex-col pt-16">
+    <div id="flash-message" class="mb-4"></div>
     <div class="flex items-center justify-center">  <p class="mr-2 font-semibold">Search:</p>
         <input type="text" name="resource-filter" hx-get="/overview/search" hx-trigger="load, keyup changed delay:500ms" hx-target="#piece-list" placeholder="Type to search"/>
     </div>
     <div class="overflow-x-auto rounded-2xl shadow-md border border-gray-200 pt-8">
-        <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
-          <thead class="bg-gray-100 text-gray-700">
-            <tr>
-              <th class="px-4 py-3">Title</th>
-              <th class="px-4 py-3">Composer</th>
-              <th class="px-4 py-3">Arranger</th>
-              <th class="px-4 py-3">Duration</th>
-              <th class="px-4 py-3">Genre</th>
-              <th class="px-4 py-3">Tags</th>
-            </tr>
-          </thead>
-          <tbody id="piece-list" class="divide-y divide-gray-100 bg-white">
-          </tbody>
-        </table>
-      </div>
+      <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
+        <thead class="bg-gray-100 text-gray-700">
+          <tr>
+            <th class="px-4 py-3">Title</th>
+            <th class="px-4 py-3">Composer</th>
+            <th class="px-4 py-3">Arranger</th>
+            <th class="px-4 py-3">Duration</th>
+            <th class="px-4 py-3">Genre</th>
+            <th class="px-4 py-3">Tags</th>
+          </tr>
+        </thead>
+        <tbody id="piece-list" class="divide-y divide-gray-100 bg-white">
+        </tbody>
+      </table>
+    </div>
+    <button
+      type="button"
+      hx-get="/overview/project-selector"
+      hx-trigger="click" hx-target="#project-selection-modal"
+      class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+        Add to project
+      </button>
   </div>
+  <div id="project-selection-modal"></div>
+  <script>
+    document.body.addEventListener("htmx:afterRequest", function (evt) {
+      console.log(evt)
+      if (evt.target.id === 'create-new-project-btn') {
+        const modal = document.getElementById("project-selection-modal");
+        if (modal) {
+          modal.innerHTML = '';
+        }
+    }});
+  </script>
 </body>
