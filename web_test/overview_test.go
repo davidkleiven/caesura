@@ -43,7 +43,6 @@ func TestInitialLoadHasTwoItems(t *testing.T) {
 			t.Errorf("Expected 2 rows, got %d", rowCount)
 			return
 		}
-
 	}, overViewPage)(t)
 }
 

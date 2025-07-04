@@ -17,7 +17,6 @@ func TestStore(t *testing.T) {
 		store Storer
 		name  string
 	}{
-		{store: NewInMemoryStore(), name: "ItnMemoryStore"},
 		{store: fsStore, name: "FSStore"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -31,12 +30,6 @@ func TestStore(t *testing.T) {
 			var contentReader io.Reader
 			var err error
 			switch store := test.store.(type) {
-			case *InMemoryStore:
-				if len(store.Data) != 1 {
-					t.Errorf("Expected 1 file in store, got %d", len(store.Data))
-					return
-				}
-				contentReader = bytes.NewReader(store.Data[name])
 			case *FSStore:
 				contentReader, err = store.Get(name)
 				if err != nil {
@@ -84,7 +77,6 @@ func TestStoreReaderFails(t *testing.T) {
 		store Storer
 		name  string
 	}{
-		{store: NewInMemoryStore(), name: "InMemoryStore"},
 		{store: fsStore, name: "FSStore"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -125,35 +117,6 @@ func TestFSStoreGetNonExistingFile(t *testing.T) {
 	}
 	if len(content) != 0 {
 		t.Errorf("Expected empty content for non-existing file, got %d bytes", len(content))
-		return
-	}
-}
-
-func TestRegisterSuccessInMemory(t *testing.T) {
-	store := NewInMemoryStore()
-	meta := &MetaData{
-		Status: StoreStatusPending,
-		Title:  "test-resource",
-	}
-
-	if err := store.Register(meta); err != nil {
-		t.Errorf("Register failed: %v", err)
-		return
-	}
-
-	id := meta.ResourceId()
-	if store.Metadata[id].Status != StoreStatusPending {
-		t.Errorf("Expected status to be Pending, got %s", store.Metadata[id].Status)
-		return
-	}
-
-	if err := store.RegisterSuccess(id); err != nil {
-		t.Errorf("RegisterSuccess failed: %v", err)
-		return
-	}
-
-	if meta, exists := store.Metadata[id]; !exists || meta.Status != StoreStatusFinished {
-		t.Errorf("Expected metadata with id %s to exist, but it does not. Status: %s", id, meta)
 		return
 	}
 }
@@ -210,7 +173,6 @@ func TestErrorOnNoMetadata(t *testing.T) {
 		store Storer
 		name  string
 	}{
-		{store: NewInMemoryStore(), name: "InMemoryStore"},
 		{store: fsStore, name: "FSStore"},
 	} {
 		t.Run(test.name, func(t *testing.T) {

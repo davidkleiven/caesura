@@ -57,10 +57,8 @@ func OverrideFromFile(filePath string, config *Config) (*Config, error) {
 	return config, nil
 }
 
-func GetStore(config *Config) Storer {
+func GetStore(config *Config) BlobStore {
 	switch config.StoreType {
-	case "local-fs":
-		return NewFSStore(config.LocalFS.Directory)
 	default:
 		return NewInMemoryStore()
 	}

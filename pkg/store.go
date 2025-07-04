@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
@@ -20,6 +21,10 @@ const (
 	StoreStatusPending  StoreStatus = "pending"
 	StoreStatusFinished StoreStatus = "finished"
 )
+
+type Submitter interface {
+	Submit(ctx context.Context, m *MetaData, r io.Reader) error
+}
 
 type MetaData struct {
 	Title           string        `json:"title"`
@@ -74,46 +79,10 @@ type Storer interface {
 	RegisterSuccess(Id string) error
 }
 
-type InMemoryStore struct {
-	Data     map[string][]byte
-	Metadata map[string]MetaData
-}
-
 var ErrFileNotFound = fmt.Errorf("file not found")
 var ErrRetrievingContent = fmt.Errorf("error retrieving content")
 var ErrResourceMetadataNotFound = fmt.Errorf("resource metadata not found")
 var ErrUpdateMetadata = fmt.Errorf("error updating metadata")
-
-func (s *InMemoryStore) Store(name string, r io.Reader) error {
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return errors.Join(ErrRetrievingContent, err)
-	}
-	s.Data[name] = data
-	return nil
-}
-
-func (s *InMemoryStore) Register(m *MetaData) error {
-	s.Metadata[m.ResourceId()] = *m
-	return nil
-}
-
-func (s *InMemoryStore) RegisterSuccess(Id string) error {
-	meta, exists := s.Metadata[Id]
-	if !exists {
-		return errors.Join(ErrResourceMetadataNotFound, fmt.Errorf("%s not found", Id))
-	}
-	meta.Status = StoreStatusFinished
-	s.Metadata[Id] = meta
-	return nil
-}
-
-func NewInMemoryStore() *InMemoryStore {
-	return &InMemoryStore{
-		Data:     make(map[string][]byte),
-		Metadata: make(map[string]MetaData),
-	}
-}
 
 type FSStore struct {
 	directory string
