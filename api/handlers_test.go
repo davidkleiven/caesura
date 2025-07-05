@@ -67,7 +67,7 @@ func TestInstrumentSearchHandler(t *testing.T) {
 
 func TestChoiceHandler(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("GET", "/choice?instrument=flute", nil)
+	request := httptest.NewRequest("GET", "/choice?item=flute", nil)
 	ChoiceHandler(recorder, request)
 
 	if recorder.Code != 200 {
