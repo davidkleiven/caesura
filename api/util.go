@@ -14,8 +14,10 @@ func Port() string {
 }
 
 type IdentifiedList struct {
-	Id    string
-	Items []string
+	Id       string
+	Items    []string
+	HxGet    string
+	HxTarget string
 }
 
 func includeError(w http.ResponseWriter, status int, message string, err error) {
