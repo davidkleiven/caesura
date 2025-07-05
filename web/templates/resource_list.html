@@ -1,6 +1,6 @@
 {{range . }}
 <tr id="row-{{ .ResourceId }}"class="hover:bg-gray-50">
-    <td class="px-4 py-3 font-medium text-gray-900"><input id="checkbox-{{.ResourceId}}" type="checkbox" id="select-all" class="mr-2">{{.Title}}</td>
+    <td class="px-4 py-3 font-medium text-gray-900"><input name="pieceIds" id="checkbox-{{.ResourceId}}" type="checkbox" id="select-all" class="mr-2" value="{{ .ResourceId }}">{{.Title}}</td>
     <td class="px-4 py-3">{{.Composer}}</td>
     <td class="px-4 py-3">{{.Arranger}}</td>
     <td class="px-4 py-3">{{.Duration}}</td>
