@@ -759,3 +759,20 @@ func TestProjectQueryInputHandler(t *testing.T) {
 		return
 	}
 }
+
+func TestJsHandler(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/js/pdf-viewer.js", nil)
+
+	JsHandler(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Expected status code 200, got %d", recorder.Code)
+		return
+	}
+
+	if recorder.Header().Get("Content-Type") != "application/javascript; charset=utf-8" {
+		t.Errorf("Expected Content-Type 'application/javascript; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+		return
+	}
+}
