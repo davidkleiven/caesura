@@ -59,13 +59,36 @@ func (m *MetaData) MarshalJSON() ([]byte, error) {
 	type Alias MetaData
 	return json.Marshal(&struct {
 		*Alias
-		Recource string `json:"resource"`
+		Resource string `json:"resource"`
 		Id       string `json:"id"`
 	}{
 		Alias:    (*Alias)(m),
-		Recource: m.ResourceName(),
+		Resource: m.ResourceName(),
 		Id:       m.ResourceId(),
 	})
+}
+
+func (m *MetaData) UnmarshalJSON(data []byte) error {
+	type Alias MetaData
+	aux := &struct {
+		*Alias
+		Resource string `json:"resource"`
+		Id       string `json:"id"`
+	}{
+		Alias: (*Alias)(m),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return fmt.Errorf("error unmarshalling MetaData: %w", err)
+	}
+
+	if aux.Resource != "" && aux.Resource != m.ResourceName() {
+		return fmt.Errorf("resource name mismatch: expected %s, got %s", m.ResourceName(), aux.Resource)
+	}
+	if aux.Id != "" && aux.Id != m.ResourceId() {
+		return fmt.Errorf("resource ID mismatch: expected %s, got %s", m.ResourceId(), aux.Id)
+	}
+	return nil
 }
 
 func (m *MetaData) ResourceId() string {
