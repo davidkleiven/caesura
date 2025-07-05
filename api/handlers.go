@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -157,6 +158,79 @@ func JsHandler(w http.ResponseWriter, r *http.Request) {
 	web.PdfJs(w)
 }
 
+func SearchProjectHandler(store pkg.ProjectByNameGetter, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		projectName := r.URL.Query().Get("projectQuery")
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		project, err := store.ProjectsByName(ctx, projectName)
+		slog.Info("Searching for projects", "project_name", projectName, "num_results", len(project))
+		if err != nil {
+			http.Error(w, "Failed to fetch project", http.StatusInternalServerError)
+			slog.Error("Failed to fetch project", "error", err)
+			return
+		}
+
+		html := string(web.List())
+		t := template.Must(template.New("list").Parse(html))
+
+		project_names := make([]string, len(project))
+		for i, p := range project {
+			project_names[i] = p.Name
+		}
+		pkg.PanicOnErr(t.Execute(w, IdentifiedList{Id: "projects", Items: project_names, HxGet: "/project-query-input", HxTarget: "#project-query-input"}))
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	}
+}
+
+func ProjectSelectorModalHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write(web.ProjectSelectorModal())
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+}
+
+func ProjectQueryInputHandler(w http.ResponseWriter, r *http.Request) {
+	value := r.URL.Query().Get("item")
+	web.ProjectQueryInput(w, value)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+}
+
+func ProjectSubmitHandler(submitter pkg.ProjectSubmitter, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "Failed to parse form", http.StatusBadRequest)
+			slog.Error("Failed to parse form", "error", err)
+			return
+		}
+
+		projectName := r.FormValue("projectQuery")
+		if projectName == "" {
+			http.Error(w, "Project name cannot be empty", http.StatusBadRequest)
+			slog.Error("Project name cannot be empty")
+			return
+		}
+
+		resourceIds := r.Form["pieceIds"]
+		project := &pkg.Project{
+			Name:        projectName,
+			ResourceIds: resourceIds,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		if err := submitter.SubmitProject(ctx, project); err != nil {
+			http.Error(w, "Failed to submit project", http.StatusInternalServerError)
+			slog.Error("Failed to submit project", "error", err)
+			return
+		}
+		slog.Info("Project submitted successfully", "project_name", projectName, "num_resources", len(resourceIds))
+		w.Write(fmt.Appendf(nil, "Added %d pieces to '%s'", len(resourceIds), projectName))
+	}
+}
+
 func Setup(store pkg.BlobStore, timeout time.Duration) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", RootHandler)
@@ -168,5 +242,9 @@ func Setup(store pkg.BlobStore, timeout time.Duration) *http.ServeMux {
 	mux.HandleFunc("/submit", SubmitHandler(store, timeout))
 	mux.HandleFunc("/overview", OverviewHandler)
 	mux.HandleFunc("/overview/search", OverviewSearchHandler(store, timeout))
+	mux.HandleFunc("/overview/project-selector", ProjectSelectorModalHandler)
+	mux.HandleFunc("/search-projects", SearchProjectHandler(store, timeout))
+	mux.HandleFunc("/add-to-project", ProjectSubmitHandler(store, timeout))
+	mux.HandleFunc("/project-query-input", ProjectQueryInputHandler)
 	return mux
 }

@@ -41,3 +41,20 @@ func TestResourceList(t *testing.T) {
 		t.Error("Expected resource list to contain 'Test Title'")
 	}
 }
+
+func TestProjectSelectorModal(t *testing.T) {
+	projectSelector := ProjectSelectorModal()
+
+	if !bytes.Contains(projectSelector, []byte("Confirm")) {
+		t.Error("Expected project selector modal to contain 'Confirm'")
+	}
+}
+
+func TestProjectQueryInput(t *testing.T) {
+	var buf bytes.Buffer
+	ProjectQueryInput(&buf, "Test Query")
+
+	if !bytes.Contains(buf.Bytes(), []byte("Test Query")) {
+		t.Error("Expected project query input to contain 'Test Query'")
+	}
+}

@@ -562,3 +562,200 @@ func TestInternalServerErrorOnFailure(t *testing.T) {
 		return
 	}
 }
+
+func TestSearchProjectHandler(t *testing.T) {
+	inMemStore := pkg.NewInMemoryStore()
+	inMemStore.Projects["test_project"] = pkg.Project{
+		Name:        "Test Project",
+		ResourceIds: []string{"resource1", "resource2"},
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/search-projects?projectQuery=test", nil)
+
+	handler := SearchProjectHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Expected status code 200, got %d", recorder.Code)
+		return
+	}
+
+	if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+		return
+	}
+
+	if !strings.Contains(recorder.Body.String(), "Test Project") {
+		t.Error("Expected response body to contain 'Test Project'")
+		return
+	}
+}
+
+type failingProjectByNamer struct {
+	err error
+}
+
+func (f *failingProjectByNamer) ProjectsByName(ctx context.Context, name string) ([]pkg.Project, error) {
+	return nil, f.err
+}
+
+func TestSearchProjectHandlerInternelServerErrorOnFailure(t *testing.T) {
+	expectedError := errors.New("fetch error")
+	recorder := httptest.NewRecorder()
+
+	request := httptest.NewRequest("GET", "/search-projects?projectQuery=test", nil)
+	handler := SearchProjectHandler(&failingProjectByNamer{err: expectedError}, 10*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code 500, got %d", recorder.Code)
+		return
+	}
+
+	expectedResponse := "Failed to fetch project"
+	if !strings.Contains(recorder.Body.String(), expectedResponse) {
+		t.Errorf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
+	}
+}
+
+func TestProjectSelectorModalHandler(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/overview/project-selector", nil)
+
+	ProjectSelectorModalHandler(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Expected status code 200, got %d", recorder.Code)
+		return
+	}
+
+	if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+		return
+	}
+
+	if !strings.Contains(recorder.Body.String(), "Confirm") {
+		t.Error("Expected response body to contain 'Confirm'")
+		return
+	}
+}
+
+func TestProjectSubmitHandler(t *testing.T) {
+	inMemStore := pkg.NewInMemoryStore()
+	recorder := httptest.NewRecorder()
+
+	form := url.Values{}
+	form.Set("projectQuery", "Test Project")
+	request := httptest.NewRequest("POST", "/add-to-project", strings.NewReader(form.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	handler := ProjectSubmitHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Expected status code 200, got %d", recorder.Code)
+		return
+	}
+
+	if len(inMemStore.Projects) != 1 {
+		t.Errorf("Expected 1 project in store, got %d", len(inMemStore.Projects))
+		return
+	}
+
+	if inMemStore.Projects["testproject"].Name != "Test Project" {
+		t.Errorf("Expected project name 'Test Project', got '%s'", inMemStore.Projects["test_project"].Name)
+	}
+}
+
+func TestBadRequestOnMissingName(t *testing.T) {
+	inMemStore := pkg.NewInMemoryStore()
+	recorder := httptest.NewRecorder()
+
+	form := url.Values{}
+	request := httptest.NewRequest("POST", "/add-to-project", strings.NewReader(form.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	handler := ProjectSubmitHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code 400, got %d", recorder.Code)
+		return
+	}
+}
+
+type failingProjectSubmitter struct {
+	err error
+}
+
+func (f *failingProjectSubmitter) SubmitProject(ctx context.Context, project *pkg.Project) error {
+	return f.err
+}
+
+func TestInternaltServerErrorOnProjectSubmitFailure(t *testing.T) {
+	expectedError := errors.New("submit error")
+	recorder := httptest.NewRecorder()
+
+	inMemStore := &failingProjectSubmitter{err: expectedError}
+	form := url.Values{}
+	form.Set("projectQuery", "Test Project")
+	request := httptest.NewRequest("POST", "/add-to-project", strings.NewReader(form.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	handler := ProjectSubmitHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code 500, got %d", recorder.Code)
+		return
+	}
+
+	expectedResponse := "Failed to submit project"
+	if !strings.Contains(recorder.Body.String(), expectedResponse) {
+		t.Errorf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
+	}
+}
+
+func TestBadRequestWhenWrongApplicationType(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/add-to-project?bad=%ZZ", nil)
+
+	inMemStore := pkg.NewInMemoryStore()
+	handler := ProjectSubmitHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code 400, got %d", recorder.Code)
+		return
+	}
+
+	expectedError := "Failed to parse form"
+	if !strings.Contains(recorder.Body.String(), expectedError) {
+		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
+	}
+}
+
+func TestProjectQueryInputHandler(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/project-query-input?item=Test%20Project", nil)
+
+	ProjectQueryInputHandler(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Expected status code 200, got %d", recorder.Code)
+		return
+	}
+
+	if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+		return
+	}
+
+	if !strings.Contains(recorder.Body.String(), "Test Project") {
+		t.Error("Expected response body to contain 'Test Project'")
+		return
+	}
+}
