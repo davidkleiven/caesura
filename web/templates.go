@@ -35,3 +35,12 @@ func ResourceList(w io.Writer, data []pkg.MetaData) {
 	tmpl := template.Must(template.ParseFS(templatesFS, "templates/resource_list.html"))
 	pkg.PanicOnErr(tmpl.Execute(w, data))
 }
+
+func ProjectSelectorModal() []byte {
+	return utils.Must(templatesFS.ReadFile("templates/project_selection_modal.html"))
+}
+
+func ProjectQueryInput(w io.Writer, queryContent string) {
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/project_query_input.html"))
+	pkg.PanicOnErr(tmpl.Execute(w, queryContent))
+}

@@ -5,11 +5,13 @@ import (
 	"errors"
 	"io"
 	"strings"
+	"time"
 )
 
 type InMemoryStore struct {
 	Data     map[string][]byte
 	Metadata []MetaData
+	Projects map[string]Project
 }
 
 func (s *InMemoryStore) Submit(ctx context.Context, meta *MetaData, r io.Reader) error {
@@ -43,10 +45,32 @@ func (s *InMemoryStore) MetaByPattern(ctx context.Context, pattern *MetaData) ([
 	return results, nil
 }
 
+func (s *InMemoryStore) ProjectsByName(ctx context.Context, name string) ([]Project, error) {
+	var results []Project
+	for _, project := range s.Projects {
+		if name == "" || strings.HasPrefix(strings.ToLower(project.Name), strings.ToLower(name)) {
+			results = append(results, project)
+		}
+	}
+	return results, nil
+}
+
+func (s *InMemoryStore) SubmitProject(ctx context.Context, project *Project) error {
+	projectId := project.Id()
+	if existingProject, exists := s.Projects[projectId]; exists {
+		existingProject.Merge(project)
+		s.Projects[projectId] = existingProject
+	} else {
+		s.Projects[projectId] = *project
+	}
+	return nil
+}
+
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
 		Data:     make(map[string][]byte),
 		Metadata: []MetaData{},
+		Projects: make(map[string]Project),
 	}
 }
 
@@ -58,5 +82,11 @@ func NewDemoStore() *InMemoryStore {
 	}
 	store.Data["demo1.pdf"] = []byte("resource1.zip")
 	store.Data["demo2.pdf"] = []byte("resource2.zip")
+	store.Projects["demo-project-1"] = Project{
+		Name:        "Demo Project 1",
+		ResourceIds: []string{"demo1.pdf"},
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
 	return store
 }
