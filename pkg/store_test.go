@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestStore(t *testing.T) {
@@ -220,5 +221,94 @@ func TestMetaDataString(t *testing.T) {
 		if result != test.expected {
 			t.Errorf("Test %d failed. Expected '%s', got '%s'", i, test.expected, result)
 		}
+	}
+}
+
+func TestJsonMarshalingMetaData(t *testing.T) {
+	meta := &MetaData{
+		Title:    "Test Title",
+		Composer: "Test Composer",
+		Arranger: "Test Arranger",
+	}
+
+	data, err := json.Marshal(meta)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Expect an ID and a resource name in the JSON output
+	if !bytes.Contains(data, []byte(meta.ResourceId())) {
+		t.Errorf("Expected JSON to contain resource ID '%s', got %s", meta.ResourceId(), data)
+	}
+	if !bytes.Contains(data, []byte(meta.ResourceName())) {
+		t.Errorf("Expected JSON to contain resource name '%s', got %s", meta.ResourceName(), data)
+	}
+}
+
+func TestJsonUnmarshalingErrorOnInconsistency(t *testing.T) {
+	meta := &MetaData{
+		Title:    "Test Title",
+		Composer: "Test Composer",
+		Arranger: "Test Arranger",
+	}
+
+	data, err := json.Marshal(meta)
+	if err != nil {
+		t.Error(err)
+	}
+
+	for i, replace := range []string{meta.ResourceName(), meta.ResourceId()} {
+		// Modify the resource name in the JSON data
+		modifiedData := bytes.Replace(data, []byte(replace), []byte("some-modified-stuff"), 1)
+
+		var newMeta MetaData
+		if err := json.Unmarshal(modifiedData, &newMeta); err == nil {
+			t.Errorf("Test #%d: Expected error on unmarshaling with inconsistent resource name, got none", i)
+		}
+	}
+}
+
+func TestMetaData_JSONRoundTrip(t *testing.T) {
+	original := MetaData{
+		Title:           "Blue Monk",
+		Composer:        "Thelonious Monk",
+		Arranger:        "John Doe",
+		Genre:           "Jazz",
+		Year:            "1959",
+		Instrumentation: "Piano Trio",
+		Duration:        2*time.Minute + 30*time.Second,
+		Publisher:       "Jazz Press",
+		Isnm:            "979-0-060-11561-5",
+		Tags:            "bebop,standard",
+		Notes:           "A jazz standard often played in jam sessions.",
+		Status:          StoreStatusFinished,
+	}
+
+	// Marshal to JSON
+	data, err := json.Marshal(&original)
+	if err != nil {
+		t.Fatalf("failed to marshal MetaData: %v", err)
+	}
+
+	// Unmarshal back
+	var decoded MetaData
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("failed to unmarshal MetaData: %v", err)
+	}
+
+	// Compare the important fields
+	if original != decoded {
+		t.Errorf("round-trip mismatch:\nOriginal: %+v\nDecoded: %+v", original, decoded)
+	}
+}
+
+func TestUnmarshalMetDataInvalidJSON(t *testing.T) {
+	invalidJSON := []byte("Not JSON")
+
+	var meta MetaData
+	err := meta.UnmarshalJSON(invalidJSON)
+	if err == nil {
+		t.Error("Expected error on unmarshaling invalid JSON, got none")
+		return
 	}
 }
