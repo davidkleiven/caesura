@@ -27,12 +27,12 @@ func InstrumentSearchHandler(w http.ResponseWriter, r *http.Request) {
 	html := string(web.List())
 	t := template.Must(template.New("list").Parse(html))
 
-	err := t.Execute(w, IdentifiedList{"instruments", instruments})
+	err := t.Execute(w, IdentifiedList{Id: "instruments", Items: instruments, HxGet: "/choice", HxTarget: "#chosen-instrument"})
 	includeError(w, http.StatusInternalServerError, "Failed to render template", err)
 }
 
 func ChoiceHandler(w http.ResponseWriter, r *http.Request) {
-	instrument := r.URL.Query().Get("instrument")
+	instrument := r.URL.Query().Get("item")
 
 	result := instrument + "<input type=\"text\" placeholder=\"Enter part number\" id=\"part-number\"/>"
 	w.Write([]byte(result))
