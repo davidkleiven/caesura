@@ -25,7 +25,7 @@ func List() []byte {
 }
 
 func Overview() []byte {
-	tmpl := template.Must(template.ParseFS(templatesFS, "templates/overview.html", "templates/header.html"))
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/overview.html", "templates/header.html", "templates/resource_table.html"))
 	var buf bytes.Buffer
 	pkg.PanicOnErr(tmpl.Execute(&buf, LoadDependencies().Dependencies))
 	return buf.Bytes()
