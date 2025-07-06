@@ -1,0 +1,18 @@
+{{ define "resource_table" }}
+<div class="overflow-x-auto rounded-2xl shadow-md border border-gray-200 pt-8">
+    <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
+      <thead class="bg-gray-100 text-gray-700">
+        <tr>
+          <th class="px-4 py-3">Title</th>
+          <th class="px-4 py-3">Composer</th>
+          <th class="px-4 py-3">Arranger</th>
+          <th class="px-4 py-3">Duration</th>
+          <th class="px-4 py-3">Genre</th>
+          <th class="px-4 py-3">Tags</th>
+        </tr>
+      </thead>
+      <tbody id="piece-list" class="divide-y divide-gray-100 bg-white">
+      </tbody>
+    </table>
+  </div>
+{{ end }}
