@@ -14,7 +14,7 @@
     <div class="flex items-center justify-center">  <p class="mr-2 font-semibold">Search:</p>
         <input type="text" name="projectQuery" hx-get="/filter/project-list" hx-trigger="load, keyup changed delay:500ms" hx-target="#project-list" placeholder="Type to search"/>
     </div>
-    <div class="overflow-x-auto rounded-2xl shadow-md border border-gray-200 pt-8">
+    <div class="overflow-auto max-h-[70vh] rounded-2xl shadow-md border border-gray-200 pt-8">
       <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
         <thead class="bg-gray-100 text-gray-700">
           <tr>
