@@ -32,7 +32,11 @@ func Overview() []byte {
 	return buf.Bytes()
 }
 
-func ResourceList(w io.Writer, data []pkg.MetaData) {
+func ResourceList(w io.Writer, metaData []pkg.MetaData) {
+	data := ResourceListData{
+		MetaData:        metaData,
+		CheckboxVisible: true,
+	}
 	tmpl := template.Must(template.ParseFS(templatesFS, "templates/resource_list.html"))
 	pkg.PanicOnErr(tmpl.Execute(w, data))
 }
@@ -82,8 +86,19 @@ func ProjectContent(w io.Writer, project *pkg.Project, resources []pkg.MetaData)
 
 	var buffer bytes.Buffer
 	rows := template.Must(template.ParseFS(templatesFS, "templates/resource_list.html"))
-	pkg.PanicOnErr(rows.Execute(&buffer, resources))
+
+	data := ResourceListData{
+		MetaData:        resources,
+		CheckboxVisible: false,
+	}
+
+	pkg.PanicOnErr(rows.Execute(&buffer, data))
 
 	buffer.Write([]byte("</tbody>"))
 	w.Write(bytes.ReplaceAll(resourceTableBuffer.Bytes(), []byte("</tbody>"), buffer.Bytes()))
+}
+
+type ResourceListData struct {
+	MetaData        []pkg.MetaData
+	CheckboxVisible bool
 }
