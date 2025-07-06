@@ -11,7 +11,7 @@
   {{ template "header" . }}
   <!-- Page Content Placeholder -->
   <div id="page-content" class="flex-col pt-16">
-    <div id="flash-message" class="mb-4"></div>
+    <div id="flash-message" class="mb-4 text-gray-500 italic p-4">Explore your archive and add items to your next project!</div>
     <div class="flex items-center justify-center">  <p class="mr-2 font-semibold">Search:</p>
         <input type="text" name="resource-filter" hx-get="/overview/search" hx-trigger="load, keyup changed delay:500ms" hx-target="#piece-list" placeholder="Type to search"/>
     </div>
