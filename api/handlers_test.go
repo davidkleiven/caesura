@@ -776,3 +776,180 @@ func TestJsHandler(t *testing.T) {
 		return
 	}
 }
+
+func TestProjectHandler(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/projects", nil)
+
+	ProjectHandler(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Expected status code 200, got %d", recorder.Code)
+		return
+	}
+
+	if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+		return
+	}
+}
+
+func TestSearchProjectListHandler(t *testing.T) {
+	inMemStore := pkg.NewInMemoryStore()
+	inMemStore.Projects["test_project"] = pkg.Project{
+		Name:        "Test Project",
+		ResourceIds: []string{"resource1", "resource2"},
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/filter/project-list?projectQuery=test", nil)
+
+	handler := SearchProjectListHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Expected status code 200, got %d", recorder.Code)
+		return
+	}
+
+	if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+		return
+	}
+
+	if !strings.Contains(recorder.Body.String(), "Test Project") {
+		t.Error("Expected response body to contain 'Test Project'")
+		return
+	}
+}
+
+func TestSearchProjectListInternalServerError(t *testing.T) {
+	expectedError := errors.New("fetch error")
+	recorder := httptest.NewRecorder()
+
+	inMemStore := &failingProjectByNamer{err: expectedError}
+	request := httptest.NewRequest("GET", "/filter/project-list?projectQuery=test", nil)
+	handler := SearchProjectListHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code 500, got %d", recorder.Code)
+		return
+	}
+
+	expectedResponse := "Failed to fetch projects"
+	if !strings.Contains(recorder.Body.String(), expectedResponse) {
+		t.Errorf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
+	}
+}
+
+func TestProjectByIdHandler(t *testing.T) {
+	inMemStore := pkg.NewDemoStore()
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/projects/demoproject1", nil)
+
+	handler := ProjectByIdHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Expected status code 200, got %d", recorder.Code)
+		return
+	}
+
+	if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
+		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+		return
+	}
+
+	if !strings.Contains(recorder.Body.String(), "Demo Project 1") {
+		t.Error("Expected response body to contain 'Demo Project 1'")
+		return
+	}
+}
+
+func TestProjectByIdBadRequest(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/projects", nil)
+
+	inMemStore := pkg.NewInMemoryStore()
+	handler := ProjectByIdHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Errorf("Expected status code 400, got %d", recorder.Code)
+		return
+	}
+
+	expectedError := "Project ID is required"
+	if !strings.Contains(recorder.Body.String(), expectedError) {
+		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
+	}
+}
+
+type failingProjectByIdFetcher struct {
+	projectErr error
+	metaErr    error
+}
+
+func (f *failingProjectByIdFetcher) ProjectById(ctx context.Context, id string) (*pkg.Project, error) {
+	return &pkg.Project{Name: "Concert No. 1", ResourceIds: []string{"id1"}}, f.projectErr
+}
+func (f *failingProjectByIdFetcher) MetaById(ctx context.Context, id string) (*pkg.MetaData, error) {
+	return nil, f.metaErr
+}
+
+func TestProjectByIdInternalServerError(t *testing.T) {
+	expectedError := errors.New("fetch error")
+	recorder := httptest.NewRecorder()
+
+	inMemStore := &failingProjectByIdFetcher{projectErr: expectedError}
+	request := httptest.NewRequest("GET", "/projects/test_project", nil)
+	handler := ProjectByIdHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status code 500, got %d", recorder.Code)
+		return
+	}
+
+	expectedResponse := "Failed to fetch project"
+	if !strings.Contains(recorder.Body.String(), expectedResponse) {
+		t.Errorf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
+	}
+}
+
+func TestProjectByIdMetaDataError(t *testing.T) {
+	expectedError := errors.New("meta fetch error")
+	recorder := httptest.NewRecorder()
+
+	inMemStore := &failingProjectByIdFetcher{metaErr: expectedError}
+	request := httptest.NewRequest("GET", "/projects/test_project", nil)
+	handler := ProjectByIdHandler(inMemStore, 10*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Expected status code 200, got %d", recorder.Code)
+		return
+	}
+
+	if !strings.Contains(recorder.Body.String(), "Concert No. 1") {
+		t.Error("Expected response body to contain 'Concert No. 1'")
+		return
+	}
+}
+
+func TestSetup(t *testing.T) {
+	mux := Setup(pkg.NewDemoStore(), 10*time.Second)
+
+	req, _ := http.NewRequest("GET", "/", nil)
+	recorder := httptest.NewRecorder()
+	mux.ServeHTTP(recorder, req)
+
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Expected status code 200, got %d", recorder.Code)
+		return
+	}
+}

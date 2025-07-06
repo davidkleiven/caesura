@@ -172,3 +172,66 @@ func TestSubmitProject(t *testing.T) {
 		t.Errorf("Expected 3 resource IDs in project, got %d", len(inMemStore.Projects[project.Id()].ResourceIds))
 	}
 }
+
+func TestProjectById(t *testing.T) {
+	inMemStore := &InMemoryStore{
+		Projects: map[string]Project{
+			"testproject": {Name: "Test Project", ResourceIds: []string{"res1", "res2"}},
+		},
+	}
+
+	tests := []struct {
+		name      string
+		projectId string
+		expected  string
+	}{
+		{"Existing Project", "testproject", "Test Project"},
+		{"Non-existing Project", "nonexisting", ""},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			project, err := inMemStore.ProjectById(context.Background(), test.projectId)
+			if err != nil && test.expected != "" {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if project != nil && project.Name != test.expected {
+				t.Errorf("Expected project name '%s', got '%s'", test.expected, project.Name)
+			} else if project == nil && test.expected != "" {
+				t.Error("Expected a project but got nil")
+			}
+		})
+	}
+}
+
+func TestMetaById(t *testing.T) {
+	inMemStore := &InMemoryStore{
+		Metadata: []MetaData{
+			{Title: "Test Title", Composer: "Test Composer", Arranger: "Test Arranger"},
+			{Title: "Another Title", Composer: "Another Composer", Arranger: "Another Arranger"},
+		},
+	}
+
+	tests := []struct {
+		name     string
+		metaId   string
+		expected string
+	}{
+		{"Existing Meta", "b51b44dd2b01d6553d4718c74ed4ed68", "Test Title"},
+		{"Non-existing Meta", "nonexisting", ""},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			meta, err := inMemStore.MetaById(context.Background(), test.metaId)
+			if err != nil && test.expected != "" {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			if meta != nil && meta.Title != test.expected {
+				t.Errorf("Expected meta title '%s', got '%s'", test.expected, meta.Title)
+			} else if meta == nil && test.expected != "" {
+				t.Error("Expected metadata but got nil")
+			}
+		})
+	}
+}
