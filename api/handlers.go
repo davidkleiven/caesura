@@ -227,7 +227,7 @@ func ProjectSubmitHandler(submitter pkg.ProjectSubmitter, timeout time.Duration)
 			return
 		}
 		slog.Info("Project submitted successfully", "project_name", projectName, "num_resources", len(resourceIds))
-		w.Write(fmt.Appendf(nil, "Added %d pieces to '%s'", len(resourceIds), projectName))
+		w.Write(fmt.Appendf(nil, "Added %d piece(s) to '%s'", len(resourceIds), projectName))
 	}
 }
 
