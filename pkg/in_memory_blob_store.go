@@ -3,6 +3,7 @@ package pkg
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -66,6 +67,22 @@ func (s *InMemoryStore) SubmitProject(ctx context.Context, project *Project) err
 	return nil
 }
 
+func (s *InMemoryStore) ProjectById(ctx context.Context, id string) (*Project, error) {
+	if project, exists := s.Projects[id]; exists {
+		return &project, nil
+	}
+	return nil, fmt.Errorf("project with id %s not found", id)
+}
+
+func (s *InMemoryStore) MetaById(ctx context.Context, id string) (*MetaData, error) {
+	for _, meta := range s.Metadata {
+		if meta.ResourceId() == id {
+			return &meta, nil
+		}
+	}
+	return nil, fmt.Errorf("metadata with id %s not found", id)
+}
+
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
 		Data:     make(map[string][]byte),
@@ -80,13 +97,15 @@ func NewDemoStore() *InMemoryStore {
 		{Title: "Demo Title 1", Composer: "Composer A", Arranger: "Arranger X"},
 		{Title: "Demo Title 2", Composer: "Composer B", Arranger: "Arranger Y"},
 	}
-	store.Data["demo1.pdf"] = []byte("resource1.zip")
-	store.Data["demo2.pdf"] = []byte("resource2.zip")
-	store.Projects["demo-project-1"] = Project{
+	store.Data[store.Metadata[0].ResourceId()] = []byte("resource1.zip")
+	store.Data[store.Metadata[1].ResourceId()] = []byte("resource2.zip")
+
+	project := Project{
 		Name:        "Demo Project 1",
-		ResourceIds: []string{"demo1.pdf"},
+		ResourceIds: []string{store.Metadata[0].ResourceId(), store.Metadata[1].ResourceId()},
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
+	store.Projects[project.Id()] = project
 	return store
 }

@@ -22,6 +22,12 @@ type BlobStore interface {
 	MetaByPatternFetcher
 	ProjectByNameGetter
 	ProjectSubmitter
+	ProjectMetaByIdGetter
+}
+
+type ProjectMetaByIdGetter interface {
+	ProjectById(ctx context.Context, id string) (*Project, error)
+	MetaById(ctx context.Context, id string) (*MetaData, error)
 }
 
 type Project struct {

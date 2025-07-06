@@ -5,6 +5,7 @@ import (
 	"embed"
 	"html/template"
 	"io"
+	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
 	"github.com/davidkleiven/caesura/utils"
@@ -43,4 +44,46 @@ func ProjectSelectorModal() []byte {
 func ProjectQueryInput(w io.Writer, queryContent string) {
 	tmpl := template.Must(template.ParseFS(templatesFS, "templates/project_query_input.html"))
 	pkg.PanicOnErr(tmpl.Execute(w, queryContent))
+}
+
+func Projects() []byte {
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/projects.html", "templates/header.html"))
+	var buf bytes.Buffer
+	pkg.PanicOnErr(tmpl.Execute(&buf, LoadDependencies().Dependencies))
+	return buf.Bytes()
+}
+
+func ProjectList(w io.Writer, projects []pkg.Project) {
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/project_list.html"))
+
+	data := make([]struct {
+		Name      string
+		Id        string
+		CreatedAt string
+		UpdatedAt string
+		NumPieces int
+	}, len(projects))
+	for i, project := range projects {
+		data[i].Name = project.Name
+		data[i].Id = project.Id()
+		data[i].CreatedAt = project.CreatedAt.Format(time.RFC1123)
+		data[i].UpdatedAt = project.UpdatedAt.Format(time.RFC1123)
+		data[i].NumPieces = len(project.ResourceIds)
+	}
+
+	pkg.PanicOnErr(tmpl.Execute(w, data))
+}
+
+func ProjectContent(w io.Writer, project *pkg.Project, resources []pkg.MetaData) {
+	resourceTable := template.Must(template.ParseFS(templatesFS, "templates/project_content.html", "templates/resource_table.html"))
+
+	var resourceTableBuffer bytes.Buffer
+	pkg.PanicOnErr(resourceTable.Execute(&resourceTableBuffer, project))
+
+	var buffer bytes.Buffer
+	rows := template.Must(template.ParseFS(templatesFS, "templates/resource_list.html"))
+	pkg.PanicOnErr(rows.Execute(&buffer, resources))
+
+	buffer.Write([]byte("</tbody>"))
+	w.Write(bytes.ReplaceAll(resourceTableBuffer.Bytes(), []byte("</tbody>"), buffer.Bytes()))
 }

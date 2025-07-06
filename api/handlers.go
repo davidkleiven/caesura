@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
@@ -231,6 +232,63 @@ func ProjectSubmitHandler(submitter pkg.ProjectSubmitter, timeout time.Duration)
 	}
 }
 
+func ProjectHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write(web.Projects())
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+}
+
+func SearchProjectListHandler(store pkg.ProjectByNameGetter, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		projectName := r.URL.Query().Get("projectQuery")
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		projects, err := store.ProjectsByName(ctx, projectName)
+		if err != nil {
+			http.Error(w, "Failed to fetch projects", http.StatusInternalServerError)
+			slog.Error("Failed to fetch projects", "error", err)
+			return
+		}
+
+		web.ProjectList(w, projects)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	}
+}
+
+func ProjectByIdHandler(store pkg.ProjectMetaByIdGetter, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		pathPaths := strings.Split(r.URL.Path, "/")
+		if len(pathPaths) < 3 {
+			http.Error(w, "Project ID is required", http.StatusBadRequest)
+			slog.Error("Project ID is required")
+			return
+		}
+		projectId := pathPaths[2]
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		project, err := store.ProjectById(ctx, projectId)
+		if err != nil {
+			http.Error(w, "Failed to fetch project", http.StatusInternalServerError)
+			slog.Error("Failed to fetch project", "error", err)
+			return
+		}
+
+		metaData := make([]pkg.MetaData, 0, len(project.ResourceIds))
+		for _, id := range project.ResourceIds {
+			meta, err := store.MetaById(ctx, id)
+			if err != nil {
+				slog.Error("Failed to fetch metadata for project", "error", err)
+			} else {
+				metaData = append(metaData, *meta)
+			}
+		}
+
+		web.ProjectContent(w, project, metaData)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	}
+}
+
 func Setup(store pkg.BlobStore, timeout time.Duration) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", RootHandler)
@@ -246,5 +304,8 @@ func Setup(store pkg.BlobStore, timeout time.Duration) *http.ServeMux {
 	mux.HandleFunc("/search-projects", SearchProjectHandler(store, timeout))
 	mux.HandleFunc("/add-to-project", ProjectSubmitHandler(store, timeout))
 	mux.HandleFunc("/project-query-input", ProjectQueryInputHandler)
+	mux.HandleFunc("/projects", ProjectHandler)
+	mux.HandleFunc("/filter/project-list", SearchProjectListHandler(store, timeout))
+	mux.HandleFunc("/projects/", ProjectByIdHandler(store, timeout))
 	return mux
 }
