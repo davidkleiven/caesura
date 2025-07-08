@@ -30,7 +30,7 @@ func TestSplitPdf(t *testing.T) {
 	var buffer bytes.Buffer
 
 	if err := CreateNPagePdf(&buffer, 10); err != nil {
-		t.Error(err)
+		t.Errorf("failed to create pdf: %s", err)
 		return
 	}
 
@@ -54,13 +54,13 @@ func TestSplitPdf(t *testing.T) {
 
 	result, err := SplitPdf(bytes.NewReader(buffer.Bytes()), assignements)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("failed to split pdf: %s", err)
 		return
 	}
 
 	reader, err := zip.NewReader(bytes.NewReader((result.Bytes())), int64(result.Len()))
 	if err != nil {
-		t.Error(err)
+		t.Errorf("failed to read splitted pdf: %s", err)
 		return
 	}
 	if len(reader.File) != 2 {
