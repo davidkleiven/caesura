@@ -11,18 +11,12 @@ import (
 const overViewPage = "/overview"
 
 func waitForInitialLoad(page playwright.Page) error {
-	response, err := page.ExpectResponse(
-		"**/overview/search**",
-		func() error { return nil },
-		playwright.PageExpectResponseOptions{Timeout: playwright.Float(4000)},
-	)
-
-	if err != nil {
-		return err
+	tableContent := page.Locator("table tbody tr").First()
+	waitForOpts := playwright.LocatorWaitForOptions{
+		Timeout: playwright.Float(1000),
 	}
-
-	if !response.Ok() {
-		return fmt.Errorf("Expected response to be OK, but got: %d", response.Status())
+	if err := tableContent.WaitFor(waitForOpts); err != nil {
+		return fmt.Errorf("error waiting for table content: %w", err)
 	}
 	return nil
 }
@@ -60,13 +54,16 @@ func TestSearchForTitle(t *testing.T) {
 			return
 		}
 
-		if err := searchInput.Press("Enter"); err != nil {
+		resp, err := page.ExpectResponse("**/overview/search**", func() error {
+			return searchInput.Press("Enter")
+		}, playwright.PageExpectResponseOptions{Timeout: playwright.Float(1000)})
+		if err != nil {
 			t.Error(err)
 			return
 		}
 
-		if err := waitForInitialLoad(page); err != nil {
-			t.Error(err)
+		if resp.Status() != http.StatusOK {
+			t.Errorf("Expected OK response, but got %d", resp.Status())
 			return
 		}
 
