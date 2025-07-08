@@ -24,7 +24,7 @@ jobs:
       run: go run github.com/playwright-community/playwright-go/cmd/playwright install chromium-headless-shell
 
     - name: Test
-      run: go test ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
+      run: go test -v ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
 
     - name: Check coverage
       uses: vladopajic/go-test-coverage@v2
