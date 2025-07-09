@@ -235,3 +235,25 @@ func TestMetaById(t *testing.T) {
 		})
 	}
 }
+
+func TestResourceById(t *testing.T) {
+	store := NewDemoStore()
+	id := store.Metadata[0].ResourceId()
+
+	reader, err := store.ResourceById(context.Background(), id)
+	if err != nil {
+		t.Fatalf("ResourceById: %s", err)
+	}
+
+	if n := len(reader.File); n != 5 {
+		t.Fatalf("Expected 5 files got %d", n)
+	}
+}
+
+func TestResourceByIdUnknownId(t *testing.T) {
+	store := NewDemoStore()
+	_, err := store.ResourceById(context.Background(), "unknownId")
+	if !errors.Is(err, ErrResourceNotFound) {
+		t.Fatalf("Wanted %s got %s", ErrResourceNotFound, err)
+	}
+}

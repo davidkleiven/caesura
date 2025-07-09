@@ -296,19 +296,26 @@ func ResourceContentByIdHandler(s pkg.ResourceByIder, timeout time.Duration) htt
 			slog.Error("Resource ID is required", "error", err)
 		}
 
+		resourceId := interpretedPath.PathParameter
+
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
-		resource, err := s.ResourceById(ctx, interpretedPath.PathParameter)
+		resource, err := s.ResourceById(ctx, resourceId)
 		if err != nil {
 			http.Error(w, "could not fetch resource", http.StatusInternalServerError)
 			slog.Error("Failed to fetch resource", "error", err)
 		}
 
-		filenames := make([]string, len(resource.File))
-		for i, file := range resource.File {
-			filenames[i] = file.Name
+		content := web.ResourceContentData{
+			ResourceId: resourceId,
+			Filenames:  make([]string, len(resource.File)),
 		}
+		for i, file := range resource.File {
+			content.Filenames[i] = file.Name
+		}
+
+		web.ResourceContent(w, &content)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	}
 }
@@ -331,5 +338,6 @@ func Setup(store pkg.BlobStore, timeout time.Duration) *http.ServeMux {
 	mux.HandleFunc("/projects", ProjectHandler)
 	mux.HandleFunc("/filter/project-list", SearchProjectListHandler(store, timeout))
 	mux.HandleFunc("/projects/", ProjectByIdHandler(store, timeout))
+	mux.HandleFunc("/content/", ResourceContentByIdHandler(store, timeout))
 	return mux
 }

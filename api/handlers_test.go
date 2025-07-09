@@ -953,3 +953,26 @@ func TestSetup(t *testing.T) {
 		return
 	}
 }
+
+func TestResourceContentByIdHandler(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	store := pkg.NewDemoStore()
+	id := store.Metadata[0].ResourceId()
+
+	request := httptest.NewRequest("GET", "/content/"+id, nil)
+	handler := ResourceContentByIdHandler(store, 1*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Errorf("Expected return code '200' got %d", recorder.Code)
+	}
+
+	tokens := []string{"Part0", "Part2", "Part3", "Part4"}
+	body := recorder.Body.String()
+	for i, token := range tokens {
+		if !strings.Contains(body, token) {
+			t.Fatalf("Test #%d: expected %s to be part of\n%s\n", i, token, body)
+		}
+	}
+
+}

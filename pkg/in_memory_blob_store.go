@@ -1,6 +1,8 @@
 package pkg
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -81,6 +83,14 @@ func (s *InMemoryStore) MetaById(ctx context.Context, id string) (*MetaData, err
 		}
 	}
 	return nil, fmt.Errorf("metadata with id %s not found", id)
+}
+
+func (s *InMemoryStore) ResourceById(ctx context.Context, resourceId string) (*zip.Reader, error) {
+	content, exists := s.Data[resourceId]
+	if !exists {
+		return nil, errors.Join(ErrResourceNotFound, fmt.Errorf("resource %s", resourceId))
+	}
+	return zip.NewReader(bytes.NewReader(content), int64(len(content)))
 }
 
 func NewInMemoryStore() *InMemoryStore {
