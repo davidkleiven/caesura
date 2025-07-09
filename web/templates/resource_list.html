@@ -1,10 +1,16 @@
 {{range .MetaData }}
-<tr id="row-{{ .ResourceId }}"class="hover:bg-gray-50">
-    <td class="px-4 py-3 font-medium text-gray-900"><input name="pieceIds" id="checkbox-{{.ResourceId}}" type="checkbox" id="select-all" class="mr-2 {{if not $.CheckboxVisible}}hidden{{end}}" value="{{ .ResourceId }}">{{.Title}}</td>
+<tr id="row-{{ .ResourceId }}" class="hover:bg-gray-50"onclick="toggleRowContent('{{.ResourceId}}')">
+    <td class="px-4 py-3 font-medium text-gray-900"><input name="pieceIds" id="checkbox-{{.ResourceId}}" type="checkbox"
+            id="select-all" class="mr-2 {{if not $.CheckboxVisible}}hidden{{end}}" value="{{ .ResourceId }}">{{.Title}}
+    </td>
     <td class="px-4 py-3">{{.Composer}}</td>
     <td class="px-4 py-3">{{.Arranger}}</td>
     <td class="px-4 py-3">{{.Duration}}</td>
     <td class="px-4 py-3">{{.Genre}}</td>
     <td class="px-4 py-3">{{.Tags}}</td>
+</tr>
+
+<tr id="expand-{{ .ResourceId }}" class="bg-gray-100 hidden">
+    <td colspan="6" class="px-4 py-3"></td>
 </tr>
 {{end}}

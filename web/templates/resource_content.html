@@ -1,5 +1,5 @@
-<div class="flex">
+<div class="p-4 flex">
     {{range .Filenames }}
-    <href a="{{ $.ResourceId }}@{{ . }}">{{.}}</href>
+    <p hx-get="/resource/{{$.ResourceId}}" hx-vals='{"file": {{.}}}' class="mr-2 cursor-pointer hover:text-blue-800 hover:underline transition">{{.}}</p>
     {{end}}
 </div>
