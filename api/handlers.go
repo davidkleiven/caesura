@@ -7,7 +7,6 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
@@ -257,13 +256,13 @@ func SearchProjectListHandler(store pkg.ProjectByNameGetter, timeout time.Durati
 
 func ProjectByIdHandler(store pkg.ProjectMetaByIdGetter, timeout time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		pathPaths := strings.Split(r.URL.Path, "/")
-		if len(pathPaths) < 3 {
+		interpretedPath, err := pkg.ParseUrl(r.URL.Path)
+		if err != nil {
 			http.Error(w, "Project ID is required", http.StatusBadRequest)
 			slog.Error("Project ID is required")
 			return
 		}
-		projectId := pathPaths[2]
+		projectId := interpretedPath.PathParameter
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
