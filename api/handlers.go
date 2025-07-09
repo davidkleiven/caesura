@@ -290,12 +290,16 @@ func ProjectByIdHandler(store pkg.ProjectMetaByIdGetter, timeout time.Duration) 
 
 func ResourceContentByIdHandler(s pkg.ResourceByIder, timeout time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		resourceId := r.URL.Query().Get("resourceId")
+		interpretedPath, err := pkg.ParseUrl(r.URL.Path)
+		if err != nil {
+			http.Error(w, "ResourceID is required", http.StatusBadRequest)
+			slog.Error("Resource ID is required", "error", err)
+		}
 
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
-		resource, err := s.ResourceById(ctx, resourceId)
+		resource, err := s.ResourceById(ctx, interpretedPath.PathParameter)
 		if err != nil {
 			http.Error(w, "could not fetch resource", http.StatusInternalServerError)
 			slog.Error("Failed to fetch resource", "error", err)
