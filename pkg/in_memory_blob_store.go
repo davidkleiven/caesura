@@ -97,8 +97,8 @@ func NewDemoStore() *InMemoryStore {
 		{Title: "Demo Title 1", Composer: "Composer A", Arranger: "Arranger X"},
 		{Title: "Demo Title 2", Composer: "Composer B", Arranger: "Arranger Y"},
 	}
-	store.Data[store.Metadata[0].ResourceId()] = []byte("resource1.zip")
-	store.Data[store.Metadata[1].ResourceId()] = []byte("resource2.zip")
+	store.Data[store.Metadata[0].ResourceId()] = MustCreateResource(5)
+	store.Data[store.Metadata[1].ResourceId()] = MustCreateResource(3)
 
 	project := Project{
 		Name:        "Demo Project 1",
