@@ -102,3 +102,13 @@ type ResourceListData struct {
 	MetaData        []pkg.MetaData
 	CheckboxVisible bool
 }
+
+type ResourceContentData struct {
+	ResourceId string
+	Filenames  []string
+}
+
+func ResourceContent(w io.Writer, data *ResourceContentData) {
+	template := template.Must(template.ParseFS(templatesFS, "templates/resource_content.html"))
+	pkg.PanicOnErr(template.Execute(w, data))
+}
