@@ -4,6 +4,7 @@ import (
 	"embed"
 	"encoding/json"
 	"io"
+	"net/http"
 	"text/template"
 
 	"github.com/davidkleiven/caesura/pkg"
@@ -34,4 +35,8 @@ func LoadDependencies() JsPackages {
 	data := utils.Must(jsFS.ReadFile("js/package.json"))
 	pkg.PanicOnErr(json.Unmarshal(data, &deps))
 	return deps
+}
+
+func JsServer() http.Handler {
+	return http.FileServerFS(jsFS)
 }

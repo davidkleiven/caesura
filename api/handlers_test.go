@@ -533,7 +533,7 @@ func TestOverviewSearchHandler(t *testing.T) {
 			return
 		}
 
-		numRows := strings.Count(recorder.Body.String(), "<tr id")
+		numRows := strings.Count(recorder.Body.String(), "<tr id=\"row")
 		if numRows != test.expectedCount {
 			t.Errorf("Expected %d rows in response, got %d", test.expectedCount, numRows)
 			return

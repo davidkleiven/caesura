@@ -339,5 +339,6 @@ func Setup(store pkg.BlobStore, timeout time.Duration) *http.ServeMux {
 	mux.HandleFunc("/filter/project-list", SearchProjectListHandler(store, timeout))
 	mux.HandleFunc("/projects/", ProjectByIdHandler(store, timeout))
 	mux.HandleFunc("/content/", ResourceContentByIdHandler(store, timeout))
+	mux.Handle("/js/", web.JsServer())
 	return mux
 }

@@ -28,7 +28,7 @@ func TestInitialLoadHasTwoItems(t *testing.T) {
 			return
 		}
 
-		rowCount, err := page.Locator("table tbody tr").Count()
+		rowCount, err := page.Locator("table tbody tr[id^='row']").Count()
 		if err != nil {
 			t.Errorf("Error counting rows: %v", err)
 			return
@@ -67,7 +67,7 @@ func TestSearchForTitle(t *testing.T) {
 			return
 		}
 
-		rowCount, err := page.Locator("table tbody tr").Count()
+		rowCount, err := page.Locator("table tbody tr[id^='row']").Count()
 		if err != nil {
 			t.Errorf("Error counting rows: %v", err)
 			return
