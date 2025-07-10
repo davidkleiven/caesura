@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"context"
 	"errors"
+	"io"
 	"time"
 )
 
@@ -23,6 +24,11 @@ type ProjectSubmitter interface {
 
 type ResourceByIder interface {
 	ResourceById(ctx context.Context, resourceId string) (*zip.Reader, error)
+}
+
+type ResourceGetter interface {
+	MetaById(ctx context.Context, id string) (*MetaData, error)
+	Resource(ctx context.Context, path string) (io.Reader, error)
 }
 
 type BlobStore interface {
