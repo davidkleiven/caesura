@@ -1,6 +1,8 @@
 package pkg
 
 import (
+	"archive/zip"
+	"bytes"
 	"errors"
 	"fmt"
 	"slices"
@@ -36,5 +38,43 @@ func TestRemoveDuplicates(t *testing.T) {
 				t.Errorf("Expected %v, got %v", test.expected, result)
 			}
 		})
+	}
+}
+
+func TestFileFromZipper(t *testing.T) {
+	var buffer bytes.Buffer
+
+	zipWriter := zip.NewWriter(&buffer)
+	zipWriter.Create("file1.pdf")
+	zipWriter.Create("file2.pdf")
+	zipWriter.Create("file3.pdf")
+	zipWriter.Close()
+
+	file, err := NewFileFromZipper().ReadBytes(&buffer).AsZip().GetFile("file2.pdf")
+	if err != nil {
+		t.Fatalf("Failed to extract file %s", err)
+	}
+
+	if file.Name != "file2.pdf" {
+		t.Fatalf("Expected file to be named 'file2.pdf' got %s", file.Name)
+	}
+}
+
+func TestFileFromZipperReadFails(t *testing.T) {
+	_, err := NewFileFromZipper().ReadBytes(&failingReader{}).AsZip().GetFile("file2.pdf")
+	if err == nil {
+		t.Fatalf("Expected error to be returned")
+	}
+}
+
+func TestFileFromZipperUnknownFile(t *testing.T) {
+	var buffer bytes.Buffer
+	zipWriter := zip.NewWriter(&buffer)
+	zipWriter.Create("file1.pdf")
+	zipWriter.Close()
+
+	_, err := NewFileFromZipper().ReadBytes(&buffer).AsZip().GetFile("file2.pdf")
+	if !errors.Is(err, ErrFileNotInZipArchive) {
+		t.Errorf("Expected error to be of type 'ErrFileNotInZipArchive' got %s", err)
 	}
 }

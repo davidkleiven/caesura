@@ -1,6 +1,6 @@
 {{range .MetaData }}
-<tr id="row-{{ .ResourceId }}" class="hover:bg-gray-50"onclick="toggleRowContent('{{.ResourceId}}')">
-    <td class="px-4 py-3 font-medium text-gray-900"><input name="pieceIds" id="checkbox-{{.ResourceId}}" type="checkbox"
+<tr id="row-{{ .ResourceId }}" class="hover:bg-gray-50" onclick="toggleRowContent('{{.ResourceId}}')">
+    <td class="px-4 py-3 w-2/5 font-medium text-gray-900"><input name="pieceIds" id="checkbox-{{.ResourceId}}" type="checkbox"
             id="select-all" class="mr-2 {{if not $.CheckboxVisible}}hidden{{end}}" value="{{ .ResourceId }}">{{.Title}}
     </td>
     <td class="px-4 py-3">{{.Composer}}</td>
@@ -8,9 +8,20 @@
     <td class="px-4 py-3">{{.Duration}}</td>
     <td class="px-4 py-3">{{.Genre}}</td>
     <td class="px-4 py-3">{{.Tags}}</td>
+    <!-- 📥 Download column -->
+    <td class="px-4 py-3 text-right">
+        <a href="/resource/{{.ResourceId}}"
+           class="text-blue-600 hover:text-blue-800"
+           onclick="event.stopPropagation();"
+           title="Download file">
+            <svg xmlns="http://www.w3.org/2000/svg" class="inline h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+            </svg>
+        </a>
+    </td>
 </tr>
 
 <tr id="expand-{{ .ResourceId }}" class="bg-gray-100 hidden">
-    <td colspan="6" class="px-4 py-3"></td>
+    <td colspan="7" class="px-4 py-3"></td>
 </tr>
 {{end}}

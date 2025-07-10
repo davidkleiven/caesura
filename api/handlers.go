@@ -3,8 +3,10 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"log/slog"
 	"net/http"
 	"time"
@@ -288,27 +290,21 @@ func ProjectByIdHandler(store pkg.ProjectMetaByIdGetter, timeout time.Duration) 
 	}
 }
 
-func ResourceContentByIdHandler(s pkg.ResourceByIder, timeout time.Duration) http.HandlerFunc {
+func ResourceContentByIdHandler(s pkg.ResourceGetter, timeout time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		interpretedPath, err := pkg.ParseUrl(r.URL.Path)
-		if err != nil {
-			http.Error(w, "ResourceID is required", http.StatusBadRequest)
-			slog.Error("Resource ID is required", "error", err)
-		}
-
-		resourceId := interpretedPath.PathParameter
-
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
-		resource, err := s.ResourceById(ctx, resourceId)
+		downloader := pkg.NewResourceDownloader().ParseUrl(r.URL).GetMetaData(ctx, s).GetResource(ctx, s)
+
+		resource, err := downloader.ZipReader()
 		if err != nil {
 			http.Error(w, "could not fetch resource", http.StatusInternalServerError)
 			slog.Error("Failed to fetch resource", "error", err)
 		}
 
 		content := web.ResourceContentData{
-			ResourceId: resourceId,
+			ResourceId: downloader.ResourceId,
 			Filenames:  make([]string, len(resource.File)),
 		}
 		for i, file := range resource.File {
@@ -317,6 +313,61 @@ func ResourceContentByIdHandler(s pkg.ResourceByIder, timeout time.Duration) htt
 
 		web.ResourceContent(w, &content)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	}
+}
+
+func ResourceDownload(s pkg.ResourceGetter, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		downloader := pkg.NewResourceDownloader().ParseUrl(r.URL).GetMetaData(ctx, s).GetResource(ctx, s)
+
+		var (
+			reader             io.Reader
+			contentReader      io.ReadCloser
+			err                error
+			statusCode         int
+			contentDisposition string
+			contentType        string
+		)
+		if !downloader.SingleFileRequested() {
+			zipFilename := downloader.ZipFilename()
+			contentDisposition = "attachment; filename=\"" + zipFilename + "\""
+			contentType = "application/zip"
+			reader, err = downloader.Content()
+			contentReader = io.NopCloser(reader)
+		} else {
+			file := downloader.File
+			contentDisposition = "attachment; filename=\"" + file + "\""
+			contentType = "application/pdf"
+			contentReader, err = downloader.ExtractSingleFile().FileReader()
+		}
+
+		switch {
+		case errors.Is(err, pkg.ErrCanNotInterpretUrl):
+			statusCode = http.StatusBadRequest
+		case errors.Is(err, pkg.ErrFileNotInZipArchive),
+			errors.Is(err, pkg.ErrFileNotFound),
+			errors.Is(err, pkg.ErrResourceMetadataNotFound):
+			statusCode = http.StatusNotFound
+		case err != nil:
+			statusCode = http.StatusInternalServerError
+		default:
+			statusCode = http.StatusOK
+		}
+
+		if err != nil {
+			http.Error(w, err.Error(), statusCode)
+			slog.Error("Error during download resource", "error", err, "id", downloader.ResourceId, "file", downloader.File)
+			return
+		}
+		defer contentReader.Close()
+
+		w.Header().Set("Content-Type", contentType)
+		w.Header().Set("Content-Disposition", contentDisposition)
+		io.Copy(w, contentReader)
+		slog.Info("Resource downloaded")
 	}
 }
 
@@ -340,5 +391,6 @@ func Setup(store pkg.BlobStore, timeout time.Duration) *http.ServeMux {
 	mux.HandleFunc("/projects/", ProjectByIdHandler(store, timeout))
 	mux.HandleFunc("/content/", ResourceContentByIdHandler(store, timeout))
 	mux.Handle("/js/", web.JsServer())
+	mux.Handle("/resource/", ResourceDownload(store, timeout))
 	return mux
 }

@@ -104,7 +104,6 @@ type Storer interface {
 
 var ErrFileNotFound = fmt.Errorf("file not found")
 var ErrRetrievingContent = fmt.Errorf("error retrieving content")
-var ErrResourceMetadataNotFound = fmt.Errorf("resource metadata not found")
 var ErrUpdateMetadata = fmt.Errorf("error updating metadata")
 
 type FSStore struct {
