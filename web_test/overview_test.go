@@ -3,6 +3,7 @@ package web_test
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/playwright-community/playwright-go"
@@ -204,5 +205,70 @@ func TestAddToExistingProject(t *testing.T) {
 			t.Errorf("Expected flash message to be %s, got '%s'", expectedMsg, flashMsg)
 			return
 		}
+	}, overViewPage)(t)
+}
+
+func TestResourcesDisplayOnClick(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		if err := waitForInitialLoad(page); err != nil {
+			t.Error(err)
+			return
+		}
+
+		expandable := page.Locator("table tbody tr[id^='expand']")
+		num, err := expandable.Count()
+		if err != nil || num != 2 {
+			t.Fatalf("Expected (num, err) = (2, nil) got (%d, %s)", num, expandable)
+		}
+
+		for i := range num {
+			if hidden, err := expandable.Nth(i).IsHidden(); !hidden || err != nil {
+				t.Fatalf("Expected all expandable items to initially be hidden (%v, %s)", hidden, err)
+			}
+		}
+
+		row := page.Locator("table tbody tr[id^='row']").First()
+
+		timeout := playwright.PageExpectResponseOptions{
+			Timeout: playwright.Float(1000),
+		}
+		resp, err := page.ExpectResponse("**/content/**", func() error { return row.Click() }, timeout)
+
+		if err != nil || !resp.Ok() {
+			t.Fatalf("Got (resp, err): (%v, %s)", resp, err)
+		}
+
+		// First should not be hidden
+		if hidden, err := expandable.Nth(0).IsHidden(); hidden || err != nil {
+			t.Fatalf("First item should not be hidden got (hidden, err): (%v, %s)", hidden, err)
+		}
+
+		if hidden, err := expandable.Nth(1).IsHidden(); !hidden || err != nil {
+			t.Fatalf("Second item should be hidden got (hidden, err): (%v, %s)", hidden, err)
+		}
+
+		expCtn, err := expandable.First().TextContent()
+		if err != nil {
+			t.Fatalf("Could not received text content from expandable: %s", err)
+		}
+		for _, token := range []string{"Part1.pdf", "Part2.pdf", "Part3.pdf", "Part4.pdf"} {
+			if !strings.Contains(expCtn, token) {
+				t.Fatalf("Expected %s to be part of %s", token, expCtn)
+			}
+		}
+
+		// Second click should hide the expandable item
+		row.Click()
+		err = expandable.First().WaitFor(
+			playwright.LocatorWaitForOptions{
+				State:   playwright.WaitForSelectorStateHidden,
+				Timeout: playwright.Float(1000),
+			},
+		)
+
+		if err != nil {
+			t.Fatalf("Wait for object getting hidden: %s", err)
+		}
+
 	}, overViewPage)(t)
 }
