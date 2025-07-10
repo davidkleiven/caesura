@@ -29,20 +29,40 @@ func RemoveDuplicates[T comparable](input []T) []T {
 	return result
 }
 
-func FileFromZip(r io.Reader, filename string) (*zip.File, error) {
-	content, err := io.ReadAll(r)
-	if err != nil {
-		return nil, err
+type FileFromZipper struct {
+	content   []byte
+	zipReader *zip.Reader
+	err       error
+}
+
+func (f *FileFromZipper) ReadBytes(r io.Reader) *FileFromZipper {
+	f.content, f.err = io.ReadAll(r)
+	return f
+}
+
+func (f *FileFromZipper) AsZip() *FileFromZipper {
+	if f.err != nil {
+		return f
 	}
-	zipReader, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
-	if err != nil {
-		return nil, err
+	f.zipReader, f.err = zip.NewReader(bytes.NewReader(f.content), int64(len(f.content)))
+	return f
+}
+
+func (f *FileFromZipper) GetFile(filename string) (*zip.File, error) {
+	if f.err != nil {
+		return &zip.File{}, f.err
 	}
 
-	for _, file := range zipReader.File {
+	for _, file := range f.zipReader.File {
 		if file.Name == filename {
 			return file, nil
 		}
 	}
-	return nil, errors.Join(ErrFileNotInZipArchive, fmt.Errorf(": file %s", filename))
+
+	f.err = errors.Join(ErrFileNotInZipArchive, fmt.Errorf("file %s", filename))
+	return &zip.File{}, f.err
+}
+
+func NewFileFromZipper() *FileFromZipper {
+	return &FileFromZipper{}
 }

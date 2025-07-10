@@ -324,71 +324,53 @@ func ResourceContentByIdHandler(s pkg.ResourceByIder, timeout time.Duration) htt
 
 func ResourceDownload(s pkg.ResourceGetter, timeout time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		interpretedPath, err := pkg.ParseUrl(r.URL.Path)
-		file := r.URL.Query().Get("file")
-		if err != nil {
-			http.Error(w, "Resource ID is required", http.StatusBadRequest)
-			slog.Error("Resource ID is required", "error", err)
-		}
-
-		resourceId := interpretedPath.PathParameter
-
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
-		meta, err := s.MetaById(ctx, resourceId)
-		if errors.Is(err, pkg.ErrResourceNotFound) {
-			msg := "Did not find requested resource"
-			http.Error(w, msg, http.StatusNotFound)
-			slog.Error(msg, "error", err, "id", resourceId, "file", file)
-			return
-		} else if err != nil {
-			msg := "An error occured while fetching resource"
-			http.Error(w, msg, http.StatusInternalServerError)
-			slog.Error(msg, "error", err, "id", resourceId, "file", file)
-			return
+		downloader := pkg.NewResourceDownloader().ParseUrl(r.URL).GetMetaData(ctx, s).GetResource(ctx, s)
+
+		var (
+			reader             io.Reader
+			contentReader      io.ReadCloser
+			err                error
+			statusCode         int
+			contentDisposition string
+			contentType        string
+		)
+		if !downloader.SingleFileRequested() {
+			zipFilename := downloader.ZipFilename()
+			contentDisposition = "attachment; filename=\"" + zipFilename + "\""
+			contentType = "application/zip"
+			reader, err = downloader.Content()
+			contentReader = io.NopCloser(reader)
+		} else {
+			file := downloader.SingleFileName()
+			contentDisposition = "attachment; filename=\"" + file + "\""
+			contentType = "application/pdf"
+			contentReader, err = downloader.ExtractSingleFile().FileReader()
 		}
 
-		zipFilename := meta.ResourceName()
-		contentReader, err := s.Resource(ctx, meta.ResourceName())
+		switch {
+		case errors.Is(err, pkg.ErrResourceIdIsRequired):
+			statusCode = http.StatusBadRequest
+		case errors.Is(err, pkg.ErrFileNotInZipArchive), errors.Is(err, pkg.ErrFileNotFound):
+			statusCode = http.StatusNotFound
+		case err != nil:
+			statusCode = http.StatusInternalServerError
+		default:
+			statusCode = http.StatusOK
+		}
+
 		if err != nil {
-			msg := "An error occured while fetching resource"
-			http.Error(w, msg, http.StatusInternalServerError)
-			slog.Error(msg, "error", err, "id", resourceId, "file", file)
+			http.Error(w, err.Error(), statusCode)
+			slog.Error("Error during download resource", "error", err, "id", downloader.ResourceId, "file", downloader.File)
 			return
 		}
+		defer contentReader.Close()
 
-		if file == "" {
-			w.Header().Set("Content-Disposition", "attachment; filename=\""+zipFilename+"\"")
-			w.Header().Set("Content-Type", "application/zip")
-			io.Copy(w, contentReader)
-			return
-		}
-
-		singleFile, err := pkg.FileFromZip(contentReader, file)
-		if errors.Is(err, pkg.ErrFileNotInZipArchive) {
-			msg := "Requested file not present in zip archive"
-			http.Error(w, msg, http.StatusNotFound)
-			slog.Error(msg, "error", err, "id", resourceId, "file", file)
-			return
-		} else if err != nil {
-			msg := "An error occured while extracting file from zip archive"
-			http.Error(w, msg, http.StatusInternalServerError)
-			slog.Error(msg, "error", err, "id", resourceId, "file", file)
-			return
-		}
-
-		readCloser, err := singleFile.Open()
-		if err != nil {
-			msg := "Could not open pdf file"
-			http.Error(w, msg, http.StatusInternalServerError)
-			slog.Error(msg, "error", err, "id", resourceId, "file", file)
-			return
-		}
-		defer readCloser.Close()
-		w.Header().Set("Content-Type", "application/pdf")
-		w.Header().Set("Content-Disposition", "attachment; filename=\""+file+"\"")
-		io.Copy(w, readCloser)
+		w.Header().Set("Content-Type", contentType)
+		w.Header().Set("Content-Disposition", contentDisposition)
+		io.Copy(w, contentReader)
 	}
 }
 
