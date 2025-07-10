@@ -1,8 +1,11 @@
 package pkg
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"errors"
+	"io"
 	"strings"
 	"testing"
 )
@@ -238,21 +241,30 @@ func TestMetaById(t *testing.T) {
 
 func TestResourceById(t *testing.T) {
 	store := NewDemoStore()
-	id := store.Metadata[0].ResourceId()
+	name := store.Metadata[0].ResourceName()
 
-	reader, err := store.ResourceById(context.Background(), id)
+	reader, err := store.Resource(context.Background(), name)
 	if err != nil {
 		t.Fatalf("ResourceById: %s", err)
 	}
 
-	if n := len(reader.File); n != 5 {
+	content, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatalf("Failed to read all: %s", err)
+	}
+	zipReader, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
+	if err != nil {
+		t.Fatalf("Failed to create zip reader: %s", err)
+	}
+
+	if n := len(zipReader.File); n != 5 {
 		t.Fatalf("Expected 5 files got %d", n)
 	}
 }
 
 func TestResourceByIdUnknownId(t *testing.T) {
 	store := NewDemoStore()
-	_, err := store.ResourceById(context.Background(), "unknownId")
+	_, err := store.Resource(context.Background(), "unknownName")
 	if !errors.Is(err, ErrResourceNotFound) {
 		t.Fatalf("Wanted %s got %s", ErrResourceNotFound, err)
 	}

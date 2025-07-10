@@ -1,13 +1,10 @@
 package pkg
 
 import (
-	"archive/zip"
 	"context"
-	"errors"
+	"io"
 	"time"
 )
-
-var ErrResourceNotFound = errors.New("resource not found")
 
 type MetaByPatternFetcher interface {
 	MetaByPattern(ctx context.Context, pattern *MetaData) ([]MetaData, error)
@@ -21,8 +18,9 @@ type ProjectSubmitter interface {
 	SubmitProject(ctx context.Context, project *Project) error
 }
 
-type ResourceByIder interface {
-	ResourceById(ctx context.Context, resourceId string) (*zip.Reader, error)
+type ResourceGetter interface {
+	MetaById(ctx context.Context, id string) (*MetaData, error)
+	Resource(ctx context.Context, path string) (io.Reader, error)
 }
 
 type BlobStore interface {
@@ -31,7 +29,7 @@ type BlobStore interface {
 	ProjectByNameGetter
 	ProjectSubmitter
 	ProjectMetaByIdGetter
-	ResourceByIder
+	ResourceGetter
 }
 
 type ProjectMetaByIdGetter interface {

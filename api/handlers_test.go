@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
+	"github.com/pdfcpu/pdfcpu/pkg/api"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
 
 func TestRootHandler(t *testing.T) {
@@ -973,6 +975,135 @@ func TestResourceContentByIdHandler(t *testing.T) {
 		if !strings.Contains(body, token) {
 			t.Fatalf("Test #%d: expected %s to be part of\n%s\n", i, token, body)
 		}
+	}
+}
+
+func TestResourceDownloaderFullZipDownload(t *testing.T) {
+	store := pkg.NewDemoStore()
+	resourceId := store.Metadata[0].ResourceId()
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/resources/"+resourceId, nil)
+
+	handler := ResourceDownload(store, 1*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("Expected code %d got %d", http.StatusOK, recorder.Code)
+	}
+
+	if contentType := recorder.Header().Get("Content-Type"); contentType != "application/zip" {
+		t.Fatalf("Expected content type'application/zip'  got %s", contentType)
+	}
+
+	resourceName := store.Metadata[0].ResourceName()
+	if disp := recorder.Header().Get("Content-Disposition"); !strings.Contains(disp, resourceName) {
+		t.Fatalf("Expected Content-Disposition to contain %s got %s", resourceName, disp)
+	}
+
+	bodyBytes, err := io.ReadAll(recorder.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	zipReader, err := zip.NewReader(bytes.NewReader(bodyBytes), int64(len(bodyBytes)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(zipReader.File) != 5 {
+		t.Fatalf("Expected 5 files got %d", len(zipReader.File))
+	}
+}
+
+func TestResourceDownloadSingleFil(t *testing.T) {
+	store := pkg.NewDemoStore()
+	resourceId := store.Metadata[0].ResourceId()
+	file := "Part2.pdf"
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", fmt.Sprintf("/resources/%s?file=%s", resourceId, file), nil)
+
+	handler := ResourceDownload(store, 1*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("Expected code '%d' got %d", http.StatusOK, recorder.Code)
+	}
+
+	contentType := recorder.Header().Get("Content-Type")
+	if contentType != "application/pdf" {
+		t.Fatalf("Expected content type 'application/pdf' got %s", contentType)
+	}
+
+	contentDisp := recorder.Header().Get("Content-Disposition")
+	if !strings.Contains(contentDisp, file) {
+		t.Fatalf("Expected Content-Disposition to containt '%s' got %s", file, contentDisp)
+	}
+
+	bodyBytes, err := io.ReadAll(recorder.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reader := bytes.NewReader(bodyBytes)
+	ctx, err := api.ReadValidateAndOptimize(reader, model.NewDefaultConfiguration())
+	if err != nil {
+		t.Fatalf("ReadValidateAndOptimize failed with %s", err)
+	}
+
+	if ctx.PageCount != 2 {
+		t.Fatalf("Expected 2 pages got %d", ctx.PageCount)
+	}
+}
+
+func TestBadRequestWhenMissingResource(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/resource", nil)
+	store := pkg.NewInMemoryStore()
+	handler := ResourceDownload(store, 1*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("Expected %d got %d", http.StatusBadRequest, recorder.Code)
+	}
+}
+
+func TestNotFoundWhenRequestingNonExistingResource(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/resource/0aaax", nil)
+	store := pkg.NewInMemoryStore()
+	handler := ResourceDownload(store, 1*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("Expected %d got %d", http.StatusNotFound, recorder.Code)
+	}
+}
+
+type failingResourceGetter struct {
+	err error
+}
+
+func (f *failingResourceGetter) MetaById(ctx context.Context, id string) (*pkg.MetaData, error) {
+	return &pkg.MetaData{}, f.err
+}
+
+func (f *failingResourceGetter) Resource(ctx context.Context, name string) (io.Reader, error) {
+	return bytes.NewBuffer([]byte{}), f.err
+}
+
+func TestInternalServerErrorOnGenericFailure(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/resource/0aaax", nil)
+	getter := failingResourceGetter{
+		err: errors.New("some generic error"),
+	}
+
+	handler := ResourceDownload(&getter, 1*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("Expected %d got %d", http.StatusInternalServerError, recorder.Code)
 	}
 
 }
