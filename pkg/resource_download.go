@@ -3,12 +3,9 @@ package pkg
 import (
 	"archive/zip"
 	"context"
-	"errors"
 	"io"
 	"net/url"
 )
-
-var ErrResourceIdIsRequired = errors.New("resource id is required")
 
 type ResourceDownloader struct {
 	ResourceId    string
@@ -21,12 +18,8 @@ type ResourceDownloader struct {
 
 func (r *ResourceDownloader) ParseUrl(url *url.URL) *ResourceDownloader {
 	interpretedPath, err := ParseUrl(url.Path)
+	r.err = err
 	r.File = url.Query().Get("file")
-	if err != nil {
-		r.err = ErrResourceIdIsRequired
-		return r
-	}
-
 	r.ResourceId = interpretedPath.PathParameter
 	return r
 }
@@ -73,10 +66,6 @@ func (r *ResourceDownloader) ZipFilename() string {
 
 func (r *ResourceDownloader) SingleFileRequested() bool {
 	return r.File != ""
-}
-
-func (r *ResourceDownloader) SingleFileName() string {
-	return r.File
 }
 
 func NewResourceDownloader() *ResourceDownloader {

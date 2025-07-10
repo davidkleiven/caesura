@@ -344,14 +344,14 @@ func ResourceDownload(s pkg.ResourceGetter, timeout time.Duration) http.HandlerF
 			reader, err = downloader.Content()
 			contentReader = io.NopCloser(reader)
 		} else {
-			file := downloader.SingleFileName()
+			file := downloader.File
 			contentDisposition = "attachment; filename=\"" + file + "\""
 			contentType = "application/pdf"
 			contentReader, err = downloader.ExtractSingleFile().FileReader()
 		}
 
 		switch {
-		case errors.Is(err, pkg.ErrResourceIdIsRequired):
+		case errors.Is(err, pkg.ErrCanNotInterpretUrl):
 			statusCode = http.StatusBadRequest
 		case errors.Is(err, pkg.ErrFileNotInZipArchive), errors.Is(err, pkg.ErrFileNotFound):
 			statusCode = http.StatusNotFound
