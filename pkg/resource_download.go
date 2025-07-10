@@ -68,6 +68,14 @@ func (r *ResourceDownloader) SingleFileRequested() bool {
 	return r.File != ""
 }
 
+func (r *ResourceDownloader) ZipReader() (*zip.Reader, error) {
+	if r.err != nil {
+		return &zip.Reader{}, r.err
+	}
+	zipper := NewFileFromZipper().ReadBytes(r.contentReader).AsZip()
+	return zipper.zipReader, zipper.err
+}
+
 func NewResourceDownloader() *ResourceDownloader {
 	return &ResourceDownloader{}
 }

@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"archive/zip"
 	"context"
 	"errors"
 	"io"
@@ -22,10 +21,6 @@ type ProjectSubmitter interface {
 	SubmitProject(ctx context.Context, project *Project) error
 }
 
-type ResourceByIder interface {
-	ResourceById(ctx context.Context, resourceId string) (*zip.Reader, error)
-}
-
 type ResourceGetter interface {
 	MetaById(ctx context.Context, id string) (*MetaData, error)
 	Resource(ctx context.Context, path string) (io.Reader, error)
@@ -37,7 +32,7 @@ type BlobStore interface {
 	ProjectByNameGetter
 	ProjectSubmitter
 	ProjectMetaByIdGetter
-	ResourceByIder
+	ResourceGetter
 }
 
 type ProjectMetaByIdGetter interface {

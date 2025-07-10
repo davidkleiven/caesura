@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"archive/zip"
 	"bytes"
 	"context"
 	"errors"
@@ -85,12 +84,12 @@ func (s *InMemoryStore) MetaById(ctx context.Context, id string) (*MetaData, err
 	return nil, fmt.Errorf("metadata with id %s not found", id)
 }
 
-func (s *InMemoryStore) ResourceById(ctx context.Context, resourceId string) (*zip.Reader, error) {
-	content, exists := s.Data[resourceId]
+func (s *InMemoryStore) Resource(ctx context.Context, name string) (io.Reader, error) {
+	content, exists := s.Data[name]
 	if !exists {
-		return nil, errors.Join(ErrResourceNotFound, fmt.Errorf("resource %s", resourceId))
+		return nil, errors.Join(ErrResourceNotFound, fmt.Errorf("resource %s", name))
 	}
-	return zip.NewReader(bytes.NewReader(content), int64(len(content)))
+	return bytes.NewReader(content), nil
 }
 
 func NewInMemoryStore() *InMemoryStore {
@@ -107,8 +106,8 @@ func NewDemoStore() *InMemoryStore {
 		{Title: "Demo Title 1", Composer: "Composer A", Arranger: "Arranger X"},
 		{Title: "Demo Title 2", Composer: "Composer B", Arranger: "Arranger Y"},
 	}
-	store.Data[store.Metadata[0].ResourceId()] = MustCreateResource(5)
-	store.Data[store.Metadata[1].ResourceId()] = MustCreateResource(3)
+	store.Data[store.Metadata[0].ResourceName()] = MustCreateResource(5)
+	store.Data[store.Metadata[1].ResourceName()] = MustCreateResource(3)
 
 	project := Project{
 		Name:        "Demo Project 1",

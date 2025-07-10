@@ -290,27 +290,21 @@ func ProjectByIdHandler(store pkg.ProjectMetaByIdGetter, timeout time.Duration) 
 	}
 }
 
-func ResourceContentByIdHandler(s pkg.ResourceByIder, timeout time.Duration) http.HandlerFunc {
+func ResourceContentByIdHandler(s pkg.ResourceGetter, timeout time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		interpretedPath, err := pkg.ParseUrl(r.URL.Path)
-		if err != nil {
-			http.Error(w, "ResourceID is required", http.StatusBadRequest)
-			slog.Error("Resource ID is required", "error", err)
-		}
-
-		resourceId := interpretedPath.PathParameter
-
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
-		resource, err := s.ResourceById(ctx, resourceId)
+		downloader := pkg.NewResourceDownloader().ParseUrl(r.URL).GetMetaData(ctx, s).GetResource(ctx, s)
+
+		resource, err := downloader.ZipReader()
 		if err != nil {
 			http.Error(w, "could not fetch resource", http.StatusInternalServerError)
 			slog.Error("Failed to fetch resource", "error", err)
 		}
 
 		content := web.ResourceContentData{
-			ResourceId: resourceId,
+			ResourceId: downloader.ResourceId,
 			Filenames:  make([]string, len(resource.File)),
 		}
 		for i, file := range resource.File {
