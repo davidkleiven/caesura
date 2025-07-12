@@ -974,5 +974,42 @@ func TestResourceContentByIdHandler(t *testing.T) {
 			t.Fatalf("Test #%d: expected %s to be part of\n%s\n", i, token, body)
 		}
 	}
+}
+
+func TestResourceDownloaderFullZipDownload(t *testing.T) {
+	store := pkg.NewDemoStore()
+	resourceId := store.Metadata[0].ResourceId()
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/resources/"+resourceId, nil)
+
+	handler := ResourceDownload(store, 1*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("Expected code %d got %d", http.StatusOK, recorder.Code)
+	}
+
+	if contentType := recorder.Header().Get("Content-Type"); contentType != "application/zip" {
+		t.Fatalf("Expected content type'application/zip'  got %s", contentType)
+	}
+
+	resourceName := store.Metadata[0].ResourceName()
+	if disp := recorder.Header().Get("Content-Disposition"); !strings.Contains(disp, resourceName) {
+		t.Fatalf("Expected Content-Disposition to contain %s got %s", resourceName, disp)
+	}
+
+	bodyBytes, err := io.ReadAll(recorder.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	zipReader, err := zip.NewReader(bytes.NewReader(bodyBytes), int64(len(bodyBytes)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(zipReader.File) != 5 {
+		t.Fatalf("Expected 5 files got %d", len(zipReader.File))
+	}
 
 }
