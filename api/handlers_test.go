@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
+	"github.com/pdfcpu/pdfcpu/pkg/api"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
 
 func TestRootHandler(t *testing.T) {
@@ -1011,5 +1013,45 @@ func TestResourceDownloaderFullZipDownload(t *testing.T) {
 	if len(zipReader.File) != 5 {
 		t.Fatalf("Expected 5 files got %d", len(zipReader.File))
 	}
+}
 
+func TestResourceDownloadSingleFil(t *testing.T) {
+	store := pkg.NewDemoStore()
+	resourceId := store.Metadata[0].ResourceId()
+	file := "Part2.pdf"
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", fmt.Sprintf("/resources/%s?file=%s", resourceId, file), nil)
+
+	handler := ResourceDownload(store, 1*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("Expected code '%d' got %d", http.StatusOK, recorder.Code)
+	}
+
+	contentType := recorder.Header().Get("Content-Type")
+	if contentType != "application/pdf" {
+		t.Fatalf("Expected content type 'application/pdf' got %s", contentType)
+	}
+
+	contentDisp := recorder.Header().Get("Content-Disposition")
+	if !strings.Contains(contentDisp, file) {
+		t.Fatalf("Expected Content-Disposition to containt '%s' got %s", file, contentDisp)
+	}
+
+	bodyBytes, err := io.ReadAll(recorder.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reader := bytes.NewReader(bodyBytes)
+	ctx, err := api.ReadValidateAndOptimize(reader, model.NewDefaultConfiguration())
+	if err != nil {
+		t.Fatalf("ReadValidateAndOptimize failed with %s", err)
+	}
+
+	if ctx.PageCount != 2 {
+		t.Fatalf("Expected 2 pages got %d", ctx.PageCount)
+	}
 }
