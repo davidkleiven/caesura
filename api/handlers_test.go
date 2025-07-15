@@ -978,6 +978,21 @@ func TestResourceContentByIdHandler(t *testing.T) {
 	}
 }
 
+func TestResourceContentInternalServerErrorOnGenericError(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/content/0aab", nil)
+	getter := failingResourceGetter{
+		err: errors.New("something went wrong"),
+	}
+
+	handler := ResourceContentByIdHandler(&getter, 1*time.Second)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("Expected %d got %d", http.StatusInternalServerError, recorder.Code)
+	}
+}
+
 func TestResourceDownloaderFullZipDownload(t *testing.T) {
 	store := pkg.NewDemoStore()
 	resourceId := store.Metadata[0].ResourceId()
