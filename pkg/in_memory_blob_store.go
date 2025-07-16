@@ -118,3 +118,10 @@ func NewDemoStore() *InMemoryStore {
 	store.Projects[project.Id()] = project
 	return store
 }
+
+func ResetDemoStore(store *InMemoryStore) {
+	newStore := NewDemoStore()
+	store.Data = newStore.Data
+	store.Metadata = newStore.Metadata
+	store.Projects = newStore.Projects
+}
