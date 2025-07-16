@@ -3,11 +3,14 @@ package pkg
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"strings"
 	"time"
+
+	"github.com/davidkleiven/caesura/utils"
 )
 
 type InMemoryStore struct {
@@ -92,6 +95,29 @@ func (s *InMemoryStore) Resource(ctx context.Context, name string) (io.Reader, e
 	return bytes.NewReader(content), nil
 }
 
+func (s *InMemoryStore) Clone() *InMemoryStore {
+	dst := NewInMemoryStore()
+	for _, v := range s.Metadata {
+		var meta MetaData
+		data := utils.Must(json.Marshal(v))
+		PanicOnErr(json.Unmarshal(data, &meta))
+		dst.Metadata = append(dst.Metadata, meta)
+	}
+
+	for k, v := range s.Projects {
+		var project Project
+		data := utils.Must(json.Marshal(v))
+		PanicOnErr(json.Unmarshal(data, &project))
+		dst.Projects[k] = project
+	}
+
+	for k, v := range s.Data {
+		dst.Data[k] = make([]byte, len(v))
+		copy(dst.Data[k], v)
+	}
+	return dst
+}
+
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
 		Data:     make(map[string][]byte),
@@ -109,19 +135,13 @@ func NewDemoStore() *InMemoryStore {
 	store.Data[store.Metadata[0].ResourceName()] = MustCreateResource(5)
 	store.Data[store.Metadata[1].ResourceName()] = MustCreateResource(3)
 
+	projectDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	project := Project{
 		Name:        "Demo Project 1",
 		ResourceIds: []string{store.Metadata[0].ResourceId(), store.Metadata[1].ResourceId()},
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		CreatedAt:   projectDate,
+		UpdatedAt:   projectDate,
 	}
 	store.Projects[project.Id()] = project
 	return store
-}
-
-func ResetDemoStore(store *InMemoryStore) {
-	newStore := NewDemoStore()
-	store.Data = newStore.Data
-	store.Metadata = newStore.Metadata
-	store.Projects = newStore.Projects
 }
