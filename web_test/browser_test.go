@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"fmt"
 	"net/http/httptest"
 	"os"
 	"strings"
@@ -12,45 +13,63 @@ import (
 	"github.com/playwright-community/playwright-go"
 )
 
+var (
+	server *httptest.Server
+	page   playwright.Page
+	store  *pkg.InMemoryStore = pkg.NewDemoStore()
+)
+
+func TestMain(m *testing.M) {
+	pw, err := playwright.Run()
+	if err != nil {
+		fmt.Print(err)
+		os.Exit(failureReturnCode())
+	}
+	defer pw.Stop()
+
+	browser, err := pw.Chromium.Launch()
+	if err != nil {
+		fmt.Print(err)
+		os.Exit(failureReturnCode())
+	}
+	defer browser.Close()
+	fmt.Printf("Browser launched: version=%s name=%s connected=%v\n", browser.Version(), browser.BrowserType().Name(), browser.IsConnected())
+
+	page, err = browser.NewPage()
+	if err != nil {
+		fmt.Print(err)
+		os.Exit(failureReturnCode())
+	}
+
+	mux := api.Setup(store, 10*time.Second)
+	server = httptest.NewServer(mux)
+	defer server.Close()
+	fmt.Printf("Test server started. url=%s\n", server.URL)
+	rcode := m.Run()
+	os.Exit(rcode)
+}
+
 func withBrowser(testFunc func(t *testing.T, page playwright.Page), path string) func(t *testing.T) {
 	return func(t *testing.T) {
-		pw, err := playwright.Run()
-		if err != nil {
-			failInCi(t, err)
-			return
-		}
-		defer pw.Stop()
-
-		browser, err := pw.Chromium.Launch()
-		if err != nil {
-			failInCi(t, err)
-			return
-		}
-		defer browser.Close()
-		page, err := browser.NewPage()
-		if err != nil {
-			failInCi(t, err)
-			return
-		}
-
-		mux := api.Setup(pkg.NewDemoStore(), 10*time.Second)
-		server := httptest.NewServer(mux)
-		defer server.Close()
+		initialStore := store.Clone()
+		defer func() {
+			store.Data = initialStore.Data
+			store.Metadata = initialStore.Metadata
+			store.Projects = initialStore.Projects
+		}()
 
 		if _, err := page.Goto(server.URL + path); err != nil {
-			failInCi(t, err)
-			return
+			t.Fatal(err)
 		}
 		testFunc(t, page)
 	}
 }
 
-func failInCi(t *testing.T, err error) {
+func failureReturnCode() int {
 	if _, inCi := os.LookupEnv("CI"); inCi {
-		t.Error(err)
-	} else {
-		t.Skip(err)
+		return 1
 	}
+	return 0
 }
 
 func TestInstrumentListIsLoaded(t *testing.T) {

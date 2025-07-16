@@ -5,7 +5,9 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -267,5 +269,42 @@ func TestResourceByIdUnknownId(t *testing.T) {
 	_, err := store.Resource(context.Background(), "unknownName")
 	if !errors.Is(err, ErrResourceNotFound) {
 		t.Fatalf("Wanted %s got %s", ErrResourceNotFound, err)
+	}
+}
+
+func TestClone(t *testing.T) {
+	for i, modifier := range []func(s *InMemoryStore){
+		func(s *InMemoryStore) { s.Metadata[1].Composer = "Some random guy" },
+		func(s *InMemoryStore) {
+			for k := range s.Projects {
+				p := s.Projects[k]
+				p.Name = "New name"
+				s.Projects[k] = p
+				break
+			}
+		},
+		func(s *InMemoryStore) {
+			for k, v := range s.Data {
+				v = append(v, 0x00)
+				s.Data[k] = v
+				break
+			}
+		},
+		func(s *InMemoryStore) { s.Metadata = append(s.Metadata, MetaData{}) },
+		func(s *InMemoryStore) { s.Projects["new-project"] = Project{} },
+		func(s *InMemoryStore) { s.Data["new-data"] = []byte{} },
+	} {
+		t.Run(fmt.Sprintf("Test #%d", i), func(t *testing.T) {
+			store := NewDemoStore()
+			clone := store.Clone()
+			if !reflect.DeepEqual(store, clone) {
+				t.Fatalf("Clone not equal. Original\n%+v\nClone\n%+v", store, clone)
+			}
+
+			modifier(store)
+			if reflect.DeepEqual(store, clone) {
+				t.Fatalf("Stores should not be equal after modification")
+			}
+		})
 	}
 }
