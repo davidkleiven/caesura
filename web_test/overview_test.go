@@ -208,6 +208,20 @@ func TestAddToExistingProject(t *testing.T) {
 	}, overViewPage)(t)
 }
 
+func expandFirstRow(page playwright.Page) (playwright.Locator, error) {
+	row := page.Locator("table tbody tr[id^='row']").First()
+
+	timeout := playwright.PageExpectResponseOptions{
+		Timeout: playwright.Float(1000),
+	}
+	resp, err := page.ExpectResponse("**/content/**", func() error { return row.Click() }, timeout)
+
+	if err != nil || !resp.Ok() {
+		return row, fmt.Errorf("Response code: %s. (%w)", resp.StatusText(), err)
+	}
+	return row, nil
+}
+
 func TestResourcesDisplayOnClick(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
 		if err := waitForInitialLoad(page); err != nil {
@@ -227,15 +241,9 @@ func TestResourcesDisplayOnClick(t *testing.T) {
 			}
 		}
 
-		row := page.Locator("table tbody tr[id^='row']").First()
-
-		timeout := playwright.PageExpectResponseOptions{
-			Timeout: playwright.Float(1000),
-		}
-		resp, err := page.ExpectResponse("**/content/**", func() error { return row.Click() }, timeout)
-
-		if err != nil || !resp.Ok() {
-			t.Fatalf("Got (resp, err): (%v, %s)", resp, err)
+		row, err := expandFirstRow(page)
+		if err != nil {
+			t.Fatal(err)
 		}
 
 		// First should not be hidden
@@ -270,5 +278,67 @@ func TestResourcesDisplayOnClick(t *testing.T) {
 			t.Fatalf("Wait for object getting hidden: %s", err)
 		}
 
+	}, overViewPage)(t)
+}
+
+func TestDownloadZip(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		if err := waitForInitialLoad(page); err != nil {
+			t.Fatal(err)
+		}
+
+		downloadLink := page.Locator(`a[href^="/resource"]`).First()
+
+		timeout := playwright.PageExpectDownloadOptions{Timeout: playwright.Float(1000.0)}
+		download, err := page.ExpectDownload(func() error { return downloadLink.Click() }, timeout)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if _, err := download.Path(); err != nil {
+			t.Fatal(err)
+		}
+
+		filename := download.SuggestedFilename()
+		if !strings.HasSuffix(filename, "zip") {
+			t.Fatalf("Expected path to have suffix 'zip' but got %s", filename)
+		}
+	}, overViewPage)(t)
+}
+
+func TestDownloadSinglePart(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		if err := waitForInitialLoad(page); err != nil {
+			t.Error(err)
+			return
+		}
+
+		if _, err := expandFirstRow(page); err != nil {
+			t.Fatal(err)
+		}
+
+		pattern := `a[href^="/resource"][href*="file="]`
+		downloadParts := page.Locator(pattern)
+
+		if cnt, err := downloadParts.Count(); err != nil || cnt == 0 {
+			t.Fatalf("Expected at least one item to match %s got zero with error: %s", pattern, err)
+		}
+		downloadPart := downloadParts.First()
+
+		timeout := playwright.PageExpectDownloadOptions{Timeout: playwright.Float(1000.0)}
+		download, err := page.ExpectDownload(func() error { return downloadPart.Click() }, timeout)
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if _, err := download.Path(); err != nil {
+			t.Fatal(err)
+		}
+
+		filename := download.SuggestedFilename()
+		if !strings.HasSuffix(filename, "pdf") {
+			t.Fatalf("Expected file to have suffix 'pdf' got %s", filename)
+		}
 	}, overViewPage)(t)
 }
