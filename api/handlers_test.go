@@ -128,6 +128,22 @@ func TestDeleteModeWhenFormNotPopulated(t *testing.T) {
 	}
 }
 
+func TestDeleteModeTooLargeForm(t *testing.T) {
+	form := url.Values{}
+
+	for i := range 500 {
+		form.Set(fmt.Sprintf("delete-mode%d", i), "1")
+	}
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("POST", "/delete-mode", strings.NewReader(form.Encode())) // malformed encoding
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	DeleteMode(recorder, request)
+
+	if recorder.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("Expected return code '%d' got '%d'", http.StatusRequestEntityTooLarge, recorder.Code)
+	}
+}
+
 func TestSubmitBadRequestHandler(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("POST", "/submit", nil)

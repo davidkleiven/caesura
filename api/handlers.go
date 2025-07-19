@@ -42,11 +42,19 @@ func ChoiceHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func DeleteMode(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseForm(); err != nil {
+	const maxSize = 1 << 12 // 4 kB
+	r.Body = http.MaxBytesReader(w, r.Body, maxSize)
+
+	err := r.ParseForm()
+	var maxErr *http.MaxBytesError
+	if errors.As(err, &maxErr) {
+		msg := "File is larger than max allowed size (~4 kB)."
+		http.Error(w, msg, http.StatusRequestEntityTooLarge)
+		return
+	} else if err != nil {
 		http.Error(w, "Failed to parse form", http.StatusBadRequest)
 		return
 	}
-
 	checkBoxValue := r.FormValue("delete-mode")
 	slog.Info("Received value", "delete-mode", checkBoxValue)
 
