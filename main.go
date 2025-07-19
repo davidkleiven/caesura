@@ -27,7 +27,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	mux := api.Setup(pkg.NewDemoStore(), 10*time.Second)
+	mux := api.Setup(pkg.NewDemoStore(), config)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Port),

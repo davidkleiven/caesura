@@ -371,7 +371,7 @@ func ResourceDownload(s pkg.ResourceGetter, timeout time.Duration) http.HandlerF
 	}
 }
 
-func Setup(store pkg.BlobStore, timeout time.Duration) *http.ServeMux {
+func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", RootHandler)
 	mux.Handle("/css/", web.CssServer())
@@ -379,18 +379,18 @@ func Setup(store pkg.BlobStore, timeout time.Duration) *http.ServeMux {
 	mux.HandleFunc("/choice", ChoiceHandler)
 	mux.HandleFunc("/js/pdf-viewer.js", JsHandler)
 	mux.HandleFunc("/delete-mode", DeleteMode)
-	mux.HandleFunc("/submit", SubmitHandler(store, timeout))
+	mux.HandleFunc("/submit", SubmitHandler(store, config.Timeout))
 	mux.HandleFunc("/overview", OverviewHandler)
-	mux.HandleFunc("/overview/search", OverviewSearchHandler(store, timeout))
+	mux.HandleFunc("/overview/search", OverviewSearchHandler(store, config.Timeout))
 	mux.HandleFunc("/overview/project-selector", ProjectSelectorModalHandler)
-	mux.HandleFunc("/search-projects", SearchProjectHandler(store, timeout))
-	mux.HandleFunc("/add-to-project", ProjectSubmitHandler(store, timeout))
+	mux.HandleFunc("/search-projects", SearchProjectHandler(store, config.Timeout))
+	mux.HandleFunc("/add-to-project", ProjectSubmitHandler(store, config.Timeout))
 	mux.HandleFunc("/project-query-input", ProjectQueryInputHandler)
 	mux.HandleFunc("/projects", ProjectHandler)
-	mux.HandleFunc("/filter/project-list", SearchProjectListHandler(store, timeout))
-	mux.HandleFunc("/projects/", ProjectByIdHandler(store, timeout))
-	mux.HandleFunc("/content/", ResourceContentByIdHandler(store, timeout))
+	mux.HandleFunc("/filter/project-list", SearchProjectListHandler(store, config.Timeout))
+	mux.HandleFunc("/projects/", ProjectByIdHandler(store, config.Timeout))
+	mux.HandleFunc("/content/", ResourceContentByIdHandler(store, config.Timeout))
 	mux.Handle("/js/", web.JsServer())
-	mux.Handle("/resource/", ResourceDownload(store, timeout))
+	mux.Handle("/resource/", ResourceDownload(store, config.Timeout))
 	return mux
 }
