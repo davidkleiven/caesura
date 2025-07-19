@@ -133,7 +133,7 @@ func TestSubmitBadRequestHandler(t *testing.T) {
 	request := httptest.NewRequest("POST", "/submit", nil)
 	request.Header.Set("Content-Type", "multipart/form-data")
 
-	handler := SubmitHandler(pkg.NewInMemoryStore(), 10*time.Second)
+	handler := SubmitHandler(pkg.NewInMemoryStore(), 10*time.Second, 10)
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
@@ -247,7 +247,7 @@ func TestSubmitHandlerValidRequest(t *testing.T) {
 	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
-	handler := SubmitHandler(inMemStore, 10*time.Second)
+	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusOK {
@@ -309,7 +309,7 @@ func TestSubmitHandlerInvalidJson(t *testing.T) {
 	request := httptest.NewRequest("POST", "/submit", &multipartBuffer)
 	request.Header.Set("Content-Type", multipartWriter.FormDataContentType())
 
-	handler := SubmitHandler(inMemStore, 10*time.Second)
+	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
@@ -337,7 +337,7 @@ func TestSubmitFormWithoutDocument(t *testing.T) {
 	request := httptest.NewRequest("POST", "/submit", &multipartBuffer)
 	request.Header.Set("Content-Type", multipartWriter.FormDataContentType())
 
-	handler := SubmitHandler(inMemStore, 10*time.Second)
+	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
@@ -360,7 +360,7 @@ func TestSubmitNonPdfFileAsDocument(t *testing.T) {
 	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
-	handler := SubmitHandler(inMemStore, 10*time.Second)
+	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusInternalServerError {
@@ -382,7 +382,7 @@ func TestSubmitHandlerNoAssignments(t *testing.T) {
 	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
-	handler := SubmitHandler(inMemStore, 10*time.Second)
+	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
@@ -404,7 +404,7 @@ func TestSubmitHandlerNoMetaData(t *testing.T) {
 	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
-	handler := SubmitHandler(inMemStore, 10*time.Second)
+	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
@@ -426,7 +426,7 @@ func TestSubmitHandlerInvalidMetaData(t *testing.T) {
 	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
-	handler := SubmitHandler(inMemStore, 10*time.Second)
+	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
@@ -448,7 +448,7 @@ func TestSubmitWithEmptyMetaData(t *testing.T) {
 	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
-	handler := SubmitHandler(inMemStore, 10*time.Second)
+	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
@@ -477,12 +477,28 @@ func TestSubmitHandlerStoreErrors(t *testing.T) {
 	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
-	handler := SubmitHandler(&failingSubmitter{err: errors.New("what??")}, 10*time.Second)
+	handler := SubmitHandler(&failingSubmitter{err: errors.New("what??")}, 10*time.Second, 10)
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusInternalServerError {
 		t.Errorf("Expected status code 500, got %d", recorder.Code)
 		return
+	}
+}
+
+func TestEntityTooLargeWhenUploadIsTooLarge(t *testing.T) {
+	inMemStore := pkg.NewInMemoryStore()
+	recorder := httptest.NewRecorder()
+
+	multipartBuffer, contentType := multipartForm()
+	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
+	request.Header.Set("Content-Type", contentType)
+
+	handler := SubmitHandler(inMemStore, 10*time.Second, 0)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("Expected code %d got %d", http.StatusRequestEntityTooLarge, recorder.Code)
 	}
 }
 
