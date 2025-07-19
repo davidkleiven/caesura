@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 )
@@ -155,5 +156,25 @@ func TestLoadConfigReturnDefaultConfigOnError(t *testing.T) {
 	defaultConfig := NewDefaultConfig()
 	if !reflect.DeepEqual(config, defaultConfig) {
 		t.Fatalf("Expected config to be equal to\n%+v\ngot\n%+v\n", defaultConfig, config)
+	}
+}
+
+func TestFileEnvGetter(t *testing.T) {
+	tmp, err := os.CreateTemp("", "CAESURA_TIMEOUT")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(tmp.Name())
+	tmp.Write([]byte("5000"))
+	tmp.Close()
+
+	dir := filepath.Dir(tmp.Name())
+	getter := FileEnvGetter(dir)
+	value, ok := getter(filepath.Base(tmp.Name()))
+	if !ok {
+		t.Fatal("Value was not OK")
+	}
+	if value != "5000" {
+		t.Fatalf("Expected '5000' got '%s'", value)
 	}
 }

@@ -3,7 +3,9 @@ package pkg
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"time"
@@ -69,6 +71,7 @@ func OverrideFromEnv(config *Config, getter EnvGetter) *Config {
 	t := reflect.TypeOf(config).Elem()
 	v := reflect.ValueOf(config).Elem()
 
+	numLoaded := 0
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		fieldValue := v.Field(i)
@@ -89,8 +92,26 @@ func OverrideFromEnv(config *Config, getter EnvGetter) *Config {
 			intVal := utils.Must(strconv.ParseInt(value, 10, 64))
 			fieldValue.SetInt(intVal)
 		}
+		numLoaded++
 	}
+
+	slog.Info("Loaded variables from environment", "num", numLoaded)
 	return config
+}
+
+func FileEnvGetter(path string) EnvGetter {
+	return func(key string) (string, bool) {
+		f, err := os.Open(filepath.Join(path, key))
+		if err != nil {
+			return "", false
+		}
+		defer f.Close()
+		value, err := io.ReadAll(f)
+		if err != nil {
+			return "", false
+		}
+		return string(value), true
+	}
 }
 
 func LoadConfig(configFile string) (*Config, error) {
@@ -100,7 +121,8 @@ func LoadConfig(configFile string) (*Config, error) {
 			return config, err
 		}
 	}
-	return OverrideFromEnv(config, os.LookupEnv), nil
+	OverrideFromEnv(config, os.LookupEnv)
+	return OverrideFromEnv(config, FileEnvGetter(config.SecretsPath)), nil
 }
 
 func GetStore(config *Config) BlobStore {
