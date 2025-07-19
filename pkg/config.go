@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
+	"strconv"
 	"time"
 
+	"github.com/davidkleiven/caesura/utils"
 	"gopkg.in/yaml.v2"
 )
 
@@ -15,9 +18,11 @@ type LocalFSStoreConfig struct {
 }
 
 type Config struct {
-	StoreType string             `yaml:"store_type"`
-	LocalFS   LocalFSStoreConfig `yaml:"local_fs"`
-	Timeout   time.Duration      `yaml:"timeout"`
+	StoreType   string             `yaml:"store_type" env:"CAESURA_STORE_TYPE"`
+	LocalFS     LocalFSStoreConfig `yaml:"local_fs"`
+	Timeout     time.Duration      `yaml:"timeout" env:"CAESURA_TIMEOUT"`
+	Port        int                `yaml:"port" env:"CAESURA_PORT"`
+	SecretsPath string             `yaml:"secrets_path" env:"CAESURA_SECRETS_PATH"`
 }
 
 func (c *Config) Validate() error {
@@ -36,7 +41,7 @@ func (c *Config) Validate() error {
 }
 
 func NewDefaultConfig() *Config {
-	return &Config{StoreType: "in-memory", Timeout: 10 * time.Second}
+	return &Config{StoreType: "in-memory", Timeout: 10 * time.Second, Port: 8080}
 }
 
 func OverrideFromFile(filePath string, config *Config) (*Config, error) {
@@ -55,6 +60,47 @@ func OverrideFromFile(filePath string, config *Config) (*Config, error) {
 		return config, fmt.Errorf("error parsing config file %s: %w", filePath, err)
 	}
 	return config, nil
+}
+
+type EnvGetter func(key string) (string, bool)
+
+// OverrideFromEnv asks all getters in the passed
+func OverrideFromEnv(config *Config, getter EnvGetter) *Config {
+	t := reflect.TypeOf(config).Elem()
+	v := reflect.ValueOf(config).Elem()
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		fieldValue := v.Field(i)
+		envTag := field.Tag.Get("env")
+		if envTag == "" || !fieldValue.CanSet() {
+			continue
+		}
+
+		value, ok := getter(envTag)
+		if !ok {
+			continue
+		}
+
+		switch fieldValue.Kind() {
+		case reflect.String:
+			fieldValue.SetString(value)
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			intVal := utils.Must(strconv.ParseInt(value, 10, 64))
+			fieldValue.SetInt(intVal)
+		}
+	}
+	return config
+}
+
+func LoadConfig(configFile string) (*Config, error) {
+	config := NewDefaultConfig()
+	if configFile != "" {
+		if _, err := OverrideFromFile(configFile, config); err != nil {
+			return config, err
+		}
+	}
+	return OverrideFromEnv(config, os.LookupEnv), nil
 }
 
 func GetStore(config *Config) BlobStore {
