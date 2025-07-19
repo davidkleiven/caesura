@@ -20,11 +20,12 @@ type LocalFSStoreConfig struct {
 }
 
 type Config struct {
-	StoreType   string             `yaml:"store_type" env:"CAESURA_STORE_TYPE"`
-	LocalFS     LocalFSStoreConfig `yaml:"local_fs"`
-	Timeout     time.Duration      `yaml:"timeout" env:"CAESURA_TIMEOUT"`
-	Port        int                `yaml:"port" env:"CAESURA_PORT"`
-	SecretsPath string             `yaml:"secrets_path" env:"CAESURA_SECRETS_PATH"`
+	StoreType        string             `yaml:"store_type" env:"CAESURA_STORE_TYPE"`
+	LocalFS          LocalFSStoreConfig `yaml:"local_fs"`
+	Timeout          time.Duration      `yaml:"timeout" env:"CAESURA_TIMEOUT"`
+	Port             int                `yaml:"port" env:"CAESURA_PORT"`
+	SecretsPath      string             `yaml:"secrets_path" env:"CAESURA_SECRETS_PATH"`
+	MaxRequestSizeMb uint               `yaml:"max_request_size_mb" env:"CAESURA_MAX_REQUEST_SIZE_MB`
 }
 
 func (c *Config) Validate() error {
@@ -43,7 +44,7 @@ func (c *Config) Validate() error {
 }
 
 func NewDefaultConfig() *Config {
-	return &Config{StoreType: "in-memory", Timeout: 10 * time.Second, Port: 8080}
+	return &Config{StoreType: "in-memory", Timeout: 10 * time.Second, Port: 8080, MaxRequestSizeMb: 100}
 }
 
 func OverrideFromFile(filePath string, config *Config) (*Config, error) {

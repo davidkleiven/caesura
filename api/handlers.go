@@ -57,9 +57,19 @@ func DeleteMode(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func SubmitHandler(submitter pkg.Submitter, timeout time.Duration) http.HandlerFunc {
+func SubmitHandler(submitter pkg.Submitter, timeout time.Duration, maxSize int) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if err := r.ParseMultipartForm(100 << 20); err != nil {
+		maxUploadSize := int64(maxSize) << 20
+
+		r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
+		err := r.ParseMultipartForm(maxUploadSize)
+
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			msg := fmt.Sprintf("File is larger than max allowed size (~%d MB).", maxSize)
+			http.Error(w, msg, http.StatusRequestEntityTooLarge)
+			return
+		} else if err != nil {
 			http.Error(w, "Failed to parse form", http.StatusBadRequest)
 			slog.Error("Failed to parse form", "error", err)
 			return
@@ -379,7 +389,7 @@ func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
 	mux.HandleFunc("/choice", ChoiceHandler)
 	mux.HandleFunc("/js/pdf-viewer.js", JsHandler)
 	mux.HandleFunc("/delete-mode", DeleteMode)
-	mux.HandleFunc("/submit", SubmitHandler(store, config.Timeout))
+	mux.HandleFunc("/submit", SubmitHandler(store, config.Timeout, int(config.MaxRequestSizeMb)))
 	mux.HandleFunc("/overview", OverviewHandler)
 	mux.HandleFunc("/overview/search", OverviewSearchHandler(store, config.Timeout))
 	mux.HandleFunc("/overview/project-selector", ProjectSelectorModalHandler)
