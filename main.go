@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -14,16 +15,11 @@ import (
 )
 
 func main() {
-	config := pkg.NewDefaultConfig()
-	cfgFile, ok := os.LookupEnv("CAESURA_CONFIG")
-
-	if ok {
-		var err error
-		config, err = pkg.OverrideFromFile(cfgFile, config)
-		if err != nil {
-			slog.Error("Failed to load configuration from file", "file", cfgFile, "error", err)
-			os.Exit(1)
-		}
+	cfgFile := os.Getenv("CAESURA_CONFIG")
+	config, err := pkg.LoadConfig(cfgFile)
+	if err != nil {
+		slog.Error("Failed to load configuration", "error", err)
+		os.Exit(1)
 	}
 
 	if err := config.Validate(); err != nil {
@@ -32,10 +28,9 @@ func main() {
 	}
 
 	mux := api.Setup(pkg.NewDemoStore(), 10*time.Second)
-	port := api.Port()
 
 	server := &http.Server{
-		Addr:    port,
+		Addr:    fmt.Sprintf(":%d", config.Port),
 		Handler: api.LogRequest(mux),
 	}
 
@@ -43,7 +38,7 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		slog.Info("Starting server", "port", port)
+		slog.Info("Starting server", "port", config.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("Server failed", "error", err)
 		}

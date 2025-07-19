@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"reflect"
 	"testing"
 )
 
@@ -53,6 +54,9 @@ local_fs:
 	if loadedConfig.LocalFS.Directory != "/tmp/caesura" {
 		t.Errorf("expected local_fs.directory to be '/tmp/caesura', got '%s'", loadedConfig.LocalFS.Directory)
 	}
+
+	// Just confirm that load configuration works
+	LoadConfig(f.Name())
 }
 
 func TestInvalidConfig(t *testing.T) {
@@ -116,5 +120,40 @@ func TestGetStore(t *testing.T) {
 	store := GetStore(config)
 	if _, ok := store.(*InMemoryStore); !ok {
 		t.Errorf("expected store to be of type InMemoryStore, got %T", store)
+	}
+}
+
+func TestOverrideFromEnv(t *testing.T) {
+	env := map[string]string{
+		"CAESURA_TIMEOUT":      "1000",
+		"CAESURA_SECRETS_PATH": "/secrets/",
+	}
+
+	getter := func(key string) (string, bool) {
+		value, ok := env[key]
+		return value, ok
+	}
+
+	config := NewDefaultConfig()
+	OverrideFromEnv(config, getter)
+
+	if config.SecretsPath != "/secrets/" {
+		t.Fatalf("Expected secrets path to be '/secrets/' got '%s'", config.SecretsPath)
+	}
+
+	if config.Timeout != 1000 {
+		t.Fatalf("Expected timeout to be '1000' got '%v'", config.Timeout)
+	}
+}
+
+func TestLoadConfigReturnDefaultConfigOnError(t *testing.T) {
+	config, err := LoadConfig("/some-random-config-file/")
+	if err == nil {
+		t.Fatalf("Expected error to occur")
+	}
+
+	defaultConfig := NewDefaultConfig()
+	if !reflect.DeepEqual(config, defaultConfig) {
+		t.Fatalf("Expected config to be equal to\n%+v\ngot\n%+v\n", defaultConfig, config)
 	}
 }
