@@ -944,7 +944,8 @@ func TestProjectByIdMetaDataError(t *testing.T) {
 }
 
 func TestSetup(t *testing.T) {
-	mux := Setup(pkg.NewDemoStore(), 10*time.Second)
+	config := pkg.NewDefaultConfig()
+	mux := Setup(pkg.NewDemoStore(), config)
 
 	req, _ := http.NewRequest("GET", "/", nil)
 	recorder := httptest.NewRecorder()

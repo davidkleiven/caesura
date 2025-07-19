@@ -41,7 +41,8 @@ func TestMain(m *testing.M) {
 		os.Exit(failureReturnCode())
 	}
 
-	mux := api.Setup(store, 10*time.Second)
+	config := pkg.NewDefaultConfig()
+	mux := api.Setup(store, config)
 	server = httptest.NewServer(mux)
 	defer server.Close()
 	fmt.Printf("Test server started. url=%s\n", server.URL)
