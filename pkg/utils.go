@@ -66,3 +66,70 @@ func (f *FileFromZipper) GetFile(filename string) (*zip.File, error) {
 func NewFileFromZipper() *FileFromZipper {
 	return &FileFromZipper{}
 }
+
+type ZipAppender struct {
+	readers []*zip.Reader
+	err     error
+}
+
+func (za *ZipAppender) Add(zipBytes []byte) *ZipAppender {
+	if za.err != nil {
+		return za
+	}
+
+	var reader *zip.Reader
+	reader, za.err = zip.NewReader(bytes.NewReader(zipBytes), int64(len(zipBytes)))
+	za.readers = append(za.readers, reader)
+	return za
+}
+
+// Merge merges all the added zip files. In case of name collisions the file from
+// the first added zip archive is retained
+func (za *ZipAppender) Merge() ([]byte, error) {
+	if za.err != nil {
+		return []byte{}, za.err
+	}
+	var combined bytes.Buffer
+	writer := zip.NewWriter(&combined)
+
+	existingFiles := make(map[string]struct{})
+	for _, reader := range za.readers {
+		for _, file := range reader.File {
+			if _, ok := existingFiles[file.Name]; ok {
+				continue
+			} else {
+				existingFiles[file.Name] = struct{}{}
+			}
+			if err := copyZipEntry(file, writer); err != nil {
+				za.err = err
+			}
+		}
+	}
+	writer.Close()
+	return combined.Bytes(), za.err
+}
+
+func NewZipAppender() *ZipAppender {
+	return &ZipAppender{
+		readers: []*zip.Reader{},
+	}
+}
+
+func copyZipEntry(file *zip.File, zw *zip.Writer) error {
+	rc, err := file.Open()
+	if err != nil {
+		return err
+	}
+	defer rc.Close()
+
+	header := file.FileHeader
+	header.Method = zip.Deflate
+
+	w, err := zw.CreateHeader(&header)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(w, rc)
+	return err
+}
