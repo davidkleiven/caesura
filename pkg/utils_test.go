@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"slices"
 	"testing"
 )
@@ -77,4 +78,97 @@ func TestFileFromZipperUnknownFile(t *testing.T) {
 	if !errors.Is(err, ErrFileNotInZipArchive) {
 		t.Errorf("Expected error to be of type 'ErrFileNotInZipArchive' got %s", err)
 	}
+}
+
+func TestZipAppender(t *testing.T) {
+	var (
+		firstZipBuffer  bytes.Buffer
+		secondZipBuffer bytes.Buffer
+	)
+
+	firstWriter := zip.NewWriter(&firstZipBuffer)
+	for i := range 3 {
+		fw, err := firstWriter.Create(fmt.Sprintf("file%d.txt", i))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := fw.Write([]byte("Writer1")); err != nil {
+			t.Fatal(err)
+		}
+	}
+	firstWriter.Close()
+
+	secondWriter := zip.NewWriter(&secondZipBuffer)
+	fw, err := secondWriter.Create("file1.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fw.Write([]byte("Writer2")); err != nil {
+		t.Fatal(err)
+	}
+
+	fw, err = secondWriter.Create("file100.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fw.Write([]byte("Writer2")); err != nil {
+		t.Fatal(err)
+	}
+	secondWriter.Close()
+
+	result, err := NewZipAppender().
+		Add(secondZipBuffer.Bytes()).
+		Add(firstZipBuffer.Bytes()).
+		Merge()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reader, err := zip.NewReader(bytes.NewReader(result), int64(len(result)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	content := map[string]string{
+		"file0.txt":   "Writer1",
+		"file1.txt":   "Writer2",
+		"file2.txt":   "Writer1",
+		"file100.txt": "Writer2",
+	}
+
+	if len(reader.File) != len(content) {
+		t.Fatalf("Expected %d files got %d", len(content), len(reader.File))
+	}
+
+	for _, file := range reader.File {
+		rc, err := file.Open()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer rc.Close()
+		textContent, err := io.ReadAll(rc)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		got, want := string(textContent), content[file.Name]
+		if got != want {
+			t.Fatalf("Wanted %s got %s", got, want)
+		}
+	}
+}
+
+func TestEmptyBytesOnErrorInZipAppender(t *testing.T) {
+	expectedError := errors.New("somethig went wrong")
+	appender := NewZipAppender()
+	appender.err = expectedError
+	result, err := appender.Add([]byte{}).Merge()
+	if len(result) != 0 {
+		t.Fatalf("Wanted empty byte slice got %v", result)
+	}
+	if !errors.Is(err, expectedError) {
+		t.Fatalf("Wanted error '%s' got '%s'", expectedError, err)
+	}
+
 }
