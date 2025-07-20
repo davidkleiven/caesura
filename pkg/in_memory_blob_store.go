@@ -20,12 +20,14 @@ type InMemoryStore struct {
 }
 
 func (s *InMemoryStore) Submit(ctx context.Context, meta *MetaData, r io.Reader) error {
+	if _, err := s.MetaById(ctx, meta.ResourceId()); err != nil {
+		s.Metadata = append(s.Metadata, *meta)
+	}
 	data, err := io.ReadAll(r)
 	if err != nil {
 		return errors.Join(ErrRetrievingContent, err)
 	}
 	s.Data[meta.ResourceName()] = data
-	s.Metadata = append(s.Metadata, *meta)
 	return nil
 }
 
