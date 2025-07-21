@@ -342,3 +342,44 @@ func TestDownloadSinglePart(t *testing.T) {
 		}
 	}, overViewPage)(t)
 }
+
+func TestAddToResource(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		if err := waitForInitialLoad(page); err != nil {
+			t.Fatal(err)
+		}
+
+		pattern := `a[href^="/add"]`
+		addBtn := page.Locator(pattern)
+
+		if cnt, err := addBtn.Count(); err != nil || cnt == 0 {
+			t.Fatalf("Expected at least one add button got (error, num): (%s, %d)", err, cnt)
+		}
+
+		if err := addBtn.First().Click(); err != nil {
+			t.Fatal(err)
+		}
+		timeout := playwright.LocatorWaitForOptions{Timeout: playwright.Float(1000)}
+		if err := page.Locator(`div[id="upload-form"]`).WaitFor(timeout); err != nil {
+			t.Fatal(err)
+		}
+
+		patternsResult := map[string]string{
+			`input[name="composer"]`: "Composer A",
+			`input[name="arranger"]`: "Arranger X",
+			`input[name="title"]`:    "Demo Title 1",
+		}
+
+		for pattern, want := range patternsResult {
+			value, err := page.Locator(pattern).InputValue()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if value != want {
+				t.Fatalf("Wanted %s got %s", want, value)
+			}
+		}
+
+	}, overViewPage)(t)
+}
