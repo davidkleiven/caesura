@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="/css/output.css">
-    <script src="https://unpkg.com/htmx.org@{{ .HtmxVersion }}/dist/htmx.min.js"></script>
+    <script src="https://unpkg.com/htmx.org@{{ .Dependencies.HtmxVersion }}/dist/htmx.min.js"></script>
     <title>Caesura</title>
 </head>
 <body class="bg-gray-100">
@@ -30,15 +30,15 @@
                     <div id="meta-data-container" class="flex">
                         <div class="flex items-center">
                             <p class="font-bold pr-2">Title:</p>
-                            <input type="text" name="title" id="title-input" placeholder="Enter title"/>
+                            <input type="text" name="title" id="title-input" placeholder="Enter title" value="{{.ScoreMetaData.Title}}"/>
                         </div>
                         <div class="flex items-center">
                             <p class="font-bold pr-2">Composer:</p>
-                            <input type="text" name="composer" id="composer-input" placeholder="Enter composer"/>
+                            <input type="text" name="composer" id="composer-input" placeholder="Enter composer" value="{{.ScoreMetaData.Composer}}"/>
                         </div>
                         <div class="flex items-center">
                             <p class="font-bold pr-2">Arranger:</p>
-                            <input type="text" name="arranger" id="arranger-input" placeholder="Enter arranger"/>
+                            <input type="text" name="arranger" id="arranger-input" placeholder="Enter arranger" value="{{.ScoreMetaData.Arranger}}"/>
                         </div>
                     </div>
             </div>

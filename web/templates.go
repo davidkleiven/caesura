@@ -14,10 +14,26 @@ import (
 //go:embed templates/*
 var templatesFS embed.FS
 
-func Index() []byte {
+type ScoreMetaData struct {
+	Composer string
+	Arranger string
+	Title    string
+}
+
+func Index(data *ScoreMetaData) []byte {
 	tmpl := template.Must(template.ParseFS(templatesFS, "templates/index.html", "templates/header.html"))
 	var buf bytes.Buffer
-	pkg.PanicOnErr(tmpl.Execute(&buf, LoadDependencies().Dependencies))
+
+	deps := LoadDependencies().Dependencies
+	templateData := struct {
+		ScoreMetaData *ScoreMetaData
+		Dependencies  *Dependencies
+	}{
+		ScoreMetaData: data,
+		Dependencies:  &deps,
+	}
+
+	pkg.PanicOnErr(tmpl.Execute(&buf, templateData))
 	return buf.Bytes()
 }
 
