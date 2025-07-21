@@ -18,8 +18,12 @@ type ProjectSubmitter interface {
 	SubmitProject(ctx context.Context, project *Project) error
 }
 
-type ResourceGetter interface {
+type MetaByIdGetter interface {
 	MetaById(ctx context.Context, id string) (*MetaData, error)
+}
+
+type ResourceGetter interface {
+	MetaByIdGetter
 	Resource(ctx context.Context, path string) (io.Reader, error)
 }
 

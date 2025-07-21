@@ -389,6 +389,32 @@ func ResourceDownload(s pkg.ResourceGetter, timeout time.Duration) http.HandlerF
 	}
 }
 
+func AddToResourceHanlder(metaGetter pkg.MetaByIdGetter, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		parsedUrl, err := pkg.ParseUrl(r.URL.Path)
+
+		if err != nil {
+			http.Error(w, "Resource ID is required", http.StatusBadRequest)
+			slog.Error("Error to parse URL", "error", err, "url", r.URL.Path)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		meta, err := metaGetter.MetaById(ctx, parsedUrl.PathParameter)
+		if err != nil {
+			http.Error(w, "Error when fetching metadata", http.StatusInternalServerError)
+			slog.Error("Error when fetching metadata", "error", err, "id", parsedUrl.PathParameter, "url", r.URL.Path)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(web.Index(&web.ScoreMetaData{Composer: meta.Composer, Arranger: meta.Arranger, Title: meta.Title}))
+	}
+
+}
+
 func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", RootHandler)
@@ -410,5 +436,6 @@ func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
 	mux.HandleFunc("/content/", ResourceContentByIdHandler(store, config.Timeout))
 	mux.Handle("/js/", web.JsServer())
 	mux.Handle("/resource/", ResourceDownload(store, config.Timeout))
+	mux.Handle("/add-to-resource/", AddToResourceHanlder(store, config.Timeout))
 	return mux
 }
