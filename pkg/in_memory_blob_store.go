@@ -27,8 +27,14 @@ func (s *InMemoryStore) Submit(ctx context.Context, meta *MetaData, r io.Reader)
 	if err != nil {
 		return errors.Join(ErrRetrievingContent, err)
 	}
-	s.Data[meta.ResourceName()] = data
-	return nil
+
+	name := meta.ResourceName()
+	if current, ok := s.Data[name]; ok {
+		s.Data[name], err = NewZipAppender().Add(data).Add(current).Merge()
+	} else {
+		s.Data[name] = data
+	}
+	return err
 }
 
 func (s *InMemoryStore) MetaByPattern(ctx context.Context, pattern *MetaData) ([]MetaData, error) {
