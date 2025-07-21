@@ -1,5 +1,5 @@
 {{range .MetaData }}
-<tr id="row-{{ .ResourceId }}" class="hover:bg-gray-50" onclick="toggleRowContent('{{.ResourceId}}')">
+<tr id="row-{{ .ResourceId }}" class="hover:bg-gray-50">
     <td class="px-4 py-3 w-2/5 font-medium text-gray-900"><input name="pieceIds" id="checkbox-{{.ResourceId}}" type="checkbox"
             id="select-all" class="mr-2 {{if not $.CheckboxVisible}}hidden{{end}}" value="{{ .ResourceId }}">{{.Title}}
     </td>
@@ -10,6 +10,17 @@
     <td class="px-4 py-3">{{.Tags}}</td>
     <!-- 📥 Download column -->
     <td class="px-4 py-3 text-right">
+        <button type="button"
+            class="text-gray-600 hover:text-gray-800 hover:cursor-pointer"
+            onclick="toggleRowContent('{{.ResourceId}}')"
+            title="Show content">
+            <svg xmlns="http://www.w3.org/2000/svg" class="inline h-5 w-5" fill="currentColor" viewBox="0 0 24 6" stroke="none">
+                <circle cx="3" cy="3" r="3" />
+                <circle cx="12" cy="3" r="3" />
+                <circle cx="21" cy="3" r="3" />
+            </svg>
+        </button>
+
         <a href="/resource/{{.ResourceId}}"
            class="text-blue-600 hover:text-blue-800"
            onclick="event.stopPropagation();"
