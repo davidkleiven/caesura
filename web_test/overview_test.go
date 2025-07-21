@@ -209,15 +209,19 @@ func TestAddToExistingProject(t *testing.T) {
 }
 
 func expandFirstRow(page playwright.Page) (playwright.Locator, error) {
-	row := page.Locator("table tbody tr[id^='row']").First()
+	row := page.Locator(`button[title="Show content"]`).First()
 
 	timeout := playwright.PageExpectResponseOptions{
 		Timeout: playwright.Float(1000),
 	}
 	resp, err := page.ExpectResponse("**/content/**", func() error { return row.Click() }, timeout)
 
-	if err != nil || !resp.Ok() {
-		return row, fmt.Errorf("Response code: %s. (%w)", resp.StatusText(), err)
+	if err != nil {
+		return row, err
+	}
+
+	if !resp.Ok() {
+		return row, fmt.Errorf("Response code %d", resp.Status())
 	}
 	return row, nil
 }
