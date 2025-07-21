@@ -102,6 +102,49 @@ func TestErrRetrievingContentOnFailingReader(t *testing.T) {
 	}
 }
 
+func TestAppendWhenExist(t *testing.T) {
+	var buffer1 bytes.Buffer
+	zipWriter := zip.NewWriter(&buffer1)
+	w, err := zipWriter.Create("file1.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Write([]byte("Content1"))
+	zipWriter.Close()
+
+	var buffer2 bytes.Buffer
+	zipWriter2 := zip.NewWriter(&buffer2)
+	w, err = zipWriter2.Create("file2.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Write([]byte("Content2"))
+	zipWriter2.Close()
+
+	store := NewInMemoryStore()
+
+	meta := MetaData{
+		Composer: "Unknown composer",
+		Arranger: "None",
+		Title:    "My song",
+	}
+	store.Submit(context.Background(), &meta, &buffer1)
+	store.Submit(context.Background(), &meta, &buffer2)
+
+	resourceName := meta.ResourceName()
+
+	content := store.Data[resourceName]
+	zipReader, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(zipReader.File) != 2 {
+		t.Fatalf("Expected 2 files got '%d'", len(zipReader.File))
+	}
+
+}
+
 func TestProjectByName(t *testing.T) {
 	inMemStore := &InMemoryStore{
 		Projects: map[string]Project{
