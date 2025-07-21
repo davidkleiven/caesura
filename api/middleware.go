@@ -14,7 +14,7 @@ func LogRequest(handler http.Handler) http.Handler {
 		acceptEncoding := r.Header.Get("Accept-Encoding")
 		acceptHeaders := r.Header.Get("Accept")
 		// You can replace this with your logging mechanism
-		slog.Info("Received request", "method", method, "url", url, "accept", acceptHeaders, "accept-encoding", acceptEncoding)
+		slog.Info("Received request", "method", method, "url", url, "accept", acceptHeaders, "accept-encoding", acceptEncoding, "host", r.Host)
 
 		// Call the next handler in the chain
 		handler.ServeHTTP(w, r)
