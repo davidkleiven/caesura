@@ -105,3 +105,19 @@ func TestProjectSearch(t *testing.T) {
 
 	}, projectPage)(t)
 }
+
+func TestAddToItemIsHidden(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		if err := waitForProjectPageLoad(page); err != nil {
+			t.Fatal(err)
+		}
+
+		hidden, err := page.Locator(`a[title="Add item"]`).IsHidden()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !hidden {
+			t.Fatal("Add item button should be hidden")
+		}
+	}, projectPage)(t)
+}
