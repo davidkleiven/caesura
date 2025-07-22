@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strings"
 	"time"
 
@@ -84,6 +85,19 @@ func (s *InMemoryStore) ProjectById(ctx context.Context, id string) (*Project, e
 		return &project, nil
 	}
 	return &Project{}, fmt.Errorf("project with id %s not found", id)
+}
+
+func (s *InMemoryStore) RemoveResource(ctx context.Context, projectId string, resourceId string) error {
+	project, ok := s.Projects[projectId]
+	if !ok {
+		return errors.Join(ErrProjectNotFound, fmt.Errorf("Project ID: %s", projectId))
+	}
+
+	project.ResourceIds = slices.DeleteFunc(project.ResourceIds, func(item string) bool {
+		return item == resourceId
+	})
+	s.Projects[projectId] = project
+	return nil
 }
 
 func (s *InMemoryStore) MetaById(ctx context.Context, id string) (*MetaData, error) {

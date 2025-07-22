@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/playwright-community/playwright-go"
@@ -118,6 +119,52 @@ func TestAddToItemIsHidden(t *testing.T) {
 		}
 		if !hidden {
 			t.Fatal("Add item button should be hidden")
+		}
+	}, projectPage)(t)
+}
+
+func TestRemoveFromProject(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		if err := waitForProjectPageLoad(page); err != nil {
+			t.Fatal(err)
+		}
+
+		project1 := page.Locator(`tr[hx-get^="/projects"]`).First()
+
+		timeout := playwright.PageExpectResponseOptions{
+			Timeout: playwright.Float(1000),
+		}
+		_, err := page.ExpectResponse("**/projects/**", func() error { return project1.Click() }, timeout)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		matcher := regexp.MustCompile(`^.*/projects/[^/]+$`)
+
+		numClicked := 0
+		for i := range 2 {
+
+			deleteBtn := page.Locator(`button[title="Remove from project"]`)
+			cnt, err := deleteBtn.Count()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if cnt == 0 {
+				break
+			}
+
+			btn := deleteBtn.First()
+			_, err = page.ExpectResponse(matcher, func() error { return btn.Click() }, timeout)
+			numClicked = i + 1
+
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+
+		if numClicked != 2 {
+			t.Fatalf("Expected 2 clicks got %d", numClicked)
 		}
 	}, projectPage)(t)
 }

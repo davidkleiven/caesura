@@ -251,6 +251,28 @@ func ProjectSubmitHandler(submitter pkg.ProjectSubmitter, timeout time.Duration)
 	}
 }
 
+func RemoveFromProject(remover pkg.ProjectResourceRemover, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		projectId := r.PathValue("projectId")
+		resourceId := r.PathValue("resourceId")
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		if err := remover.RemoveResource(ctx, projectId, resourceId); err != nil {
+			http.Error(w, "failed to remove resource", http.StatusInternalServerError)
+			slog.Error("Failed to remove resource", "project-id", projectId, "resource-id", resourceId, "host", r.Host)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+
+		msg := fmt.Sprintf("Successfully deleted item %s from project %s", resourceId, projectId)
+		w.Write([]byte(msg))
+	}
+}
+
 func ProjectHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(web.Projects())
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -424,6 +446,7 @@ func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
 	mux.HandleFunc("GET /projects/info", SearchProjectListHandler(store, config.Timeout))
 	mux.HandleFunc("GET /projects/{id}", ProjectByIdHandler(store, config.Timeout))
 	mux.HandleFunc("POST /projects", ProjectSubmitHandler(store, config.Timeout))
+	mux.HandleFunc("DELETE /projects/{projectId}/{resourceId}", RemoveFromProject(store, config.Timeout))
 
 	mux.HandleFunc("GET /resources/{id}", ResourceDownload(store, config.Timeout))
 	mux.HandleFunc("GET /resources/{id}/content", ResourceContentByIdHandler(store, config.Timeout))
