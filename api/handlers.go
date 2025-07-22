@@ -405,7 +405,7 @@ func ResourceDownload(s pkg.ResourceGetter, timeout time.Duration) http.HandlerF
 	}
 }
 
-func AddToResourceHanlder(metaGetter pkg.MetaByIdGetter, timeout time.Duration) http.HandlerFunc {
+func AddToResourceHandler(metaGetter pkg.MetaByIdGetter, timeout time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
 
@@ -450,7 +450,7 @@ func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
 
 	mux.HandleFunc("GET /resources/{id}", ResourceDownload(store, config.Timeout))
 	mux.HandleFunc("GET /resources/{id}/content", ResourceContentByIdHandler(store, config.Timeout))
-	mux.HandleFunc("GET /resources/{id}/submit-form", AddToResourceHanlder(store, config.Timeout))
+	mux.HandleFunc("GET /resources/{id}/submit-form", AddToResourceHandler(store, config.Timeout))
 	mux.HandleFunc("POST /resources", SubmitHandler(store, config.Timeout, int(config.MaxRequestSizeMb)))
 	return mux
 }

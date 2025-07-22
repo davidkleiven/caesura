@@ -1181,3 +1181,38 @@ func TestFailingRemover(t *testing.T) {
 		t.Fatalf("Wanted code %d got %d", http.StatusInternalServerError, recorder.Code)
 	}
 }
+
+func TestAddToResourceSubmitForm(t *testing.T) {
+	store := pkg.NewDemoStore()
+	var projectId string
+	for id := range store.Projects {
+		projectId = id
+		break
+	}
+	resourceId := store.Projects[projectId].ResourceIds[0]
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/resources/"+resourceId+"/submit-form", nil)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /resources/{id}/submit-form", AddToResourceHandler(store, 1*time.Second))
+	mux.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("Wanted %d got %d", http.StatusOK, recorder.Code)
+	}
+}
+
+func TestAddResourceSubmitFormResourceNotFound(t *testing.T) {
+	store := pkg.NewInMemoryStore()
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/resources/000/submit-form", nil)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/resources/{id}/submit-form", AddToResourceHandler(store, 1*time.Second))
+	mux.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("Expected code %d got %d", http.StatusInternalServerError, recorder.Code)
+	}
+
+}
