@@ -607,7 +607,7 @@ func TestSearchProjectHandler(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("GET", "/search-projects?projectQuery=test", nil)
+	request := httptest.NewRequest("GET", "/projects/names?projectQuery=test", nil)
 
 	handler := SearchProjectHandler(inMemStore, 10*time.Second)
 	handler(recorder, request)
@@ -640,7 +640,7 @@ func TestSearchProjectHandlerInternelServerErrorOnFailure(t *testing.T) {
 	expectedError := errors.New("fetch error")
 	recorder := httptest.NewRecorder()
 
-	request := httptest.NewRequest("GET", "/search-projects?projectQuery=test", nil)
+	request := httptest.NewRequest("GET", "/projects/names?projectQuery=test", nil)
 	handler := SearchProjectHandler(&failingProjectByNamer{err: expectedError}, 10*time.Second)
 	handler(recorder, request)
 
