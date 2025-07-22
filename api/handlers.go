@@ -418,8 +418,6 @@ func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
 	mux.HandleFunc("/js/pdf-viewer.js", JsHandler)
 	mux.HandleFunc("/delete-mode", DeleteMode)
 
-	mux.HandleFunc("/submit", SubmitHandler(store, config.Timeout, int(config.MaxRequestSizeMb)))
-
 	mux.HandleFunc("/overview", OverviewHandler)
 	mux.HandleFunc("/overview/search", OverviewSearchHandler(store, config.Timeout))
 	mux.HandleFunc("/overview/project-selector", ProjectSelectorModalHandler)
@@ -435,5 +433,6 @@ func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
 	mux.HandleFunc("GET /resources/{id}", ResourceDownload(store, config.Timeout))
 	mux.HandleFunc("GET /resources/{id}/content", ResourceContentByIdHandler(store, config.Timeout))
 	mux.HandleFunc("GET /resources/{id}/submit-form", AddToResourceHanlder(store, config.Timeout))
+	mux.HandleFunc("POST /resources", SubmitHandler(store, config.Timeout, int(config.MaxRequestSizeMb)))
 	return mux
 }
