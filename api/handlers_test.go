@@ -885,8 +885,9 @@ func TestProjectByIdHandler(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/projects/demoproject1", nil)
 
-	handler := ProjectByIdHandler(inMemStore, 10*time.Second)
-	handler(recorder, request)
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /projects/{id}", ProjectByIdHandler(inMemStore, 10*time.Second))
+	mux.ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusOK {
 		t.Errorf("Expected status code 200, got %d", recorder.Code)
@@ -901,25 +902,6 @@ func TestProjectByIdHandler(t *testing.T) {
 	if !strings.Contains(recorder.Body.String(), "Demo Project 1") {
 		t.Error("Expected response body to contain 'Demo Project 1'")
 		return
-	}
-}
-
-func TestProjectByIdBadRequest(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("GET", "/projects", nil)
-
-	inMemStore := pkg.NewInMemoryStore()
-	handler := ProjectByIdHandler(inMemStore, 10*time.Second)
-	handler(recorder, request)
-
-	if recorder.Code != http.StatusBadRequest {
-		t.Errorf("Expected status code 400, got %d", recorder.Code)
-		return
-	}
-
-	expectedError := "Project ID is required"
-	if !strings.Contains(recorder.Body.String(), expectedError) {
-		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
 	}
 }
 

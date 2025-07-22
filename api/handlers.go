@@ -276,13 +276,7 @@ func SearchProjectListHandler(store pkg.ProjectByNameGetter, timeout time.Durati
 
 func ProjectByIdHandler(store pkg.ProjectMetaByIdGetter, timeout time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		interpretedPath, err := pkg.ParseUrl(r.URL.Path)
-		if err != nil {
-			http.Error(w, "Project ID is required", http.StatusBadRequest)
-			slog.Error("Project ID is required")
-			return
-		}
-		projectId := interpretedPath.PathParameter
+		projectId := r.PathValue("id")
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
@@ -424,12 +418,12 @@ func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
 
 	mux.HandleFunc("/add-to-project", ProjectSubmitHandler(store, config.Timeout))
 	mux.HandleFunc("/project-query-input", ProjectQueryInputHandler)
-	mux.HandleFunc("/projects/", ProjectByIdHandler(store, config.Timeout))
 	mux.Handle("/js/", web.JsServer())
 
 	mux.HandleFunc("GET /projects", ProjectHandler)
 	mux.HandleFunc("GET /projects/names", SearchProjectHandler(store, config.Timeout))
 	mux.HandleFunc("GET /projects/info", SearchProjectListHandler(store, config.Timeout))
+	mux.HandleFunc("GET /projects/{id}", ProjectByIdHandler(store, config.Timeout))
 
 	mux.HandleFunc("GET /resources/{id}", ResourceDownload(store, config.Timeout))
 	mux.HandleFunc("GET /resources/{id}/content", ResourceContentByIdHandler(store, config.Timeout))
