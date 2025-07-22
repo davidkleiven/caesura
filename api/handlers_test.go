@@ -683,7 +683,7 @@ func TestProjectSubmitHandler(t *testing.T) {
 
 	form := url.Values{}
 	form.Set("projectQuery", "Test Project")
-	request := httptest.NewRequest("POST", "/add-to-project", strings.NewReader(form.Encode()))
+	request := httptest.NewRequest("POST", "/projects", strings.NewReader(form.Encode()))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	handler := ProjectSubmitHandler(inMemStore, 10*time.Second)
@@ -709,7 +709,7 @@ func TestBadRequestOnMissingName(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	form := url.Values{}
-	request := httptest.NewRequest("POST", "/add-to-project", strings.NewReader(form.Encode()))
+	request := httptest.NewRequest("POST", "/projects", strings.NewReader(form.Encode()))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	handler := ProjectSubmitHandler(inMemStore, 10*time.Second)
@@ -736,7 +736,7 @@ func TestInternaltServerErrorOnProjectSubmitFailure(t *testing.T) {
 	inMemStore := &failingProjectSubmitter{err: expectedError}
 	form := url.Values{}
 	form.Set("projectQuery", "Test Project")
-	request := httptest.NewRequest("POST", "/add-to-project", strings.NewReader(form.Encode()))
+	request := httptest.NewRequest("POST", "/projects", strings.NewReader(form.Encode()))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	handler := ProjectSubmitHandler(inMemStore, 10*time.Second)
@@ -755,7 +755,7 @@ func TestInternaltServerErrorOnProjectSubmitFailure(t *testing.T) {
 
 func TestBadRequestWhenWrongApplicationType(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("GET", "/add-to-project?bad=%ZZ", nil)
+	request := httptest.NewRequest("GET", "/projects?bad=%ZZ", nil)
 
 	inMemStore := pkg.NewInMemoryStore()
 	handler := ProjectSubmitHandler(inMemStore, 10*time.Second)

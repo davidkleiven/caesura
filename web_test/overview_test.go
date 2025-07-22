@@ -131,7 +131,7 @@ func TestAddToProjectNoProjectName(t *testing.T) {
 		}
 
 		confirmButton := page.Locator("button:has-text('Confirm')")
-		resp, err := page.ExpectResponse("**/add-to-project**", func() error { return confirmButton.Click() }, playwright.PageExpectResponseOptions{Timeout: playwright.Float(1000)})
+		resp, err := page.ExpectResponse("**/projects**", func() error { return confirmButton.Click() }, playwright.PageExpectResponseOptions{Timeout: playwright.Float(1000)})
 		if err != nil {
 			t.Errorf("Error clicking confirm button: %v", err)
 			return
@@ -183,7 +183,7 @@ func TestAddToExistingProject(t *testing.T) {
 		}
 
 		confirmButton := page.Locator("button:has-text('Confirm')")
-		resp, err = page.ExpectResponse("**/add-to-project**", func() error { return confirmButton.Click() }, timeout)
+		resp, err = page.ExpectResponse("**/projects**", func() error { return confirmButton.Click() }, timeout)
 		if err != nil {
 			t.Errorf("Error clicking confirm button: %v", err)
 			return

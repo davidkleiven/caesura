@@ -416,7 +416,6 @@ func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
 	mux.HandleFunc("/overview/search", OverviewSearchHandler(store, config.Timeout))
 	mux.HandleFunc("/overview/project-selector", ProjectSelectorModalHandler)
 
-	mux.HandleFunc("/add-to-project", ProjectSubmitHandler(store, config.Timeout))
 	mux.HandleFunc("/project-query-input", ProjectQueryInputHandler)
 	mux.Handle("/js/", web.JsServer())
 
@@ -424,6 +423,7 @@ func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
 	mux.HandleFunc("GET /projects/names", SearchProjectHandler(store, config.Timeout))
 	mux.HandleFunc("GET /projects/info", SearchProjectListHandler(store, config.Timeout))
 	mux.HandleFunc("GET /projects/{id}", ProjectByIdHandler(store, config.Timeout))
+	mux.HandleFunc("POST /projects", ProjectSubmitHandler(store, config.Timeout))
 
 	mux.HandleFunc("GET /resources/{id}", ResourceDownload(store, config.Timeout))
 	mux.HandleFunc("GET /resources/{id}/content", ResourceContentByIdHandler(store, config.Timeout))
