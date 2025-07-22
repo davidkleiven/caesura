@@ -105,7 +105,7 @@ func openProjectSelectorPage(page playwright.Page, preClick func(playwright.Page
 		return err
 	}
 
-	resp, err = page.ExpectResponse("**/search-projects**", nil, timout)
+	resp, err = page.ExpectResponse("**/projects/names**", nil, timout)
 	if err != nil {
 		return err
 	}
