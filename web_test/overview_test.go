@@ -387,3 +387,28 @@ func TestAddToResource(t *testing.T) {
 
 	}, overViewPage)(t)
 }
+
+func TestAddToItemNotHidden(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		if err := waitForInitialLoad(page); err != nil {
+			t.Fatal(err)
+		}
+
+		addItemLocator, err := page.Locator(`a[title="Add item"]`).All()
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		for _, button := range addItemLocator {
+			hidden, err := button.IsHidden()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if hidden {
+				t.Fatal("Add item button should not be hidden")
+			}
+		}
+
+	}, overViewPage)(t)
+}

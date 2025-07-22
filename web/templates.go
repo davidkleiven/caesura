@@ -50,8 +50,10 @@ func Overview() []byte {
 
 func ResourceList(w io.Writer, metaData []pkg.MetaData) {
 	data := ResourceListData{
-		MetaData:        metaData,
-		CheckboxVisible: true,
+		MetaData:                 metaData,
+		CheckboxVisible:          true,
+		PatchVisible:             true,
+		RemoveFromProjectVisible: false,
 	}
 	tmpl := template.Must(template.ParseFS(templatesFS, "templates/resource_list.html"))
 	pkg.PanicOnErr(tmpl.Execute(w, data))
@@ -104,8 +106,10 @@ func ProjectContent(w io.Writer, project *pkg.Project, resources []pkg.MetaData)
 	rows := template.Must(template.ParseFS(templatesFS, "templates/resource_list.html"))
 
 	data := ResourceListData{
-		MetaData:        resources,
-		CheckboxVisible: false,
+		MetaData:                 resources,
+		CheckboxVisible:          false,
+		PatchVisible:             false,
+		RemoveFromProjectVisible: true,
 	}
 
 	pkg.PanicOnErr(rows.Execute(&buffer, data))
@@ -115,8 +119,10 @@ func ProjectContent(w io.Writer, project *pkg.Project, resources []pkg.MetaData)
 }
 
 type ResourceListData struct {
-	MetaData        []pkg.MetaData
-	CheckboxVisible bool
+	MetaData                 []pkg.MetaData
+	CheckboxVisible          bool
+	PatchVisible             bool
+	RemoveFromProjectVisible bool
 }
 
 type ResourceContentData struct {
