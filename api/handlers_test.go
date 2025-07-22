@@ -994,10 +994,10 @@ func TestResourceContentByIdHandler(t *testing.T) {
 	store := pkg.NewDemoStore()
 	id := store.Metadata[0].ResourceId()
 
-	request := httptest.NewRequest("GET", "/content/"+id, nil)
+	request := httptest.NewRequest("GET", "/resources/"+id+"/content", nil)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /content/{id}", ResourceContentByIdHandler(store, 1*time.Second))
+	mux.HandleFunc("GET /resources/{id}/content", ResourceContentByIdHandler(store, 1*time.Second))
 	mux.ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusOK {
