@@ -313,7 +313,8 @@ func ResourceContentByIdHandler(s pkg.ResourceGetter, timeout time.Duration) htt
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
-		downloader := pkg.NewResourceDownloader().ParseUrl(r.URL).GetMetaData(ctx, s).GetResource(ctx, s)
+		id := r.PathValue("id")
+		downloader := pkg.NewResourceDownloader().GetMetaData(ctx, s, id).GetResource(ctx, s)
 
 		resource, err := downloader.ZipReader()
 		if err != nil {
@@ -322,7 +323,7 @@ func ResourceContentByIdHandler(s pkg.ResourceGetter, timeout time.Duration) htt
 		}
 
 		content := web.ResourceContentData{
-			ResourceId: downloader.ResourceId,
+			ResourceId: id,
 			Filenames:  make([]string, len(resource.File)),
 		}
 		for i, file := range resource.File {
@@ -339,7 +340,9 @@ func ResourceDownload(s pkg.ResourceGetter, timeout time.Duration) http.HandlerF
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
-		downloader := pkg.NewResourceDownloader().ParseUrl(r.URL).GetMetaData(ctx, s).GetResource(ctx, s)
+		resourceId := r.PathValue("id")
+		filename := r.URL.Query().Get("file")
+		downloader := pkg.NewResourceDownloader().GetMetaData(ctx, s, resourceId).GetResource(ctx, s)
 
 		var (
 			reader             io.Reader
@@ -349,22 +352,19 @@ func ResourceDownload(s pkg.ResourceGetter, timeout time.Duration) http.HandlerF
 			contentDisposition string
 			contentType        string
 		)
-		if !downloader.SingleFileRequested() {
+		if filename == "" {
 			zipFilename := downloader.ZipFilename()
 			contentDisposition = "attachment; filename=\"" + zipFilename + "\""
 			contentType = "application/zip"
 			reader, err = downloader.Content()
 			contentReader = io.NopCloser(reader)
 		} else {
-			file := downloader.File
-			contentDisposition = "attachment; filename=\"" + file + "\""
+			contentDisposition = "attachment; filename=\"" + filename + "\""
 			contentType = "application/pdf"
-			contentReader, err = downloader.ExtractSingleFile().FileReader()
+			contentReader, err = downloader.ExtractSingleFile(filename).FileReader()
 		}
 
 		switch {
-		case errors.Is(err, pkg.ErrCanNotInterpretUrl):
-			statusCode = http.StatusBadRequest
 		case errors.Is(err, pkg.ErrFileNotInZipArchive),
 			errors.Is(err, pkg.ErrFileNotFound),
 			errors.Is(err, pkg.ErrResourceMetadataNotFound):
@@ -377,7 +377,7 @@ func ResourceDownload(s pkg.ResourceGetter, timeout time.Duration) http.HandlerF
 
 		if err != nil {
 			http.Error(w, err.Error(), statusCode)
-			slog.Error("Error during download resource", "error", err, "id", downloader.ResourceId, "file", downloader.File)
+			slog.Error("Error during download resource", "error", err, "id", resourceId, "file", filename)
 			return
 		}
 		defer contentReader.Close()
@@ -423,19 +423,23 @@ func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
 	mux.HandleFunc("/choice", ChoiceHandler)
 	mux.HandleFunc("/js/pdf-viewer.js", JsHandler)
 	mux.HandleFunc("/delete-mode", DeleteMode)
+
 	mux.HandleFunc("/submit", SubmitHandler(store, config.Timeout, int(config.MaxRequestSizeMb)))
+
 	mux.HandleFunc("/overview", OverviewHandler)
 	mux.HandleFunc("/overview/search", OverviewSearchHandler(store, config.Timeout))
 	mux.HandleFunc("/overview/project-selector", ProjectSelectorModalHandler)
+
 	mux.HandleFunc("/search-projects", SearchProjectHandler(store, config.Timeout))
 	mux.HandleFunc("/add-to-project", ProjectSubmitHandler(store, config.Timeout))
 	mux.HandleFunc("/project-query-input", ProjectQueryInputHandler)
 	mux.HandleFunc("/projects", ProjectHandler)
 	mux.HandleFunc("/filter/project-list", SearchProjectListHandler(store, config.Timeout))
 	mux.HandleFunc("/projects/", ProjectByIdHandler(store, config.Timeout))
-	mux.HandleFunc("/content/", ResourceContentByIdHandler(store, config.Timeout))
 	mux.Handle("/js/", web.JsServer())
-	mux.Handle("/resource/", ResourceDownload(store, config.Timeout))
-	mux.Handle("/add-to-resource/", AddToResourceHanlder(store, config.Timeout))
+
+	mux.HandleFunc("GET /resources/{id}", ResourceDownload(store, config.Timeout))
+	mux.HandleFunc("GET /resources/{id}/content", ResourceContentByIdHandler(store, config.Timeout))
+	mux.HandleFunc("GET /add-to-resource/", AddToResourceHanlder(store, config.Timeout))
 	return mux
 }

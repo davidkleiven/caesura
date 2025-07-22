@@ -4,20 +4,13 @@ import (
 	"context"
 	"errors"
 	"io"
-	"net/url"
 	"testing"
 )
 
 func populatedDownloader() *ResourceDownloader {
 	store := NewDemoStore()
-	url := url.URL{
-		Host:     "localhost",
-		Path:     "/resource/" + store.Metadata[0].ResourceId(),
-		RawQuery: "file=Part2.pdf",
-	}
-
 	ctx := context.Background()
-	return NewResourceDownloader().ParseUrl(&url).GetMetaData(ctx, store).GetResource(ctx, store)
+	return NewResourceDownloader().GetMetaData(ctx, store, store.Metadata[0].ResourceId()).GetResource(ctx, store)
 }
 
 func TestZipReaderHasFiveFiles(t *testing.T) {
@@ -59,11 +52,7 @@ func TestNonEmptyContent(t *testing.T) {
 func TestExtractSingleFile(t *testing.T) {
 	downloader := populatedDownloader()
 
-	if !downloader.SingleFileRequested() {
-		t.Fatal("The URL query should ask for a single file")
-	}
-
-	singleFile, err := downloader.ExtractSingleFile().FileReader()
+	singleFile, err := downloader.ExtractSingleFile("Part1.pdf").FileReader()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -88,10 +77,10 @@ func TestResourceDownloadPropagateErrors(t *testing.T) {
 	store := NewInMemoryStore()
 
 	for i, f := range []func(){
-		func() { downloader.GetMetaData(ctx, store) },
+		func() { downloader.GetMetaData(ctx, store, "unknownId") },
 		func() { downloader.GetResource(ctx, store) },
 		func() { downloader.Content() },
-		func() { downloader.ExtractSingleFile() },
+		func() { downloader.ExtractSingleFile("file.pdf") },
 		func() { downloader.FileReader() },
 		func() { downloader.ZipReader() },
 	} {

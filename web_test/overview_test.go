@@ -291,7 +291,7 @@ func TestDownloadZip(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		downloadLink := page.Locator(`a[href^="/resource"]`).First()
+		downloadLink := page.Locator(`a[href^="/resources"]`).First()
 
 		timeout := playwright.PageExpectDownloadOptions{Timeout: playwright.Float(1000.0)}
 		download, err := page.ExpectDownload(func() error { return downloadLink.Click() }, timeout)
@@ -321,7 +321,7 @@ func TestDownloadSinglePart(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		pattern := `a[href^="/resource"][href*="file="]`
+		pattern := `a[href^="/resources"][href*="file="]`
 		downloadParts := page.Locator(pattern)
 
 		if cnt, err := downloadParts.Count(); err != nil || cnt == 0 {

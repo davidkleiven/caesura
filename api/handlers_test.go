@@ -995,8 +995,10 @@ func TestResourceContentByIdHandler(t *testing.T) {
 	id := store.Metadata[0].ResourceId()
 
 	request := httptest.NewRequest("GET", "/content/"+id, nil)
-	handler := ResourceContentByIdHandler(store, 1*time.Second)
-	handler(recorder, request)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /content/{id}", ResourceContentByIdHandler(store, 1*time.Second))
+	mux.ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusOK {
 		t.Errorf("Expected return code '200' got %d", recorder.Code)
@@ -1032,8 +1034,9 @@ func TestResourceDownloaderFullZipDownload(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/resources/"+resourceId, nil)
 
-	handler := ResourceDownload(store, 1*time.Second)
-	handler(recorder, request)
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /resources/{id}", ResourceDownload(store, 1*time.Second))
+	mux.ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("Expected code %d got %d", http.StatusOK, recorder.Code)
@@ -1063,7 +1066,7 @@ func TestResourceDownloaderFullZipDownload(t *testing.T) {
 	}
 }
 
-func TestResourceDownloadSingleFil(t *testing.T) {
+func TestResourceDownloadSingleFile(t *testing.T) {
 	store := pkg.NewDemoStore()
 	resourceId := store.Metadata[0].ResourceId()
 	file := "Part2.pdf"
@@ -1071,8 +1074,9 @@ func TestResourceDownloadSingleFil(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", fmt.Sprintf("/resources/%s?file=%s", resourceId, file), nil)
 
-	handler := ResourceDownload(store, 1*time.Second)
-	handler(recorder, request)
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /resources/{id}", ResourceDownload(store, 1*time.Second))
+	mux.ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("Expected code '%d' got %d", http.StatusOK, recorder.Code)
@@ -1104,21 +1108,9 @@ func TestResourceDownloadSingleFil(t *testing.T) {
 	}
 }
 
-func TestBadRequestWhenMissingResource(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("GET", "/resource", nil)
-	store := pkg.NewInMemoryStore()
-	handler := ResourceDownload(store, 1*time.Second)
-	handler(recorder, request)
-
-	if recorder.Code != http.StatusBadRequest {
-		t.Fatalf("Expected %d got %d", http.StatusBadRequest, recorder.Code)
-	}
-}
-
 func TestNotFoundWhenRequestingNonExistingResource(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("GET", "/resource/0aaax", nil)
+	request := httptest.NewRequest("GET", "/resources/0aaax", nil)
 	store := pkg.NewInMemoryStore()
 	handler := ResourceDownload(store, 1*time.Second)
 	handler(recorder, request)
@@ -1142,7 +1134,7 @@ func (f *failingResourceGetter) Resource(ctx context.Context, name string) (io.R
 
 func TestInternalServerErrorOnGenericFailure(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("GET", "/resource/0aaax", nil)
+	request := httptest.NewRequest("GET", "/resources/0aaax", nil)
 	getter := failingResourceGetter{
 		err: errors.New("some generic error"),
 	}

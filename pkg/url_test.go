@@ -12,8 +12,8 @@ func TestUrl(t *testing.T) {
 		Expect     InterpretedUrl
 	}{
 		{
-			Url:    "/resource/123",
-			Expect: InterpretedUrl{Path: "resource", PathParameter: "123"},
+			Url:    "/resources/123",
+			Expect: InterpretedUrl{Path: "resources", PathParameter: "123"},
 		},
 		{
 			Url:        "/missing-resource",
