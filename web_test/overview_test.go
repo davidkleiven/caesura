@@ -353,7 +353,7 @@ func TestAddToResource(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		pattern := `a[href^="/add"]`
+		pattern := `a[href^="/resources"][href*="/submit-form"]`
 		addBtn := page.Locator(pattern)
 
 		if cnt, err := addBtn.Count(); err != nil || cnt == 0 {

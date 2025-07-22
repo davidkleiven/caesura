@@ -391,21 +391,15 @@ func ResourceDownload(s pkg.ResourceGetter, timeout time.Duration) http.HandlerF
 
 func AddToResourceHanlder(metaGetter pkg.MetaByIdGetter, timeout time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		parsedUrl, err := pkg.ParseUrl(r.URL.Path)
-
-		if err != nil {
-			http.Error(w, "Resource ID is required", http.StatusBadRequest)
-			slog.Error("Error to parse URL", "error", err, "url", r.URL.Path)
-			return
-		}
+		id := r.PathValue("id")
 
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
-		meta, err := metaGetter.MetaById(ctx, parsedUrl.PathParameter)
+		meta, err := metaGetter.MetaById(ctx, id)
 		if err != nil {
 			http.Error(w, "Error when fetching metadata", http.StatusInternalServerError)
-			slog.Error("Error when fetching metadata", "error", err, "id", parsedUrl.PathParameter, "url", r.URL.Path)
+			slog.Error("Error when fetching metadata", "error", err, "id", id, "url", r.URL.Path)
 			return
 		}
 
@@ -440,6 +434,6 @@ func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
 
 	mux.HandleFunc("GET /resources/{id}", ResourceDownload(store, config.Timeout))
 	mux.HandleFunc("GET /resources/{id}/content", ResourceContentByIdHandler(store, config.Timeout))
-	mux.HandleFunc("GET /add-to-resource/", AddToResourceHanlder(store, config.Timeout))
+	mux.HandleFunc("GET /resources/{id}/submit-form", AddToResourceHanlder(store, config.Timeout))
 	return mux
 }
