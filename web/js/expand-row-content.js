@@ -5,7 +5,7 @@ async function toggleRowContent(id) {
     if (!row.classList.contains('hidden')) {
         row.classList.add('hidden');
     } else {
-        const resp = await fetch(`/content/${id}`)
+        const resp = await fetch(`/resources/${id}/content`)
         if (!resp.ok) {
             console.log("An error occured during fetch")
         }

@@ -214,7 +214,7 @@ func expandFirstRow(page playwright.Page) (playwright.Locator, error) {
 	timeout := playwright.PageExpectResponseOptions{
 		Timeout: playwright.Float(1000),
 	}
-	resp, err := page.ExpectResponse("**/content/**", func() error { return row.Click() }, timeout)
+	resp, err := page.ExpectResponse("**/resources/*/content", func() error { return row.Click() }, timeout)
 
 	if err != nil {
 		return row, err
