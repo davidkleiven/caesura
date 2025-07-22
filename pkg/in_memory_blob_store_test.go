@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -349,5 +350,35 @@ func TestClone(t *testing.T) {
 				t.Fatalf("Stores should not be equal after modification")
 			}
 		})
+	}
+}
+
+func TestDeleteResourceFromProject(t *testing.T) {
+	store := NewInMemoryStore()
+
+	project := Project{
+		Name:        "myproject",
+		ResourceIds: []string{"id1", "id2", "id3"},
+	}
+
+	ctx := context.Background()
+	store.SubmitProject(ctx, &project)
+	if err := store.RemoveResource(ctx, "myproject", "id2"); err != nil {
+		t.Fatal(err)
+	}
+
+	want := []string{"id1", "id3"}
+	got := store.Projects["myproject"].ResourceIds
+
+	if slices.Compare(got, want) != 0 {
+		t.Fatalf("Wanted %v got %v", want, got)
+	}
+}
+
+func TestDeleteResourceErrorOnUnknownProject(t *testing.T) {
+	store := NewInMemoryStore()
+	err := store.RemoveResource(context.Background(), "some-non-existent-project", "resource")
+	if !errors.Is(err, ErrProjectNotFound) {
+		t.Fatalf("Wanted %s got %s", ErrProjectNotFound, err)
 	}
 }

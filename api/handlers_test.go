@@ -1127,5 +1127,57 @@ func TestInternalServerErrorOnGenericFailure(t *testing.T) {
 	if recorder.Code != http.StatusInternalServerError {
 		t.Fatalf("Expected %d got %d", http.StatusInternalServerError, recorder.Code)
 	}
+}
 
+func TestDeleteResourceFromProjectHandler(t *testing.T) {
+	store := pkg.NewDemoStore()
+
+	var projectId string
+	for id := range store.Projects {
+		projectId = id
+		break
+	}
+
+	resourceId := store.Projects[projectId].ResourceIds[0]
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("DELETE", "/projects/"+projectId+"/"+resourceId, nil)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("DELETE /projects/{projectId}/{resourceId}", RemoveFromProject(store, 1*time.Second))
+	mux.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("Expected code %d got %d", http.StatusOK, recorder.Code)
+	}
+
+	for _, id := range store.Projects[projectId].ResourceIds {
+		if id == resourceId {
+			t.Fatalf("%s should not be part of the project anymore", resourceId)
+		}
+	}
+}
+
+type failingResourceRemover struct {
+	err error
+}
+
+func (f *failingResourceRemover) RemoveResource(ctx context.Context, projectId string, resourceId string) error {
+	return f.err
+}
+
+func TestFailingRemover(t *testing.T) {
+	remover := failingResourceRemover{
+		err: errors.New("Something went wrong"),
+	}
+
+	handler := RemoveFromProject(&remover, 1*time.Second)
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("DELETE", "/projects/000/111", nil)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("Wanted code %d got %d", http.StatusInternalServerError, recorder.Code)
+	}
 }

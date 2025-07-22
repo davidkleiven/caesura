@@ -18,6 +18,10 @@ type ProjectSubmitter interface {
 	SubmitProject(ctx context.Context, project *Project) error
 }
 
+type ProjectResourceRemover interface {
+	RemoveResource(ctx context.Context, projectId string, resourceId string) error
+}
+
 type MetaByIdGetter interface {
 	MetaById(ctx context.Context, id string) (*MetaData, error)
 }
@@ -33,6 +37,7 @@ type BlobStore interface {
 	ProjectByNameGetter
 	ProjectSubmitter
 	ProjectMetaByIdGetter
+	ProjectResourceRemover
 	ResourceGetter
 }
 

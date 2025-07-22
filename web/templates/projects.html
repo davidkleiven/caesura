@@ -30,4 +30,18 @@
       </table>
     </div>
   </div>
+  <script defer>
+    document.body.addEventListener("htmx:afterRequest", function(evt) {
+      const path = evt.detail.requestConfig.path;
+      const method = evt.detail.requestConfig.verb;
+
+      if (method.toLowerCase() === "delete" && path.includes("/projects/")) {
+        const match = path.match(/\/projects\/([^\/]+)\//);
+        const projectId = match ? match[1] : null
+        if (projectId) {
+          htmx.ajax("GET", `/projects/${projectId}`, '#page-content')
+        }
+      }
+    });
+  </script>
 </body>

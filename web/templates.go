@@ -110,6 +110,7 @@ func ProjectContent(w io.Writer, project *pkg.Project, resources []pkg.MetaData)
 		CheckboxVisible:          false,
 		PatchVisible:             false,
 		RemoveFromProjectVisible: true,
+		ProjectId:                project.Id(),
 	}
 
 	pkg.PanicOnErr(rows.Execute(&buffer, data))
@@ -120,6 +121,7 @@ func ProjectContent(w io.Writer, project *pkg.Project, resources []pkg.MetaData)
 
 type ResourceListData struct {
 	MetaData                 []pkg.MetaData
+	ProjectId                string
 	CheckboxVisible          bool
 	PatchVisible             bool
 	RemoveFromProjectVisible bool
