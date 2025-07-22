@@ -80,7 +80,7 @@ func TestProjectSearch(t *testing.T) {
 			},
 		} {
 
-			resp, err := page.ExpectResponse("**/filter/project-list**", fillProjectQueryInput(page, check.query), timeout)
+			resp, err := page.ExpectResponse("**/projects/info**", fillProjectQueryInput(page, check.query), timeout)
 
 			if err != nil {
 				t.Error(err)

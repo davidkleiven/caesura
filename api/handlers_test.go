@@ -838,7 +838,7 @@ func TestSearchProjectListHandler(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("GET", "/filter/project-list?projectQuery=test", nil)
+	request := httptest.NewRequest("GET", "/projects/info?projectQuery=test", nil)
 
 	handler := SearchProjectListHandler(inMemStore, 10*time.Second)
 	handler(recorder, request)
@@ -864,7 +864,7 @@ func TestSearchProjectListInternalServerError(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	inMemStore := &failingProjectByNamer{err: expectedError}
-	request := httptest.NewRequest("GET", "/filter/project-list?projectQuery=test", nil)
+	request := httptest.NewRequest("GET", "/projects/info?projectQuery=test", nil)
 	handler := SearchProjectListHandler(inMemStore, 10*time.Second)
 	handler(recorder, request)
 
