@@ -146,7 +146,7 @@ func TestDeleteModeTooLargeForm(t *testing.T) {
 
 func TestSubmitBadRequestHandler(t *testing.T) {
 	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("POST", "/submit", nil)
+	request := httptest.NewRequest("POST", "/resources", nil)
 	request.Header.Set("Content-Type", "multipart/form-data")
 
 	handler := SubmitHandler(pkg.NewInMemoryStore(), 10*time.Second, 10)
@@ -260,7 +260,7 @@ func TestSubmitHandlerValidRequest(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := validMultipartForm()
-	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
+	request := httptest.NewRequest("POST", "/resources", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
 	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
@@ -322,7 +322,7 @@ func TestSubmitHandlerInvalidJson(t *testing.T) {
 		return
 	}
 
-	request := httptest.NewRequest("POST", "/submit", &multipartBuffer)
+	request := httptest.NewRequest("POST", "/resources", &multipartBuffer)
 	request.Header.Set("Content-Type", multipartWriter.FormDataContentType())
 
 	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
@@ -350,7 +350,7 @@ func TestSubmitFormWithoutDocument(t *testing.T) {
 		return
 	}
 
-	request := httptest.NewRequest("POST", "/submit", &multipartBuffer)
+	request := httptest.NewRequest("POST", "/resources", &multipartBuffer)
 	request.Header.Set("Content-Type", multipartWriter.FormDataContentType())
 
 	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
@@ -373,7 +373,7 @@ func TestSubmitNonPdfFileAsDocument(t *testing.T) {
 
 	multipartBuffer, contentType := multipartForm(withInvalidPdf, withAssignments, withMetaData)
 
-	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
+	request := httptest.NewRequest("POST", "/resources", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
 	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
@@ -395,7 +395,7 @@ func TestSubmitHandlerNoAssignments(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := multipartForm(withPdf, withMetaData)
-	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
+	request := httptest.NewRequest("POST", "/resources", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
 	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
@@ -417,7 +417,7 @@ func TestSubmitHandlerNoMetaData(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := multipartForm(withPdf, withAssignments)
-	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
+	request := httptest.NewRequest("POST", "/resources", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
 	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
@@ -439,7 +439,7 @@ func TestSubmitHandlerInvalidMetaData(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := multipartForm(withPdf, withAssignments, withInvalidMetaData)
-	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
+	request := httptest.NewRequest("POST", "/resources", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
 	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
@@ -461,7 +461,7 @@ func TestSubmitWithEmptyMetaData(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := multipartForm(withPdf, withAssignments, withEmptyMetaData)
-	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
+	request := httptest.NewRequest("POST", "/resources", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
 	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
@@ -490,7 +490,7 @@ func TestSubmitHandlerStoreErrors(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := validMultipartForm()
-	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
+	request := httptest.NewRequest("POST", "/resources", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
 	handler := SubmitHandler(&failingSubmitter{err: errors.New("what??")}, 10*time.Second, 10)
@@ -507,7 +507,7 @@ func TestEntityTooLargeWhenUploadIsTooLarge(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := multipartForm()
-	request := httptest.NewRequest("POST", "/submit", multipartBuffer)
+	request := httptest.NewRequest("POST", "/resources", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
 
 	handler := SubmitHandler(inMemStore, 10*time.Second, 0)

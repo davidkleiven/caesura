@@ -204,7 +204,7 @@ async function submitPartitions() {
     formData.append('assignments', JSON.stringify(assignments));
     formData.append('metadata', JSON.stringify(metadata));
 
-    const response = await fetch("/submit", { method: 'POST', body: formData });
+    const response = await fetch("/resources", { method: 'POST', body: formData });
     if (!response.ok) {
         const errorText = await response.text();
         alert(`Error submitting partition: ${errorText}`);

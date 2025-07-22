@@ -438,7 +438,7 @@ func TestSubmit(t *testing.T) {
 		}
 
 		waitOpts := playwright.PageExpectResponseOptions{Timeout: playwright.Float(5000)}
-		resp, err := page.ExpectResponse("**/submit**", func() error { return nil }, waitOpts)
+		resp, err := page.ExpectResponse("**/resources**", func() error { return nil }, waitOpts)
 		if err != nil {
 			t.Errorf("Failed to submit form: %s", err)
 			return
