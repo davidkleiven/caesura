@@ -7,28 +7,28 @@ import (
 )
 
 type MetaByPatternFetcher interface {
-	MetaByPattern(ctx context.Context, pattern *MetaData) ([]MetaData, error)
+	MetaByPattern(ctx context.Context, orgId string, pattern *MetaData) ([]MetaData, error)
 }
 
 type ProjectByNameGetter interface {
-	ProjectsByName(ctx context.Context, name string) ([]Project, error)
+	ProjectsByName(ctx context.Context, orgId string, name string) ([]Project, error)
 }
 
 type ProjectSubmitter interface {
-	SubmitProject(ctx context.Context, project *Project) error
+	SubmitProject(ctx context.Context, orgId string, project *Project) error
 }
 
 type ProjectResourceRemover interface {
-	RemoveResource(ctx context.Context, projectId string, resourceId string) error
+	RemoveResource(ctx context.Context, orgId string, projectId string, resourceId string) error
 }
 
 type MetaByIdGetter interface {
-	MetaById(ctx context.Context, id string) (*MetaData, error)
+	MetaById(ctx context.Context, orgId string, id string) (*MetaData, error)
 }
 
 type ResourceGetter interface {
 	MetaByIdGetter
-	Resource(ctx context.Context, path string) (io.Reader, error)
+	Resource(ctx context.Context, orgId string, path string) (io.Reader, error)
 }
 
 type BlobStore interface {
@@ -42,8 +42,8 @@ type BlobStore interface {
 }
 
 type ProjectMetaByIdGetter interface {
-	ProjectById(ctx context.Context, id string) (*Project, error)
-	MetaById(ctx context.Context, id string) (*MetaData, error)
+	ProjectById(ctx context.Context, orgId string, id string) (*Project, error)
+	MetaById(ctx context.Context, orgId string, id string) (*MetaData, error)
 }
 
 type Project struct {

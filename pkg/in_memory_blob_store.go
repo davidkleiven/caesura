@@ -9,7 +9,6 @@ import (
 	"io"
 	"slices"
 	"strings"
-	"time"
 
 	"github.com/davidkleiven/caesura/utils"
 )
@@ -84,7 +83,7 @@ func (s *InMemoryStore) ProjectById(ctx context.Context, id string) (*Project, e
 	if project, exists := s.Projects[id]; exists {
 		return &project, nil
 	}
-	return &Project{}, fmt.Errorf("project with id %s not found", id)
+	return &Project{}, errors.Join(ErrProjectNotFound, fmt.Errorf("Project ID: %s", id))
 }
 
 func (s *InMemoryStore) RemoveResource(ctx context.Context, projectId string, resourceId string) error {
@@ -137,6 +136,7 @@ func (s *InMemoryStore) Clone() *InMemoryStore {
 		dst.Data[k] = make([]byte, len(v))
 		copy(dst.Data[k], v)
 	}
+
 	return dst
 }
 
@@ -146,24 +146,4 @@ func NewInMemoryStore() *InMemoryStore {
 		Metadata: []MetaData{},
 		Projects: make(map[string]Project),
 	}
-}
-
-func NewDemoStore() *InMemoryStore {
-	store := NewInMemoryStore()
-	store.Metadata = []MetaData{
-		{Title: "Demo Title 1", Composer: "Composer A", Arranger: "Arranger X"},
-		{Title: "Demo Title 2", Composer: "Composer B", Arranger: "Arranger Y"},
-	}
-	store.Data[store.Metadata[0].ResourceName()] = MustCreateResource(5)
-	store.Data[store.Metadata[1].ResourceName()] = MustCreateResource(3)
-
-	projectDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
-	project := Project{
-		Name:        "Demo Project 1",
-		ResourceIds: []string{store.Metadata[0].ResourceId(), store.Metadata[1].ResourceId()},
-		CreatedAt:   projectDate,
-		UpdatedAt:   projectDate,
-	}
-	store.Projects[project.Id()] = project
-	return store
 }

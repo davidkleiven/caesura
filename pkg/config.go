@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -11,6 +12,8 @@ import (
 	"time"
 
 	"github.com/davidkleiven/caesura/utils"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 	"gopkg.in/yaml.v2"
 )
 
@@ -20,12 +23,17 @@ type LocalFSStoreConfig struct {
 }
 
 type Config struct {
-	StoreType        string             `yaml:"store_type" env:"CAESURA_STORE_TYPE"`
-	LocalFS          LocalFSStoreConfig `yaml:"local_fs"`
-	Timeout          time.Duration      `yaml:"timeout" env:"CAESURA_TIMEOUT"`
-	Port             int                `yaml:"port" env:"CAESURA_PORT"`
-	SecretsPath      string             `yaml:"secrets_path" env:"CAESURA_SECRETS_PATH"`
-	MaxRequestSizeMb uint               `yaml:"max_request_size_mb" env:"CAESURA_MAX_REQUEST_SIZE_MB`
+	StoreType                string             `yaml:"store_type" env:"CAESURA_STORE_TYPE"`
+	LocalFS                  LocalFSStoreConfig `yaml:"local_fs"`
+	Timeout                  time.Duration      `yaml:"timeout" env:"CAESURA_TIMEOUT"`
+	Port                     int                `yaml:"port" env:"CAESURA_PORT"`
+	SecretsPath              string             `yaml:"secrets_path" env:"CAESURA_SECRETS_PATH"`
+	MaxRequestSizeMb         uint               `yaml:"max_request_size_mb" env:"CAESURA_MAX_REQUEST_SIZE_MB"`
+	GoogleAuthClientId       string             `yaml:"google_auth_client_id" env:"CAESURA_GOOGLE_AUTH_CLIENT_ID"`
+	GoogleAuthClientSecretId string             `yaml:"google_auth_client_secret_id" env:"CAESURA_GOOGLE_AUTH_CLIENT_SECRET_ID"`
+	GoogleAuthRedirectURL    string             `yaml:"google_auth_rederict_url" env:"CAESURA_GOOGLE_AUTH_REDIRECT_URL"`
+	CookieSecretSignKey      string             `yaml:"cookie_secret_sign_key" env:"CAESURA_COOKIE_SECRET_SIGN_KEY"`
+	Transport                http.RoundTripper
 }
 
 func (c *Config) Validate() error {
@@ -39,12 +47,28 @@ func (c *Config) Validate() error {
 	default:
 		return fmt.Errorf("unknown store_type: %s", c.StoreType)
 	}
-
 	return nil
 }
 
+func (c *Config) OAuthConfig() *oauth2.Config {
+	return &oauth2.Config{
+		ClientID:     c.GoogleAuthClientId,
+		ClientSecret: c.GoogleAuthClientSecretId,
+		RedirectURL:  c.GoogleAuthRedirectURL,
+		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
+		Endpoint:     google.Endpoint,
+	}
+}
+
 func NewDefaultConfig() *Config {
-	return &Config{StoreType: "in-memory", Timeout: 10 * time.Second, Port: 8080, MaxRequestSizeMb: 100}
+	return &Config{
+		StoreType:             "in-memory",
+		Timeout:               10 * time.Second,
+		Port:                  8080,
+		MaxRequestSizeMb:      100,
+		GoogleAuthClientId:    "602223566336-77ugev7r0br5k1j8rc8i407kb0et34al.apps.googleusercontent.com",
+		GoogleAuthRedirectURL: "http://localhost:8080/auth/callback",
+	}
 }
 
 func OverrideFromFile(filePath string, config *Config) (*Config, error) {
@@ -129,6 +153,6 @@ func LoadConfig(configFile string) (*Config, error) {
 func GetStore(config *Config) BlobStore {
 	switch config.StoreType {
 	default:
-		return NewInMemoryStore()
+		return NewMultiOrgInMemoryStore()
 	}
 }
