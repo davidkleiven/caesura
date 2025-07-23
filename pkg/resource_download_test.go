@@ -9,8 +9,11 @@ import (
 
 func populatedDownloader() *ResourceDownloader {
 	store := NewDemoStore()
+	orgId := store.FirstOrganizationId()
 	ctx := context.Background()
-	return NewResourceDownloader().GetMetaData(ctx, store, store.Metadata[0].ResourceId()).GetResource(ctx, store)
+
+	resourceId := store.Data[orgId].Metadata[0].ResourceId()
+	return NewResourceDownloader().GetMetaData(ctx, store, orgId, resourceId).GetResource(ctx, store, orgId)
 }
 
 func TestZipReaderHasFiveFiles(t *testing.T) {
@@ -74,11 +77,12 @@ func TestResourceDownloadPropagateErrors(t *testing.T) {
 	downloader.err = initialError
 
 	ctx := context.Background()
-	store := NewInMemoryStore()
+	store := NewMultiOrgInMemoryStore()
+	orgId := "some-id"
 
 	for i, f := range []func(){
-		func() { downloader.GetMetaData(ctx, store, "unknownId") },
-		func() { downloader.GetResource(ctx, store) },
+		func() { downloader.GetMetaData(ctx, store, orgId, "unknownId") },
+		func() { downloader.GetResource(ctx, store, orgId) },
 		func() { downloader.Content() },
 		func() { downloader.ExtractSingleFile("file.pdf") },
 		func() { downloader.FileReader() },

@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http/httptest"
 	"os"
@@ -10,14 +11,52 @@ import (
 
 	"github.com/davidkleiven/caesura/api"
 	"github.com/davidkleiven/caesura/pkg"
+	"github.com/gorilla/sessions"
 	"github.com/playwright-community/playwright-go"
 )
 
 var (
 	server *httptest.Server
 	page   playwright.Page
-	store  *pkg.InMemoryStore = pkg.NewDemoStore()
+	store  *pkg.MultiOrgInMemoryStore = pkg.NewDemoStore()
 )
+
+func createSignedInCookie(cookieStore *sessions.CookieStore, url string) playwright.OptionalCookie {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/", nil)
+
+	session, err := cookieStore.Get(request, api.AuthSession)
+	if err != nil {
+		panic(err)
+	}
+
+	userInfo := store.Users[0]
+	orgId := "cccc13f9-ddd5-489e-bd77-3b935b457f71"
+	data, err := json.Marshal(userInfo)
+	if err != nil {
+		panic(err)
+	}
+
+	session.Values["role"] = data
+	session.Values["orgId"] = orgId
+	if err := session.Save(request, recorder); err != nil {
+		panic(err)
+	}
+
+	resp := recorder.Result()
+	cookies := resp.Cookies()
+	if len(cookies) != 1 {
+		panic("Expected only one cookie")
+	}
+	cookie := cookies[0]
+	return playwright.OptionalCookie{
+		Name:     cookie.Name,
+		Value:    cookie.Value,
+		HttpOnly: playwright.Bool(true),
+		Secure:   playwright.Bool(false),
+		URL:      playwright.String(url),
+	}
+}
 
 func TestMain(m *testing.M) {
 	pw, err := playwright.Run()
@@ -35,17 +74,39 @@ func TestMain(m *testing.M) {
 	defer browser.Close()
 	fmt.Printf("Browser launched: version=%s name=%s connected=%v\n", browser.Version(), browser.BrowserType().Name(), browser.IsConnected())
 
-	page, err = browser.NewPage()
+	config := pkg.NewDefaultConfig()
+
+	// The key must match the store used to get the cookie value
+	cookieStore := sessions.NewCookieStore([]byte("some-random-key"))
+	mux := api.Setup(store, config, cookieStore)
+	server = httptest.NewServer(mux)
+	defer server.Close()
+
+	fmt.Printf("Test server started. url=%s\n", server.URL)
+
+	context, err := browser.NewContext()
+	if err != nil {
+		fmt.Print(err)
+		os.Exit(failureReturnCode())
+	}
+	defer context.Close()
+
+	cookie := createSignedInCookie(cookieStore, server.URL)
+	// Cookie value is obtained by extracting it from TestHandleGoogleLoginCallbackOk
+	// This makes the test behave as one of the signed in users in the demo store
+	err = context.AddCookies([]playwright.OptionalCookie{cookie})
+
 	if err != nil {
 		fmt.Print(err)
 		os.Exit(failureReturnCode())
 	}
 
-	config := pkg.NewDefaultConfig()
-	mux := api.Setup(store, config)
-	server = httptest.NewServer(mux)
-	defer server.Close()
-	fmt.Printf("Test server started. url=%s\n", server.URL)
+	page, err = context.NewPage()
+	if err != nil {
+		fmt.Print(err)
+		os.Exit(failureReturnCode())
+	}
+
 	rcode := m.Run()
 	os.Exit(rcode)
 }
@@ -55,8 +116,8 @@ func withBrowser(testFunc func(t *testing.T, page playwright.Page), path string)
 		initialStore := store.Clone()
 		defer func() {
 			store.Data = initialStore.Data
-			store.Metadata = initialStore.Metadata
-			store.Projects = initialStore.Projects
+			store.Organizations = initialStore.Organizations
+			store.Users = initialStore.Users
 		}()
 
 		if _, err := page.Goto(server.URL + path); err != nil {

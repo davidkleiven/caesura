@@ -12,10 +12,24 @@ import (
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
+	"github.com/davidkleiven/caesura/utils"
 	"github.com/davidkleiven/caesura/web"
+	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
 )
 
 type HandlerFunc func(http.ResponseWriter, *http.Request)
+
+const (
+	AuthSession = "auth"
+	OAuthState  = "oauth_state"
+)
+
+type ctxKey string
+
+const sessionKey ctxKey = "session"
+const googleUserInfo = "https://www.googleapis.com/oauth2/v2/userinfo"
+const googleToken = "https://oauth2.googleapis.com/token"
 
 func RootHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
@@ -137,7 +151,8 @@ func SubmitHandler(submitter pkg.Submitter, timeout time.Duration, maxSize int) 
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
-		if err := submitter.Submit(ctx, &metaData, buf); err != nil {
+		orgId := MustGetOrgId(MustGetSession(r))
+		if err := submitter.Submit(ctx, orgId, &metaData, buf); err != nil {
 			http.Error(w, "Failed to store file", http.StatusInternalServerError)
 			slog.Error("Failed to store file", "error", err)
 			return
@@ -158,7 +173,9 @@ func OverviewSearchHandler(fetcher pkg.MetaByPatternFetcher, timeout time.Durati
 
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
-		meta, err := fetcher.MetaByPattern(ctx, pattern)
+
+		orgId := MustGetOrgId(MustGetSession(r))
+		meta, err := fetcher.MetaByPattern(ctx, orgId, pattern)
 		if err != nil {
 			http.Error(w, "Failed to fetch metadata", http.StatusInternalServerError)
 			slog.Error("Failed to fetch metadata", "error", err)
@@ -185,7 +202,8 @@ func SearchProjectHandler(store pkg.ProjectByNameGetter, timeout time.Duration) 
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
-		project, err := store.ProjectsByName(ctx, projectName)
+		orgId := MustGetOrgId(MustGetSession(r))
+		project, err := store.ProjectsByName(ctx, orgId, projectName)
 		slog.Info("Searching for projects", "project_name", projectName, "num_results", len(project))
 		if err != nil {
 			http.Error(w, "Failed to fetch project", http.StatusInternalServerError)
@@ -242,7 +260,8 @@ func ProjectSubmitHandler(submitter pkg.ProjectSubmitter, timeout time.Duration)
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
-		if err := submitter.SubmitProject(ctx, project); err != nil {
+		orgId := MustGetOrgId(MustGetSession(r))
+		if err := submitter.SubmitProject(ctx, orgId, project); err != nil {
 			http.Error(w, "Failed to submit project", http.StatusInternalServerError)
 			slog.Error("Failed to submit project", "error", err)
 			return
@@ -260,7 +279,8 @@ func RemoveFromProject(remover pkg.ProjectResourceRemover, timeout time.Duration
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
-		if err := remover.RemoveResource(ctx, projectId, resourceId); err != nil {
+		orgId := MustGetOrgId(MustGetSession(r))
+		if err := remover.RemoveResource(ctx, orgId, projectId, resourceId); err != nil {
 			http.Error(w, "failed to remove resource", http.StatusInternalServerError)
 			slog.Error("Failed to remove resource", "project-id", projectId, "resource-id", resourceId, "host", r.Host)
 			return
@@ -285,7 +305,8 @@ func SearchProjectListHandler(store pkg.ProjectByNameGetter, timeout time.Durati
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
-		projects, err := store.ProjectsByName(ctx, projectName)
+		orgId := MustGetOrgId(MustGetSession(r))
+		projects, err := store.ProjectsByName(ctx, orgId, projectName)
 		if err != nil {
 			http.Error(w, "Failed to fetch projects", http.StatusInternalServerError)
 			slog.Error("Failed to fetch projects", "error", err)
@@ -303,7 +324,8 @@ func ProjectByIdHandler(store pkg.ProjectMetaByIdGetter, timeout time.Duration) 
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
-		project, err := store.ProjectById(ctx, projectId)
+		orgId := MustGetOrgId(MustGetSession(r))
+		project, err := store.ProjectById(ctx, orgId, projectId)
 		if err != nil {
 			http.Error(w, "Failed to fetch project", http.StatusInternalServerError)
 			slog.Error("Failed to fetch project", "error", err)
@@ -312,7 +334,7 @@ func ProjectByIdHandler(store pkg.ProjectMetaByIdGetter, timeout time.Duration) 
 
 		metaData := make([]pkg.MetaData, 0, len(project.ResourceIds))
 		for _, id := range project.ResourceIds {
-			meta, err := store.MetaById(ctx, id)
+			meta, err := store.MetaById(ctx, orgId, id)
 			if err != nil {
 				slog.Error("Failed to fetch metadata for project", "error", err)
 			} else {
@@ -330,8 +352,9 @@ func ResourceContentByIdHandler(s pkg.ResourceGetter, timeout time.Duration) htt
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
+		orgId := MustGetOrgId(MustGetSession(r))
 		id := r.PathValue("id")
-		downloader := pkg.NewResourceDownloader().GetMetaData(ctx, s, id).GetResource(ctx, s)
+		downloader := pkg.NewResourceDownloader().GetMetaData(ctx, s, orgId, id).GetResource(ctx, s, orgId)
 
 		resource, err := downloader.ZipReader()
 		if err != nil {
@@ -357,9 +380,10 @@ func ResourceDownload(s pkg.ResourceGetter, timeout time.Duration) http.HandlerF
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
+		orgId := MustGetOrgId(MustGetSession(r))
 		resourceId := r.PathValue("id")
 		filename := r.URL.Query().Get("file")
-		downloader := pkg.NewResourceDownloader().GetMetaData(ctx, s, resourceId).GetResource(ctx, s)
+		downloader := pkg.NewResourceDownloader().GetMetaData(ctx, s, orgId, resourceId).GetResource(ctx, s, orgId)
 
 		var (
 			reader             io.Reader
@@ -413,7 +437,8 @@ func AddToResourceHandler(metaGetter pkg.MetaByIdGetter, timeout time.Duration) 
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
-		meta, err := metaGetter.MetaById(ctx, id)
+		orgId := MustGetOrgId(MustGetSession(r))
+		meta, err := metaGetter.MetaById(ctx, orgId, id)
 		if err != nil {
 			http.Error(w, "Error when fetching metadata", http.StatusInternalServerError)
 			slog.Error("Error when fetching metadata", "error", err, "id", id, "url", r.URL.Path)
@@ -423,10 +448,96 @@ func AddToResourceHandler(metaGetter pkg.MetaByIdGetter, timeout time.Duration) 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(web.Index(&web.ScoreMetaData{Composer: meta.Composer, Arranger: meta.Arranger, Title: meta.Title}))
 	}
-
 }
 
-func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
+func HandleGoogleLogin(oauthConfig *oauth2.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		stateString := MustGenerateStateString()
+		session := MustGetSession(r)
+		session.Values[OAuthState] = stateString
+		if err := session.Save(r, w); err != nil {
+			http.Error(w, "Failed to save session "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		url := oauthConfig.AuthCodeURL(stateString)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	}
+}
+
+func HandleGoogleCallback(getter pkg.RoleGetter, oauthConfig *oauth2.Config, timeout time.Duration, transport http.RoundTripper) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		state := r.FormValue("state")
+		session := MustGetSession(r)
+		if state != session.Values[OAuthState] {
+			http.Error(w, "Invalid OAuth state", http.StatusBadRequest)
+			return
+		}
+
+		code := r.FormValue("code")
+		if code == "" {
+			http.Error(w, "Code not found", http.StatusBadRequest)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		if transport != nil {
+			ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{Transport: transport})
+		}
+		token, err := oauthConfig.Exchange(ctx, code)
+		if err != nil {
+			http.Error(w, "Code exchange failed: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		client := oauthConfig.Client(ctx, token)
+		if transport != nil {
+			client.Transport = transport
+		}
+		resp, err := client.Get(googleUserInfo)
+		if err != nil || resp.StatusCode >= 400 {
+			msg, code := CodeAndMessage(err, resp.StatusCode)
+			http.Error(w, "Failed getting user info: "+msg, code)
+			return
+		}
+		defer resp.Body.Close()
+
+		var userInfo pkg.UserInfo
+		if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+			http.Error(w, "Failed decoding user info: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		userRole, err := getter.GetRole(ctx, userInfo.Id)
+		if err != nil {
+			http.Error(w, "Error retrieving user "+err.Error(), http.StatusNotFound)
+			return
+		}
+
+		userRoleJson := utils.Must(json.Marshal(userRole))
+		session.Values["role"] = userRoleJson
+
+		for orgId := range userRole.Roles {
+			session.Values["orgId"] = orgId
+			break
+		}
+
+		if err := session.Save(r, w); err != nil {
+			http.Error(w, "Could not save user role", http.StatusInternalServerError)
+			return
+		}
+
+		slog.Info("Successfully logged in user")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	}
+}
+
+func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
+	readRoute := RequireRead(cookieStore)
+	writeRoute := RequireWrite(cookieStore)
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", RootHandler)
 	mux.Handle("/css/", web.CssServer())
@@ -436,22 +547,27 @@ func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
 	mux.HandleFunc("/delete-mode", DeleteMode)
 
 	mux.HandleFunc("/overview", OverviewHandler)
-	mux.HandleFunc("/overview/search", OverviewSearchHandler(store, config.Timeout))
+	mux.Handle("/overview/search", readRoute(OverviewSearchHandler(store, config.Timeout)))
 	mux.HandleFunc("/overview/project-selector", ProjectSelectorModalHandler)
 
 	mux.HandleFunc("/project-query-input", ProjectQueryInputHandler)
 	mux.Handle("/js/", web.JsServer())
 
 	mux.HandleFunc("GET /projects", ProjectHandler)
-	mux.HandleFunc("GET /projects/names", SearchProjectHandler(store, config.Timeout))
-	mux.HandleFunc("GET /projects/info", SearchProjectListHandler(store, config.Timeout))
-	mux.HandleFunc("GET /projects/{id}", ProjectByIdHandler(store, config.Timeout))
-	mux.HandleFunc("POST /projects", ProjectSubmitHandler(store, config.Timeout))
-	mux.HandleFunc("DELETE /projects/{projectId}/{resourceId}", RemoveFromProject(store, config.Timeout))
+	mux.Handle("GET /projects/names", readRoute(SearchProjectHandler(store, config.Timeout)))
+	mux.Handle("GET /projects/info", readRoute(SearchProjectListHandler(store, config.Timeout)))
+	mux.Handle("GET /projects/{id}", readRoute(ProjectByIdHandler(store, config.Timeout)))
+	mux.Handle("POST /projects", writeRoute(ProjectSubmitHandler(store, config.Timeout)))
+	mux.Handle("DELETE /projects/{projectId}/{resourceId}", writeRoute(RemoveFromProject(store, config.Timeout)))
 
-	mux.HandleFunc("GET /resources/{id}", ResourceDownload(store, config.Timeout))
-	mux.HandleFunc("GET /resources/{id}/content", ResourceContentByIdHandler(store, config.Timeout))
-	mux.HandleFunc("GET /resources/{id}/submit-form", AddToResourceHandler(store, config.Timeout))
-	mux.HandleFunc("POST /resources", SubmitHandler(store, config.Timeout, int(config.MaxRequestSizeMb)))
+	mux.Handle("GET /resources/{id}", readRoute(ResourceDownload(store, config.Timeout)))
+	mux.Handle("GET /resources/{id}/content", readRoute(ResourceContentByIdHandler(store, config.Timeout)))
+	mux.Handle("GET /resources/{id}/submit-form", readRoute(AddToResourceHandler(store, config.Timeout)))
+	mux.Handle("POST /resources", writeRoute(SubmitHandler(store, config.Timeout, int(config.MaxRequestSizeMb))))
+
+	oauthCfg := config.OAuthConfig()
+	requireAuthSession := RequireSession(cookieStore, AuthSession)
+	mux.Handle("/login", requireAuthSession(HandleGoogleLogin(oauthCfg)))
+	mux.Handle("/auth/callback", requireAuthSession(HandleGoogleCallback(store, oauthCfg, config.Timeout, config.Transport)))
 	return mux
 }

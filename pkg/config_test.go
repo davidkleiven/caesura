@@ -119,7 +119,7 @@ func TestGetStore(t *testing.T) {
 	config := NewDefaultConfig()
 	config.StoreType = "in-memory"
 	store := GetStore(config)
-	if _, ok := store.(*InMemoryStore); !ok {
+	if _, ok := store.(*MultiOrgInMemoryStore); !ok {
 		t.Errorf("expected store to be of type InMemoryStore, got %T", store)
 	}
 }
@@ -176,5 +176,13 @@ func TestFileEnvGetter(t *testing.T) {
 	}
 	if value != "5000" {
 		t.Fatalf("Expected '5000' got '%s'", value)
+	}
+}
+
+func TestOAuthGetter(t *testing.T) {
+	config := NewDefaultConfig()
+	oauth := config.OAuthConfig()
+	if config.GoogleAuthClientId != oauth.ClientID {
+		t.Fatalf("Wanted %s got %s", config.GoogleAuthClientId, oauth.ClientID)
 	}
 }

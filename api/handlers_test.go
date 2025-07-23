@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
+	"github.com/davidkleiven/caesura/utils"
+	"github.com/gorilla/sessions"
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
@@ -149,7 +151,7 @@ func TestSubmitBadRequestHandler(t *testing.T) {
 	request := httptest.NewRequest("POST", "/resources", nil)
 	request.Header.Set("Content-Type", "multipart/form-data")
 
-	handler := SubmitHandler(pkg.NewInMemoryStore(), 10*time.Second, 10)
+	handler := SubmitHandler(pkg.NewMultiOrgInMemoryStore(), 10*time.Second, 10)
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
@@ -255,13 +257,41 @@ func validMultipartForm() (*bytes.Buffer, string) {
 	)
 }
 
+func withAuthSession(r *http.Request, orgId string) *http.Request {
+	store := sessions.NewCookieStore([]byte("whatever-key"))
+	session, err := store.Get(r, AuthSession)
+	if err != nil {
+		panic(err)
+	}
+
+	userRole := pkg.UserRole{
+		UserId: "0000-0000",
+		Roles: map[string]pkg.RoleKind{
+			orgId: pkg.RoleAdmin,
+		},
+	}
+
+	data, err := json.Marshal(userRole)
+	if err != nil {
+		panic(err)
+	}
+
+	session.Values["role"] = data
+	session.Values["orgId"] = orgId
+
+	ctx := context.WithValue(r.Context(), sessionKey, session)
+	return r.WithContext(ctx)
+}
+
 func TestSubmitHandlerValidRequest(t *testing.T) {
-	inMemStore := pkg.NewInMemoryStore()
+	inMemStore := pkg.NewMultiOrgInMemoryStore()
+	inMemStore.RegisterOrganization(context.Background(), &pkg.Organization{Id: "orgId"})
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := validMultipartForm()
 	request := httptest.NewRequest("POST", "/resources", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
+	request = withAuthSession(request, "orgId")
 
 	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
 	handler(recorder, request)
@@ -282,7 +312,7 @@ func TestSubmitHandlerValidRequest(t *testing.T) {
 	}
 
 	// Check content in the store
-	content := inMemStore.Data["brandenburgconcertono3_johansebastianbach.zip"]
+	content := inMemStore.Data["orgId"].Data["brandenburgconcertono3_johansebastianbach.zip"]
 
 	zipReader, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
 	if err != nil {
@@ -296,7 +326,7 @@ func TestSubmitHandlerValidRequest(t *testing.T) {
 }
 
 func TestSubmitHandlerInvalidJson(t *testing.T) {
-	inMemStore := pkg.NewInMemoryStore()
+	inMemStore := pkg.NewMultiOrgInMemoryStore()
 	recorder := httptest.NewRecorder()
 
 	var multipartBuffer bytes.Buffer
@@ -340,7 +370,7 @@ func TestSubmitHandlerInvalidJson(t *testing.T) {
 }
 
 func TestSubmitFormWithoutDocument(t *testing.T) {
-	inMemStore := pkg.NewInMemoryStore()
+	inMemStore := pkg.NewMultiOrgInMemoryStore()
 	recorder := httptest.NewRecorder()
 
 	var multipartBuffer bytes.Buffer
@@ -368,7 +398,7 @@ func TestSubmitFormWithoutDocument(t *testing.T) {
 }
 
 func TestSubmitNonPdfFileAsDocument(t *testing.T) {
-	inMemStore := pkg.NewInMemoryStore()
+	inMemStore := pkg.NewMultiOrgInMemoryStore()
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := multipartForm(withInvalidPdf, withAssignments, withMetaData)
@@ -391,7 +421,7 @@ func TestSubmitNonPdfFileAsDocument(t *testing.T) {
 }
 
 func TestSubmitHandlerNoAssignments(t *testing.T) {
-	inMemStore := pkg.NewInMemoryStore()
+	inMemStore := pkg.NewMultiOrgInMemoryStore()
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := multipartForm(withPdf, withMetaData)
@@ -413,7 +443,7 @@ func TestSubmitHandlerNoAssignments(t *testing.T) {
 }
 
 func TestSubmitHandlerNoMetaData(t *testing.T) {
-	inMemStore := pkg.NewInMemoryStore()
+	inMemStore := pkg.NewMultiOrgInMemoryStore()
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := multipartForm(withPdf, withAssignments)
@@ -435,7 +465,7 @@ func TestSubmitHandlerNoMetaData(t *testing.T) {
 }
 
 func TestSubmitHandlerInvalidMetaData(t *testing.T) {
-	inMemStore := pkg.NewInMemoryStore()
+	inMemStore := pkg.NewMultiOrgInMemoryStore()
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := multipartForm(withPdf, withAssignments, withInvalidMetaData)
@@ -457,7 +487,7 @@ func TestSubmitHandlerInvalidMetaData(t *testing.T) {
 }
 
 func TestSubmitWithEmptyMetaData(t *testing.T) {
-	inMemStore := pkg.NewInMemoryStore()
+	inMemStore := pkg.NewMultiOrgInMemoryStore()
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := multipartForm(withPdf, withAssignments, withEmptyMetaData)
@@ -482,7 +512,7 @@ type failingSubmitter struct {
 	err error
 }
 
-func (f *failingSubmitter) Submit(ctx context.Context, meta *pkg.MetaData, r io.Reader) error {
+func (f *failingSubmitter) Submit(ctx context.Context, orgId string, meta *pkg.MetaData, r io.Reader) error {
 	return f.err
 }
 
@@ -492,6 +522,7 @@ func TestSubmitHandlerStoreErrors(t *testing.T) {
 	multipartBuffer, contentType := validMultipartForm()
 	request := httptest.NewRequest("POST", "/resources", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
+	request = withAuthSession(request, "someOrg")
 
 	handler := SubmitHandler(&failingSubmitter{err: errors.New("what??")}, 10*time.Second, 10)
 	handler(recorder, request)
@@ -503,7 +534,7 @@ func TestSubmitHandlerStoreErrors(t *testing.T) {
 }
 
 func TestEntityTooLargeWhenUploadIsTooLarge(t *testing.T) {
-	inMemStore := pkg.NewInMemoryStore()
+	inMemStore := pkg.NewMultiOrgInMemoryStore()
 	recorder := httptest.NewRecorder()
 
 	multipartBuffer, contentType := multipartForm()
@@ -553,8 +584,10 @@ func TestOverviewSearchHandler(t *testing.T) {
 	} {
 		recorder := httptest.NewRecorder()
 		request := httptest.NewRequest("GET", fmt.Sprintf("/overview/search?resource-filter=%s", test.resourceFilter), nil)
+		store := pkg.NewDemoStore()
+		request = withAuthSession(request, store.FirstOrganizationId())
 
-		handler := OverviewSearchHandler(pkg.NewDemoStore(), 10*time.Second)
+		handler := OverviewSearchHandler(store, 10*time.Second)
 		handler(recorder, request)
 
 		if recorder.Code != http.StatusOK {
@@ -579,7 +612,7 @@ type failingFetcher struct {
 	err error
 }
 
-func (f *failingFetcher) MetaByPattern(ctx context.Context, pattern *pkg.MetaData) ([]pkg.MetaData, error) {
+func (f *failingFetcher) MetaByPattern(ctx context.Context, orgId string, pattern *pkg.MetaData) ([]pkg.MetaData, error) {
 	return nil, f.err
 }
 
@@ -588,6 +621,7 @@ func TestInternalServerErrorOnFailure(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	request := httptest.NewRequest("GET", "/overview/search?resource-filter=flute", nil)
+	request = withAuthSession(request, "someOrg")
 	handler := OverviewSearchHandler(&failingFetcher{err: expectedError}, 10*time.Second)
 	handler(recorder, request)
 
@@ -598,16 +632,20 @@ func TestInternalServerErrorOnFailure(t *testing.T) {
 }
 
 func TestSearchProjectHandler(t *testing.T) {
-	inMemStore := pkg.NewInMemoryStore()
-	inMemStore.Projects["test_project"] = pkg.Project{
+	store := pkg.NewInMemoryStore()
+	store.Projects["test_project"] = pkg.Project{
 		Name:        "Test Project",
 		ResourceIds: []string{"resource1", "resource2"},
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
 
+	inMemStore := pkg.NewMultiOrgInMemoryStore()
+	inMemStore.Data["org1"] = *store
+
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/projects/names?projectQuery=test", nil)
+	request = withAuthSession(request, "org1")
 
 	handler := SearchProjectHandler(inMemStore, 10*time.Second)
 	handler(recorder, request)
@@ -632,7 +670,7 @@ type failingProjectByNamer struct {
 	err error
 }
 
-func (f *failingProjectByNamer) ProjectsByName(ctx context.Context, name string) ([]pkg.Project, error) {
+func (f *failingProjectByNamer) ProjectsByName(ctx context.Context, orgId string, name string) ([]pkg.Project, error) {
 	return nil, f.err
 }
 
@@ -641,6 +679,7 @@ func TestSearchProjectHandlerInternelServerErrorOnFailure(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	request := httptest.NewRequest("GET", "/projects/names?projectQuery=test", nil)
+	request = withAuthSession(request, "someOrg")
 	handler := SearchProjectHandler(&failingProjectByNamer{err: expectedError}, 10*time.Second)
 	handler(recorder, request)
 
@@ -678,13 +717,16 @@ func TestProjectSelectorModalHandler(t *testing.T) {
 }
 
 func TestProjectSubmitHandler(t *testing.T) {
-	inMemStore := pkg.NewInMemoryStore()
+	inMemStore := pkg.NewMultiOrgInMemoryStore()
+	orgId := "someId"
+	inMemStore.RegisterOrganization(context.Background(), &pkg.Organization{Id: orgId})
 	recorder := httptest.NewRecorder()
 
 	form := url.Values{}
 	form.Set("projectQuery", "Test Project")
 	request := httptest.NewRequest("POST", "/projects", strings.NewReader(form.Encode()))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request = withAuthSession(request, orgId)
 
 	handler := ProjectSubmitHandler(inMemStore, 10*time.Second)
 	handler(recorder, request)
@@ -694,18 +736,18 @@ func TestProjectSubmitHandler(t *testing.T) {
 		return
 	}
 
-	if len(inMemStore.Projects) != 1 {
-		t.Errorf("Expected 1 project in store, got %d", len(inMemStore.Projects))
+	if len(inMemStore.Data[orgId].Projects) != 1 {
+		t.Errorf("Expected 1 project in store, got %d", len(inMemStore.Data[orgId].Projects))
 		return
 	}
 
-	if inMemStore.Projects["testproject"].Name != "Test Project" {
-		t.Errorf("Expected project name 'Test Project', got '%s'", inMemStore.Projects["test_project"].Name)
+	if inMemStore.Data[orgId].Projects["testproject"].Name != "Test Project" {
+		t.Errorf("Expected project name 'Test Project', got '%s'", inMemStore.Data[orgId].Projects["test_project"].Name)
 	}
 }
 
 func TestBadRequestOnMissingName(t *testing.T) {
-	inMemStore := pkg.NewInMemoryStore()
+	inMemStore := pkg.NewMultiOrgInMemoryStore()
 	recorder := httptest.NewRecorder()
 
 	form := url.Values{}
@@ -725,7 +767,7 @@ type failingProjectSubmitter struct {
 	err error
 }
 
-func (f *failingProjectSubmitter) SubmitProject(ctx context.Context, project *pkg.Project) error {
+func (f *failingProjectSubmitter) SubmitProject(ctx context.Context, orgId string, project *pkg.Project) error {
 	return f.err
 }
 
@@ -738,6 +780,7 @@ func TestInternaltServerErrorOnProjectSubmitFailure(t *testing.T) {
 	form.Set("projectQuery", "Test Project")
 	request := httptest.NewRequest("POST", "/projects", strings.NewReader(form.Encode()))
 	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	request = withAuthSession(request, "someOrg")
 
 	handler := ProjectSubmitHandler(inMemStore, 10*time.Second)
 	handler(recorder, request)
@@ -757,7 +800,7 @@ func TestBadRequestWhenWrongApplicationType(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/projects?bad=%ZZ", nil)
 
-	inMemStore := pkg.NewInMemoryStore()
+	inMemStore := pkg.NewMultiOrgInMemoryStore()
 	handler := ProjectSubmitHandler(inMemStore, 10*time.Second)
 	handler(recorder, request)
 
@@ -837,10 +880,14 @@ func TestSearchProjectListHandler(t *testing.T) {
 		UpdatedAt:   time.Now(),
 	}
 
+	multiStore := pkg.NewMultiOrgInMemoryStore()
+	multiStore.Data["org1"] = *inMemStore
+
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/projects/info?projectQuery=test", nil)
+	request = withAuthSession(request, "org1")
 
-	handler := SearchProjectListHandler(inMemStore, 10*time.Second)
+	handler := SearchProjectListHandler(multiStore, 10*time.Second)
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusOK {
@@ -865,6 +912,7 @@ func TestSearchProjectListInternalServerError(t *testing.T) {
 
 	inMemStore := &failingProjectByNamer{err: expectedError}
 	request := httptest.NewRequest("GET", "/projects/info?projectQuery=test", nil)
+	request = withAuthSession(request, "someOrg")
 	handler := SearchProjectListHandler(inMemStore, 10*time.Second)
 	handler(recorder, request)
 
@@ -884,6 +932,7 @@ func TestProjectByIdHandler(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/projects/demoproject1", nil)
+	request = withAuthSession(request, inMemStore.FirstOrganizationId())
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /projects/{id}", ProjectByIdHandler(inMemStore, 10*time.Second))
@@ -910,10 +959,10 @@ type failingProjectByIdFetcher struct {
 	metaErr    error
 }
 
-func (f *failingProjectByIdFetcher) ProjectById(ctx context.Context, id string) (*pkg.Project, error) {
+func (f *failingProjectByIdFetcher) ProjectById(ctx context.Context, orgId, id string) (*pkg.Project, error) {
 	return &pkg.Project{Name: "Concert No. 1", ResourceIds: []string{"id1"}}, f.projectErr
 }
-func (f *failingProjectByIdFetcher) MetaById(ctx context.Context, id string) (*pkg.MetaData, error) {
+func (f *failingProjectByIdFetcher) MetaById(ctx context.Context, orgId, id string) (*pkg.MetaData, error) {
 	return nil, f.metaErr
 }
 
@@ -923,6 +972,7 @@ func TestProjectByIdInternalServerError(t *testing.T) {
 
 	inMemStore := &failingProjectByIdFetcher{projectErr: expectedError}
 	request := httptest.NewRequest("GET", "/projects/test_project", nil)
+	request = withAuthSession(request, "someOrg")
 	handler := ProjectByIdHandler(inMemStore, 10*time.Second)
 	handler(recorder, request)
 
@@ -943,6 +993,7 @@ func TestProjectByIdMetaDataError(t *testing.T) {
 
 	inMemStore := &failingProjectByIdFetcher{metaErr: expectedError}
 	request := httptest.NewRequest("GET", "/projects/test_project", nil)
+	request = withAuthSession(request, "someOrg")
 	handler := ProjectByIdHandler(inMemStore, 10*time.Second)
 	handler(recorder, request)
 
@@ -958,8 +1009,9 @@ func TestProjectByIdMetaDataError(t *testing.T) {
 }
 
 func TestSetup(t *testing.T) {
+	store := sessions.NewCookieStore([]byte("some-random-key"))
 	config := pkg.NewDefaultConfig()
-	mux := Setup(pkg.NewDemoStore(), config)
+	mux := Setup(pkg.NewDemoStore(), config, store)
 
 	req, _ := http.NewRequest("GET", "/", nil)
 	recorder := httptest.NewRecorder()
@@ -974,9 +1026,13 @@ func TestSetup(t *testing.T) {
 func TestResourceContentByIdHandler(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	store := pkg.NewDemoStore()
-	id := store.Metadata[0].ResourceId()
+
+	orgId := store.FirstOrganizationId()
+
+	id := store.Data[orgId].Metadata[0].ResourceId()
 
 	request := httptest.NewRequest("GET", "/resources/"+id+"/content", nil)
+	request = withAuthSession(request, orgId)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /resources/{id}/content", ResourceContentByIdHandler(store, 1*time.Second))
@@ -998,6 +1054,7 @@ func TestResourceContentByIdHandler(t *testing.T) {
 func TestResourceContentInternalServerErrorOnGenericError(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/content/0aab", nil)
+	request = withAuthSession(request, "someOrg")
 	getter := failingResourceGetter{
 		err: errors.New("something went wrong"),
 	}
@@ -1012,9 +1069,13 @@ func TestResourceContentInternalServerErrorOnGenericError(t *testing.T) {
 
 func TestResourceDownloaderFullZipDownload(t *testing.T) {
 	store := pkg.NewDemoStore()
-	resourceId := store.Metadata[0].ResourceId()
+
+	orgId := store.FirstOrganizationId()
+
+	resourceId := store.Data[orgId].Metadata[0].ResourceId()
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/resources/"+resourceId, nil)
+	request = withAuthSession(request, orgId)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /resources/{id}", ResourceDownload(store, 1*time.Second))
@@ -1028,7 +1089,7 @@ func TestResourceDownloaderFullZipDownload(t *testing.T) {
 		t.Fatalf("Expected content type'application/zip'  got %s", contentType)
 	}
 
-	resourceName := store.Metadata[0].ResourceName()
+	resourceName := store.Data[orgId].Metadata[0].ResourceName()
 	if disp := recorder.Header().Get("Content-Disposition"); !strings.Contains(disp, resourceName) {
 		t.Fatalf("Expected Content-Disposition to contain %s got %s", resourceName, disp)
 	}
@@ -1050,11 +1111,15 @@ func TestResourceDownloaderFullZipDownload(t *testing.T) {
 
 func TestResourceDownloadSingleFile(t *testing.T) {
 	store := pkg.NewDemoStore()
-	resourceId := store.Metadata[0].ResourceId()
+
+	orgId := store.FirstOrganizationId()
+
+	resourceId := store.Data[orgId].Metadata[0].ResourceId()
 	file := "Part2.pdf"
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", fmt.Sprintf("/resources/%s?file=%s", resourceId, file), nil)
+	request = withAuthSession(request, orgId)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /resources/{id}", ResourceDownload(store, 1*time.Second))
@@ -1091,9 +1156,12 @@ func TestResourceDownloadSingleFile(t *testing.T) {
 }
 
 func TestNotFoundWhenRequestingNonExistingResource(t *testing.T) {
+	store := pkg.NewMultiOrgInMemoryStore()
+	orgId := "someOrg"
+	store.RegisterOrganization(context.Background(), &pkg.Organization{Id: orgId})
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/resources/0aaax", nil)
-	store := pkg.NewInMemoryStore()
+	request = withAuthSession(request, orgId)
 	handler := ResourceDownload(store, 1*time.Second)
 	handler(recorder, request)
 
@@ -1106,17 +1174,18 @@ type failingResourceGetter struct {
 	err error
 }
 
-func (f *failingResourceGetter) MetaById(ctx context.Context, id string) (*pkg.MetaData, error) {
+func (f *failingResourceGetter) MetaById(ctx context.Context, orgId, id string) (*pkg.MetaData, error) {
 	return &pkg.MetaData{}, f.err
 }
 
-func (f *failingResourceGetter) Resource(ctx context.Context, name string) (io.Reader, error) {
+func (f *failingResourceGetter) Resource(ctx context.Context, orgId, name string) (io.Reader, error) {
 	return bytes.NewBuffer([]byte{}), f.err
 }
 
 func TestInternalServerErrorOnGenericFailure(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/resources/0aaax", nil)
+	request = withAuthSession(request, "someOrg")
 	getter := failingResourceGetter{
 		err: errors.New("some generic error"),
 	}
@@ -1132,16 +1201,19 @@ func TestInternalServerErrorOnGenericFailure(t *testing.T) {
 func TestDeleteResourceFromProjectHandler(t *testing.T) {
 	store := pkg.NewDemoStore()
 
+	orgId := store.FirstOrganizationId()
+
 	var projectId string
-	for id := range store.Projects {
+	for id := range store.Data[orgId].Projects {
 		projectId = id
 		break
 	}
 
-	resourceId := store.Projects[projectId].ResourceIds[0]
+	resourceId := store.Data[orgId].Projects[projectId].ResourceIds[0]
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("DELETE", "/projects/"+projectId+"/"+resourceId, nil)
+	request = withAuthSession(request, orgId)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("DELETE /projects/{projectId}/{resourceId}", RemoveFromProject(store, 1*time.Second))
@@ -1151,7 +1223,7 @@ func TestDeleteResourceFromProjectHandler(t *testing.T) {
 		t.Fatalf("Expected code %d got %d", http.StatusOK, recorder.Code)
 	}
 
-	for _, id := range store.Projects[projectId].ResourceIds {
+	for _, id := range store.Data[orgId].Projects[projectId].ResourceIds {
 		if id == resourceId {
 			t.Fatalf("%s should not be part of the project anymore", resourceId)
 		}
@@ -1162,7 +1234,7 @@ type failingResourceRemover struct {
 	err error
 }
 
-func (f *failingResourceRemover) RemoveResource(ctx context.Context, projectId string, resourceId string) error {
+func (f *failingResourceRemover) RemoveResource(ctx context.Context, orgId string, projectId string, resourceId string) error {
 	return f.err
 }
 
@@ -1175,6 +1247,7 @@ func TestFailingRemover(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("DELETE", "/projects/000/111", nil)
+	request = withAuthSession(request, "someOrg")
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusInternalServerError {
@@ -1184,15 +1257,25 @@ func TestFailingRemover(t *testing.T) {
 
 func TestAddToResourceSubmitForm(t *testing.T) {
 	store := pkg.NewDemoStore()
+
+	var inMemStore pkg.InMemoryStore
+	var orgId string
+	for id, s := range store.Data {
+		inMemStore = s
+		orgId = id
+		break
+	}
+
 	var projectId string
-	for id := range store.Projects {
+	for id := range inMemStore.Projects {
 		projectId = id
 		break
 	}
-	resourceId := store.Projects[projectId].ResourceIds[0]
+	resourceId := inMemStore.Projects[projectId].ResourceIds[0]
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/resources/"+resourceId+"/submit-form", nil)
+	request = withAuthSession(request, orgId)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /resources/{id}/submit-form", AddToResourceHandler(store, 1*time.Second))
@@ -1204,9 +1287,12 @@ func TestAddToResourceSubmitForm(t *testing.T) {
 }
 
 func TestAddResourceSubmitFormResourceNotFound(t *testing.T) {
-	store := pkg.NewInMemoryStore()
+	store := pkg.NewMultiOrgInMemoryStore()
+	orgId := "orgId"
+	store.RegisterOrganization(context.Background(), &pkg.Organization{Id: orgId})
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/resources/000/submit-form", nil)
+	request = withAuthSession(request, orgId)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/resources/{id}/submit-form", AddToResourceHandler(store, 1*time.Second))
 	mux.ServeHTTP(recorder, request)
@@ -1214,5 +1300,224 @@ func TestAddResourceSubmitFormResourceNotFound(t *testing.T) {
 	if recorder.Code != http.StatusInternalServerError {
 		t.Fatalf("Expected code %d got %d", http.StatusInternalServerError, recorder.Code)
 	}
+}
 
+func TestHandleGoogleLoginMissingKey(t *testing.T) {
+	cookie := sessions.NewCookieStore([]byte{})
+	handler := RequireSession(cookie, AuthSession)(HandleGoogleLogin(pkg.NewDefaultConfig().OAuthConfig()))
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/login", nil)
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("Wanted '%d' got '%d'", http.StatusInternalServerError, recorder.Code)
+	}
+
+	text := recorder.Body.String()
+	if !strings.Contains(text, "save session") {
+		t.Fatalf("Wanted text to contain 'save session' got '%s'", text)
+	}
+}
+
+func TestHandleGoogleLogin(t *testing.T) {
+	cookie := sessions.NewCookieStore([]byte("some-random-key"))
+	handler := RequireSession(cookie, AuthSession)(HandleGoogleLogin(pkg.NewDefaultConfig().OAuthConfig()))
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/login", nil)
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusTemporaryRedirect {
+		t.Fatalf("Wanted '%d' got '%d'", http.StatusTemporaryRedirect, recorder.Code)
+	}
+}
+
+func prepareGoogleCallbackRequest(cookie sessions.Store) *http.Request {
+	stateString := "oauth-state-string"
+	formData := url.Values{}
+	formData.Set("state", stateString)
+	formData.Set("code", "some-code")
+
+	request := httptest.NewRequest("POST", "/auth/callback", strings.NewReader(formData.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	session := utils.Must(cookie.Get(request, AuthSession))
+
+	session.Values[OAuthState] = stateString
+	request = request.WithContext(context.WithValue(request.Context(), sessionKey, session))
+	request.ParseForm()
+	return request
+}
+
+func TestHandleGoogleLoginCallbackOk(t *testing.T) {
+	req := prepareGoogleCallbackRequest(sessions.NewCookieStore([]byte("some-random-key")))
+	transport := NewMockTransport()
+	store := pkg.NewDemoStore()
+	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), 1*time.Second, transport)
+
+	recorder := httptest.NewRecorder()
+	handler(recorder, req)
+
+	if recorder.Code != http.StatusSeeOther {
+		t.Fatalf("Wanted %d got %d", http.StatusSeeOther, recorder.Code)
+	}
+
+	session, ok := req.Context().Value(sessionKey).(*sessions.Session)
+	if !ok {
+		t.Fatal("Could not cast into *sessions.Session")
+	}
+
+	data, ok := session.Values["role"].([]byte)
+	if !ok {
+		t.Fatal("Could not cast into bytes")
+	}
+
+	var role pkg.UserRole
+	if err := json.Unmarshal(data, &role); err != nil {
+		t.Fatalf("Could not unmarshal session content: %s", err)
+	}
+
+}
+
+func TestHandleGoogleLoginCallbackInvalidAuthState(t *testing.T) {
+	req := prepareGoogleCallbackRequest(sessions.NewCookieStore([]byte("some-random-key")))
+	session, ok := req.Context().Value(sessionKey).(*sessions.Session)
+	if !ok {
+		t.Fatal("Could not interpret value as *sessions.Session")
+	}
+
+	session.Values[OAuthState] = "altered-state-string"
+	store := pkg.NewMultiOrgInMemoryStore()
+	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, nil)
+
+	recorder := httptest.NewRecorder()
+	handler(recorder, req)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("Wanted %d got %d", http.StatusBadRequest, recorder.Code)
+	}
+
+	body := recorder.Body.String()
+	if !strings.Contains(body, "Invalid OAuth state") {
+		t.Fatalf("Wanted body to contain 'Invalid OAuth state' got %s", body)
+	}
+}
+
+func TestNotFoundErrorOnUnkownUserId(t *testing.T) {
+	req := prepareGoogleCallbackRequest(sessions.NewCookieStore([]byte("some-random-key")))
+
+	store := pkg.NewMultiOrgInMemoryStore()
+	transport := NewMockTransport()
+	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, transport)
+
+	recorder := httptest.NewRecorder()
+	handler(recorder, req)
+
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("Wanted '%d' got '%d'", http.StatusFound, recorder.Code)
+	}
+
+	text := recorder.Body.String()
+	if !strings.Contains(text, "retrieving user") {
+		t.Fatalf("Wanted body to contain'retrieving user' got %s", text)
+	}
+}
+
+func TestInternalServerErrorOnCookieSaveFailure(t *testing.T) {
+	req := prepareGoogleCallbackRequest(&errorStore{})
+	store := pkg.NewDemoStore()
+	transport := NewMockTransport()
+	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, transport)
+
+	recorder := httptest.NewRecorder()
+	handler(recorder, req)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("Wanted code '%d' got '%d'", http.StatusInternalServerError, recorder.Code)
+	}
+
+	body := recorder.Body.String()
+	if !strings.Contains(body, "save user role") {
+		t.Fatalf("Wanted body to contain 'save user role' got %s", body)
+	}
+}
+
+func TestHandleGoogleLoginCallbackBadRequestOnMissingCode(t *testing.T) {
+	req := prepareGoogleCallbackRequest(sessions.NewCookieStore([]byte("some-random-key")))
+	req.PostForm.Del("code")
+	req.Form = req.PostForm
+
+	encoded := req.PostForm.Encode()
+	req.Body = io.NopCloser(strings.NewReader(encoded))
+	req.ContentLength = int64(len(encoded))
+
+	store := pkg.NewMultiOrgInMemoryStore()
+	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, nil)
+	recorder := httptest.NewRecorder()
+	handler(recorder, req)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("Wanted '%d' got '%d'", http.StatusBadRequest, recorder.Code)
+	}
+
+	body := recorder.Body.String()
+	if !strings.Contains(body, "Code") {
+		t.Fatalf("Wanted result to contain 'Code' got %s", body)
+	}
+}
+
+func TestInternalServerErrorOnCodeExchangeFailure(t *testing.T) {
+	req := prepareGoogleCallbackRequest(sessions.NewCookieStore([]byte("some-random-key")))
+
+	transport := NewMockTransport(WithTokenResponse(NewNotFoundResponse()))
+	store := pkg.NewMultiOrgInMemoryStore()
+	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, transport)
+
+	recorder := httptest.NewRecorder()
+	handler(recorder, req)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("Wanted '%d' got '%d'", http.StatusInternalServerError, recorder.Code)
+	}
+
+	body := recorder.Body.String()
+	if !strings.Contains(body, "exchange") {
+		t.Fatalf("Wanted body to contain 'exchange' got %s", body)
+	}
+}
+
+func TestInternalServerErrorOnUserRespFailure(t *testing.T) {
+	req := prepareGoogleCallbackRequest(sessions.NewCookieStore([]byte("some-random-key")))
+
+	for i, test := range []struct {
+		userResp   *http.Response
+		code       int
+		bodySubstr string
+	}{
+		{
+			userResp:   NewNotFoundResponse(),
+			code:       http.StatusNotFound,
+			bodySubstr: "getting user info",
+		},
+		{
+			userResp:   NewEmptyResponse(),
+			code:       http.StatusInternalServerError,
+			bodySubstr: "decoding user info",
+		},
+	} {
+		transport := NewMockTransport(WithUserInfoResponse(test.userResp))
+		store := pkg.NewMultiOrgInMemoryStore()
+		handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, transport)
+		recorder := httptest.NewRecorder()
+		handler(recorder, req)
+
+		if recorder.Code != test.code {
+			t.Fatalf("Test #%d: Wanted '%d' got '%d'", i, http.StatusInternalServerError, recorder.Code)
+		}
+		body := recorder.Body.String()
+
+		if !strings.Contains(body, test.bodySubstr) {
+			t.Fatalf("Test #%d: Wanted body containing '%s' got '%s'", i, test.bodySubstr, body)
+		}
+	}
 }

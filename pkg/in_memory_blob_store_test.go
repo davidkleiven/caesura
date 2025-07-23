@@ -13,8 +13,8 @@ import (
 	"testing"
 )
 
-func preppedInMemporyFetcher() *InMemoryStore {
-	return &InMemoryStore{
+func preppedInMemporyFetcher() *MultiOrgInMemoryStore {
+	data := InMemoryStore{
 		Metadata: []MetaData{
 			{Title: "Test Title", Composer: "Test Composer", Arranger: "Test Arranger"},
 			{Title: "Another Title", Composer: "Another Composer", Arranger: "Another Arranger"},
@@ -24,6 +24,10 @@ func preppedInMemporyFetcher() *InMemoryStore {
 			"another_resource": []byte("This is another resource content."),
 		},
 	}
+
+	store := NewMultiOrgInMemoryStore()
+	store.Data["org1"] = data
+	return store
 }
 
 func TestFetchMeta(t *testing.T) {
@@ -42,7 +46,7 @@ func TestFetchMeta(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 
-			results, err := test.fetcher.MetaByPattern(context.Background(), test.pattern)
+			results, err := test.fetcher.MetaByPattern(context.Background(), "org1", test.pattern)
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
@@ -177,7 +181,7 @@ func TestProjectByName(t *testing.T) {
 }
 
 func TestNewDemoStore(t *testing.T) {
-	store := NewDemoStore()
+	store := NewDemoStore().FirstDataStore()
 	if len(store.Data) == 0 {
 		t.Error("Expected demo store to have some data, but it is empty")
 	}
@@ -286,7 +290,7 @@ func TestMetaById(t *testing.T) {
 }
 
 func TestResourceById(t *testing.T) {
-	store := NewDemoStore()
+	store := NewDemoStore().FirstDataStore()
 	name := store.Metadata[0].ResourceName()
 
 	reader, err := store.Resource(context.Background(), name)
@@ -310,7 +314,8 @@ func TestResourceById(t *testing.T) {
 
 func TestResourceByIdUnknownId(t *testing.T) {
 	store := NewDemoStore()
-	_, err := store.Resource(context.Background(), "unknownName")
+	orgId := store.FirstOrganizationId()
+	_, err := store.Resource(context.Background(), orgId, "unknownName")
 	if !errors.Is(err, ErrResourceNotFound) {
 		t.Fatalf("Wanted %s got %s", ErrResourceNotFound, err)
 	}
@@ -339,7 +344,7 @@ func TestClone(t *testing.T) {
 		func(s *InMemoryStore) { s.Data["new-data"] = []byte{} },
 	} {
 		t.Run(fmt.Sprintf("Test #%d", i), func(t *testing.T) {
-			store := NewDemoStore()
+			store := NewDemoStore().FirstDataStore()
 			clone := store.Clone()
 			if !reflect.DeepEqual(store, clone) {
 				t.Fatalf("Clone not equal. Original\n%+v\nClone\n%+v", store, clone)

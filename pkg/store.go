@@ -23,7 +23,7 @@ const (
 )
 
 type Submitter interface {
-	Submit(ctx context.Context, m *MetaData, r io.Reader) error
+	Submit(ctx context.Context, orgId string, m *MetaData, r io.Reader) error
 }
 
 type Duration time.Duration
@@ -197,4 +197,9 @@ func NewFSStore(directory string) *FSStore {
 		directory: directory,
 		staged:    make(map[string]MetaData),
 	}
+}
+
+type Store interface {
+	BlobStore
+	RoleStore
 }

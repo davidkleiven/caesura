@@ -13,19 +13,19 @@ type ResourceDownloader struct {
 	err           error
 }
 
-func (r *ResourceDownloader) GetMetaData(ctx context.Context, store ResourceGetter, id string) *ResourceDownloader {
+func (r *ResourceDownloader) GetMetaData(ctx context.Context, store ResourceGetter, orgId, id string) *ResourceDownloader {
 	if r.err != nil {
 		return r
 	}
-	r.meta, r.err = store.MetaById(ctx, id)
+	r.meta, r.err = store.MetaById(ctx, orgId, id)
 	return r
 }
 
-func (r *ResourceDownloader) GetResource(ctx context.Context, store ResourceGetter) *ResourceDownloader {
+func (r *ResourceDownloader) GetResource(ctx context.Context, store ResourceGetter, orgId string) *ResourceDownloader {
 	if r.err != nil {
 		return r
 	}
-	r.contentReader, r.err = store.Resource(ctx, r.meta.ResourceName())
+	r.contentReader, r.err = store.Resource(ctx, orgId, r.meta.ResourceName())
 	return r
 }
 
