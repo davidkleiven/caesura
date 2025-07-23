@@ -17,6 +17,8 @@ import (
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
+	"github.com/davidkleiven/caesura/utils"
+	"github.com/gorilla/sessions"
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
@@ -958,8 +960,9 @@ func TestProjectByIdMetaDataError(t *testing.T) {
 }
 
 func TestSetup(t *testing.T) {
+	store := sessions.NewCookieStore([]byte("some-random-key"))
 	config := pkg.NewDefaultConfig()
-	mux := Setup(pkg.NewDemoStore(), config)
+	mux := Setup(pkg.NewDemoStore(), config, store)
 
 	req, _ := http.NewRequest("GET", "/", nil)
 	recorder := httptest.NewRecorder()
@@ -1213,6 +1216,168 @@ func TestAddResourceSubmitFormResourceNotFound(t *testing.T) {
 
 	if recorder.Code != http.StatusInternalServerError {
 		t.Fatalf("Expected code %d got %d", http.StatusInternalServerError, recorder.Code)
+	}
+}
+
+func TestHandleGoogleLoginMissingKey(t *testing.T) {
+	cookie := sessions.NewCookieStore([]byte{})
+	handler := RequireSession(cookie, AuthSession)(HandleGoogleLogin(pkg.NewDefaultConfig().OAuthConfig()))
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/login", nil)
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("Wanted '%d' got '%d'", http.StatusInternalServerError, recorder.Code)
+	}
+
+	text := recorder.Body.String()
+	if !strings.Contains(text, "save session") {
+		t.Fatalf("Wanted text to contain 'save session' got '%s'", text)
+	}
+}
+
+func TestHandleGoogleLogin(t *testing.T) {
+	cookie := sessions.NewCookieStore([]byte("some-random-key"))
+	handler := RequireSession(cookie, AuthSession)(HandleGoogleLogin(pkg.NewDefaultConfig().OAuthConfig()))
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/login", nil)
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusTemporaryRedirect {
+		t.Fatalf("Wanted '%d' got '%d'", http.StatusTemporaryRedirect, recorder.Code)
+	}
+}
+
+func prepareGoogleCallbackRequest() *http.Request {
+	cookie := sessions.NewCookieStore([]byte("some-random-key"))
+
+	stateString := "oauth-state-string"
+	formData := url.Values{}
+	formData.Set("state", stateString)
+	formData.Set("code", "some-code")
+
+	request := httptest.NewRequest("POST", "/auth/callback", strings.NewReader(formData.Encode()))
+	request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	session := utils.Must(cookie.Get(request, AuthSession))
+
+	session.Values[OAuthState] = stateString
+	request = request.WithContext(context.WithValue(request.Context(), sessionKey, session))
+	request.ParseForm()
+	return request
+}
+
+func TestHandleGoogleLoginCallbackOk(t *testing.T) {
+	req := prepareGoogleCallbackRequest()
+	transport := NewMockTransport()
+	handler := HandleGoogleCallback(pkg.NewDefaultConfig().OAuthConfig(), 1*time.Second, transport)
+
+	recorder := httptest.NewRecorder()
+	handler(recorder, req)
+
+	if recorder.Code != http.StatusSeeOther {
+		t.Fatalf("Wanted %d got %d", http.StatusSeeOther, recorder.Code)
+	}
+}
+
+func TestHandleGoogleLoginCallbackInvalidAuthState(t *testing.T) {
+	req := prepareGoogleCallbackRequest()
+	session, ok := req.Context().Value(sessionKey).(*sessions.Session)
+	if !ok {
+		t.Fatal("Could not interpret value as *sessions.Session")
+	}
+
+	session.Values[OAuthState] = "altered-state-string"
+	handler := HandleGoogleCallback(pkg.NewDefaultConfig().OAuthConfig(), time.Second, nil)
+
+	recorder := httptest.NewRecorder()
+	handler(recorder, req)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("Wanted %d got %d", http.StatusBadRequest, recorder.Code)
+	}
+
+	body := recorder.Body.String()
+	if !strings.Contains(body, "Invalid OAuth state") {
+		t.Fatalf("Wanted body to contain 'Invalid OAuth state' got %s", body)
+	}
+}
+
+func TestHandleGoogleLoginCallbackBadRequestOnMissingCode(t *testing.T) {
+	req := prepareGoogleCallbackRequest()
+	req.PostForm.Del("code")
+	req.Form = req.PostForm
+
+	encoded := req.PostForm.Encode()
+	req.Body = io.NopCloser(strings.NewReader(encoded))
+	req.ContentLength = int64(len(encoded))
+
+	handler := HandleGoogleCallback(pkg.NewDefaultConfig().OAuthConfig(), time.Second, nil)
+	recorder := httptest.NewRecorder()
+	handler(recorder, req)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("Wanted '%d' got '%d'", http.StatusBadRequest, recorder.Code)
+	}
+
+	body := recorder.Body.String()
+	if !strings.Contains(body, "Code") {
+		t.Fatalf("Wanted result to contain 'Code' got %s", body)
+	}
+}
+
+func TestInternalServerErrorOnCodeExchangeFailure(t *testing.T) {
+	req := prepareGoogleCallbackRequest()
+
+	transport := NewMockTransport(WithTokenResponse(NewNotFoundResponse()))
+	handler := HandleGoogleCallback(pkg.NewDefaultConfig().OAuthConfig(), time.Second, transport)
+
+	recorder := httptest.NewRecorder()
+	handler(recorder, req)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("Wanted '%d' got '%d'", http.StatusInternalServerError, recorder.Code)
+	}
+
+	body := recorder.Body.String()
+	if !strings.Contains(body, "exchange") {
+		t.Fatalf("Wanted body to contain 'exchange' got %s", body)
+	}
+}
+
+func TestInternalServerErrorOnUserRespFailure(t *testing.T) {
+	req := prepareGoogleCallbackRequest()
+
+	for i, test := range []struct {
+		userResp   *http.Response
+		code       int
+		bodySubstr string
+	}{
+		{
+			userResp:   NewNotFoundResponse(),
+			code:       http.StatusNotFound,
+			bodySubstr: "getting user info",
+		},
+		{
+			userResp:   NewEmptyResponse(),
+			code:       http.StatusInternalServerError,
+			bodySubstr: "decoding user info",
+		},
+	} {
+		transport := NewMockTransport(WithUserInfoResponse(test.userResp))
+		handler := HandleGoogleCallback(pkg.NewDefaultConfig().OAuthConfig(), time.Second, transport)
+		recorder := httptest.NewRecorder()
+		handler(recorder, req)
+
+		if recorder.Code != test.code {
+			t.Fatalf("Test #%d: Wanted '%d' got '%d'", i, http.StatusInternalServerError, recorder.Code)
+		}
+		body := recorder.Body.String()
+
+		if !strings.Contains(body, test.bodySubstr) {
+			t.Fatalf("Test #%d: Wanted body containing '%s' got '%s'", i, test.bodySubstr, body)
+		}
 	}
 
 }

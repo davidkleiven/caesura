@@ -12,6 +12,7 @@ import (
 
 	"github.com/davidkleiven/caesura/api"
 	"github.com/davidkleiven/caesura/pkg"
+	"github.com/gorilla/sessions"
 )
 
 func main() {
@@ -27,7 +28,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	mux := api.Setup(pkg.NewDemoStore(), config)
+	cookieStore := sessions.NewCookieStore([]byte(config.CookieSecretSignKey))
+	mux := api.Setup(pkg.NewDemoStore(), config, cookieStore)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Port),

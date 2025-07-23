@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/gorilla/sessions"
 )
 
 func TestLogHandler(t *testing.T) {
@@ -35,5 +37,31 @@ func TestLogHandler(t *testing.T) {
 	if !strings.Contains(buffer.String(), "GET") {
 		t.Error("Expected log to contain 'Received request'")
 		return
+	}
+}
+
+func TestHandleGoogleLoginInternalErrorWrongSession(t *testing.T) {
+	cookie := sessions.NewCookieStore([]byte("some-secret-key"))
+	called := false
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+	})
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/login", nil)
+	request.AddCookie(&http.Cookie{
+		Name:  AuthSession,
+		Value: "CorruptedCookieValue",
+	})
+
+	middleware := RequireSession(cookie, AuthSession)
+	middleware(handler).ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("Wanted '%d' got '%d'", http.StatusInternalServerError, recorder.Code)
+	}
+
+	if called {
+		t.Fatal("Handler should not be called")
 	}
 }

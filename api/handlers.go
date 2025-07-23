@@ -13,9 +13,22 @@ import (
 
 	"github.com/davidkleiven/caesura/pkg"
 	"github.com/davidkleiven/caesura/web"
+	"github.com/gorilla/sessions"
+	"golang.org/x/oauth2"
 )
 
 type HandlerFunc func(http.ResponseWriter, *http.Request)
+
+const (
+	AuthSession = "auth"
+	OAuthState  = "oauth_state"
+)
+
+type ctxKey string
+
+const sessionKey ctxKey = "session"
+const googleUserInfo = "https://www.googleapis.com/oauth2/v2/userinfo"
+const googleToken = "https://oauth2.googleapis.com/token"
 
 func RootHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
@@ -422,10 +435,73 @@ func AddToResourceHandler(metaGetter pkg.MetaByIdGetter, timeout time.Duration) 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.Write(web.Index(&web.ScoreMetaData{Composer: meta.Composer, Arranger: meta.Arranger, Title: meta.Title}))
 	}
-
 }
 
-func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
+func HandleGoogleLogin(oauthConfig *oauth2.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		stateString := MustGenerateStateString()
+		session := MustGetSession(r)
+		session.Values[OAuthState] = stateString
+		if err := session.Save(r, w); err != nil {
+			http.Error(w, "Failed to save session "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		url := oauthConfig.AuthCodeURL(stateString)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	}
+}
+
+func HandleGoogleCallback(oauthConfig *oauth2.Config, timeout time.Duration, transport http.RoundTripper) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		state := r.FormValue("state")
+		session := MustGetSession(r)
+		if state != session.Values[OAuthState] {
+			http.Error(w, "Invalid OAuth state", http.StatusBadRequest)
+			return
+		}
+
+		code := r.FormValue("code")
+		if code == "" {
+			http.Error(w, "Code not found", http.StatusBadRequest)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		if transport != nil {
+			ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{Transport: transport})
+		}
+		token, err := oauthConfig.Exchange(ctx, code)
+		if err != nil {
+			http.Error(w, "Code exchange failed: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		client := oauthConfig.Client(ctx, token)
+		if transport != nil {
+			client.Transport = transport
+		}
+		resp, err := client.Get(googleUserInfo)
+		if err != nil || resp.StatusCode >= 400 {
+			msg, code := CodeAndMessage(err, resp.StatusCode)
+			http.Error(w, "Failed getting user info: "+msg, code)
+			return
+		}
+		defer resp.Body.Close()
+
+		var userInfo pkg.UserInfo
+		if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+			http.Error(w, "Failed decoding user info: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+		slog.Info("Successfully logged in user")
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	}
+}
+
+func Setup(store pkg.BlobStore, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", RootHandler)
 	mux.Handle("/css/", web.CssServer())
@@ -452,5 +528,10 @@ func Setup(store pkg.BlobStore, config *pkg.Config) *http.ServeMux {
 	mux.HandleFunc("GET /resources/{id}/content", ResourceContentByIdHandler(store, config.Timeout))
 	mux.HandleFunc("GET /resources/{id}/submit-form", AddToResourceHandler(store, config.Timeout))
 	mux.HandleFunc("POST /resources", SubmitHandler(store, config.Timeout, int(config.MaxRequestSizeMb)))
+
+	oauthCfg := config.OAuthConfig()
+	requireAuthSession := RequireSession(cookieStore, AuthSession)
+	mux.Handle("/login", requireAuthSession(HandleGoogleLogin(oauthCfg)))
+	mux.Handle("/auth/callback", requireAuthSession(HandleGoogleCallback(oauthCfg, config.Timeout, config.Transport)))
 	return mux
 }

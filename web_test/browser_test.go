@@ -10,6 +10,7 @@ import (
 
 	"github.com/davidkleiven/caesura/api"
 	"github.com/davidkleiven/caesura/pkg"
+	"github.com/gorilla/sessions"
 	"github.com/playwright-community/playwright-go"
 )
 
@@ -42,7 +43,8 @@ func TestMain(m *testing.M) {
 	}
 
 	config := pkg.NewDefaultConfig()
-	mux := api.Setup(store, config)
+	cookieStore := sessions.NewCookieStore([]byte("some-secret-key"))
+	mux := api.Setup(store, config, cookieStore)
 	server = httptest.NewServer(mux)
 	defer server.Close()
 	fmt.Printf("Test server started. url=%s\n", server.URL)
