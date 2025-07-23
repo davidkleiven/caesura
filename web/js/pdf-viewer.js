@@ -16,6 +16,8 @@ const submitBtn = document.getElementById('submit-btn');
 const composerInput = document.getElementById('composer-input');
 const arrangerInput = document.getElementById('arranger-input');
 const titleInput = document.getElementById('title-input');
+const durationInput = document.getElementById('duration-input');
+const genreInput = document.getElementById('genre-input');
 
 let pdfDoc = null;
 let currentPage = 1;
@@ -215,7 +217,9 @@ function getMetaData() {
     const data = {
         composer: composerInput.value.trim(),
         arranger: arrangerInput.value.trim(),
-        title: titleInput.value.trim()
+        title: titleInput.value.trim(),
+        duration: durationInput.value.trim(),
+        genre: genreInput.value.trim()
     }
 
     if (!data.composer && !data.arranger && !data.title) {

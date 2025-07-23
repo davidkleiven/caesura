@@ -26,19 +26,43 @@ type Submitter interface {
 	Submit(ctx context.Context, m *MetaData, r io.Reader) error
 }
 
+type Duration time.Duration
+
+func (d *Duration) UnmarshalJSON(b []byte) error {
+	s := strings.Trim(string(b), `"`)
+	if s == "" {
+		*d = 0
+		return nil
+	}
+	dur, err := time.ParseDuration(s)
+	if err != nil {
+		return err
+	}
+	*d = Duration(dur)
+	return nil
+}
+
+func (d Duration) MarshalJSON() ([]byte, error) {
+	return json.Marshal(time.Duration(d).String())
+}
+
+func (d Duration) String() string {
+	return time.Duration(d).String()
+}
+
 type MetaData struct {
-	Title           string        `json:"title"`
-	Composer        string        `json:"composer"`
-	Arranger        string        `json:"arranger"`
-	Genre           string        `json:"genre"`
-	Year            string        `json:"year"`
-	Instrumentation string        `json:"instrumentation"`
-	Duration        time.Duration `json:"duration"`
-	Publisher       string        `json:"publisher"`
-	Isnm            string        `json:"ismn"`
-	Tags            string        `json:"tags"`
-	Notes           string        `json:"notes"`
-	Status          StoreStatus   `json:"status"`
+	Title           string      `json:"title"`
+	Composer        string      `json:"composer"`
+	Arranger        string      `json:"arranger"`
+	Genre           string      `json:"genre"`
+	Year            string      `json:"year"`
+	Instrumentation string      `json:"instrumentation"`
+	Duration        Duration    `json:"duration"`
+	Publisher       string      `json:"publisher"`
+	Isnm            string      `json:"ismn"`
+	Tags            string      `json:"tags"`
+	Notes           string      `json:"notes"`
+	Status          StoreStatus `json:"status"`
 }
 
 func (m *MetaData) ResourceName() string {

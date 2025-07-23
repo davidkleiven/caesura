@@ -114,7 +114,8 @@ func SubmitHandler(submitter pkg.Submitter, timeout time.Duration, maxSize int) 
 		}
 
 		if err := json.Unmarshal([]byte(rawMeta[0]), &metaData); err != nil {
-			http.Error(w, "Failed to parse metadata", http.StatusBadRequest)
+			msg := "Failed to parse metadata (often related to the duration input). Check that the input confirms the format 3m20s"
+			http.Error(w, msg, http.StatusBadRequest)
 			slog.Error("Failed to parse metadata", "error", err)
 			return
 		}
