@@ -276,7 +276,7 @@ func TestMetaData_JSONRoundTrip(t *testing.T) {
 		Genre:           "Jazz",
 		Year:            "1959",
 		Instrumentation: "Piano Trio",
-		Duration:        2*time.Minute + 30*time.Second,
+		Duration:        Duration(2*time.Minute + 30*time.Second),
 		Publisher:       "Jazz Press",
 		Isnm:            "979-0-060-11561-5",
 		Tags:            "bebop,standard",
@@ -310,5 +310,82 @@ func TestUnmarshalMetDataInvalidJSON(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error on unmarshaling invalid JSON, got none")
 		return
+	}
+}
+
+func TestUnmarshalDurationString(t *testing.T) {
+	jsonStr := []byte(`{"duration": "1m20s"}`)
+	var meta MetaData
+	if err := json.Unmarshal(jsonStr, &meta); err != nil {
+		t.Fatal(err)
+	}
+
+	want := time.Minute + 20*time.Second
+	if meta.Duration != Duration(want) {
+		t.Fatalf("Duration should be set to %d got %d", meta.Duration, want)
+	}
+}
+
+func TestUnmarshalCustomDuration(t *testing.T) {
+	for _, test := range []struct {
+		jsonBytes []byte
+		want      Duration
+		desc      string
+	}{
+		{
+			jsonBytes: []byte(""),
+			want:      Duration(0),
+			desc:      "Empty string",
+		},
+		{
+			jsonBytes: []byte("1m30s"),
+			want:      Duration(time.Minute + 30*time.Second),
+			desc:      "Empty string",
+		},
+	} {
+		t.Run(test.desc, func(t *testing.T) {
+			var d Duration
+			err := d.UnmarshalJSON(test.jsonBytes)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if d != test.want {
+				t.Fatalf("Wanted %d got %d", test.want, d)
+			}
+		})
+	}
+}
+
+func TestUnmarshalCustomDurationInvalidJson(t *testing.T) {
+	jsonBytes := []byte("not json")
+	var d Duration
+	err := d.UnmarshalJSON(jsonBytes)
+	if err == nil {
+		t.Fatalf("Wanted error got %s", err)
+	}
+}
+
+func TestCustomDurationString(t *testing.T) {
+	if s := Duration(0).String(); s != "0s" {
+		t.Fatalf("Wanted '0s' got '%s'", s)
+	}
+}
+
+func TestMarshalUnMarshalRoundTrip(t *testing.T) {
+	var d Duration
+	b, err := d.MarshalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var d2 Duration
+	err = d2.UnmarshalJSON(b)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if d != d2 {
+		t.Fatalf("Wanted %d got %d", d, d2)
 	}
 }
