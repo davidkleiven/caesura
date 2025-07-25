@@ -15,9 +15,11 @@ import (
 )
 
 type InMemoryStore struct {
-	Data     map[string][]byte
-	Metadata []MetaData
-	Projects map[string]Project
+	Data          map[string][]byte
+	Metadata      []MetaData
+	Projects      map[string]Project
+	Organizations []Organization
+	Users         []UserRole
 }
 
 func (s *InMemoryStore) Submit(ctx context.Context, meta *MetaData, r io.Reader) error {
@@ -137,14 +139,28 @@ func (s *InMemoryStore) Clone() *InMemoryStore {
 		dst.Data[k] = make([]byte, len(v))
 		copy(dst.Data[k], v)
 	}
+
+	copy(dst.Users, s.Users)
+	copy(dst.Organizations, s.Organizations)
 	return dst
+}
+
+func (s *InMemoryStore) GetRole(ctx context.Context, userId string) (*UserRole, error) {
+	for _, role := range s.Users {
+		if role.UserId == userId {
+			return &role, nil
+		}
+	}
+	return &UserRole{}, errors.Join(ErrUserNotFound, fmt.Errorf("user id: %s", userId))
 }
 
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
-		Data:     make(map[string][]byte),
-		Metadata: []MetaData{},
-		Projects: make(map[string]Project),
+		Data:          make(map[string][]byte),
+		Metadata:      []MetaData{},
+		Projects:      make(map[string]Project),
+		Users:         []UserRole{},
+		Organizations: []Organization{},
 	}
 }
 
@@ -165,5 +181,32 @@ func NewDemoStore() *InMemoryStore {
 		UpdatedAt:   projectDate,
 	}
 	store.Projects[project.Id()] = project
+
+	store.Users = []UserRole{
+		{
+			UserId: "217f40fa-c0d7-4d8e-a284-293347868289",
+			Roles: map[string]RoleKind{
+				"9eab9a97-06a3-42a7-ae1e-7c67df5cbec7": RoleViewer,
+				"cccc13f9-ddd5-489e-bd77-3b935b457f71": RoleAdmin,
+			},
+		},
+		{
+			UserId: "6b2d9876-0bc4-407a-8f76-4fb1ad2a523b",
+			Roles: map[string]RoleKind{
+				"cccc13f9-ddd5-489e-bd77-3b935b457f71": RoleEditor,
+			},
+		},
+	}
+
+	store.Organizations = []Organization{
+		{
+			Id:   "9eab9a97-06a3-42a7-ae1e-7c67df5cbec7",
+			Name: "My organization 1",
+		},
+		{
+			Id:   "cccc13f9-ddd5-489e-bd77-3b935b457f71",
+			Name: "My organization 2",
+		},
+	}
 	return store
 }
