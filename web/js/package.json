@@ -3,6 +3,6 @@
     "@tailwindcss/cli": "^4.1.11",
     "tailwindcss": "^4.1.11",
     "htmx.org": "2.0.6",
-    "pdfjs-dist": "5.3.93"
+    "pdfjs-dist": "5.4.54"
   }
 }
