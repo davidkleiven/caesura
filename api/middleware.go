@@ -53,7 +53,7 @@ func RequireMinimumRole(cookieStore *sessions.CookieStore, minimumRole pkg.RoleK
 				return
 			}
 
-			var role pkg.UserRole
+			var role pkg.UserInfo
 			if err := json.Unmarshal(data, &role); err != nil {
 				http.Error(w, "Could not unmarshal role info", http.StatusBadRequest)
 				slog.Info("Could not unmarshal role info", "error", err, "host", r.Host)
@@ -69,7 +69,44 @@ func RequireMinimumRole(cookieStore *sessions.CookieStore, minimumRole pkg.RoleK
 
 			if orgRole, ok := role.Roles[orgId]; !ok || orgRole < minimumRole {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				slog.Info("User is unauthorized", "host", r.Host, "user", role.UserId)
+				slog.Info("User is unauthorized", "host", r.Host, "user", role.Id, "role", orgRole, "required-role", minimumRole, "role-provided", ok, "organization-id", orgId)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func RequireUserId(cookieStore *sessions.CookieStore) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			session := MustGetSession(r)
+			_, ok := session.Values["userId"].(string)
+			if !ok {
+				http.Error(w, "User id is not present", http.StatusBadRequest)
+				slog.Info("User id is not present", "host", r.Host)
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func ValidateUserInfo(cookieStore *sessions.CookieStore) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			session := MustGetSession(r)
+			data, ok := session.Values["role"].([]byte)
+			if !ok {
+				http.Error(w, "User role is not present", http.StatusBadRequest)
+				slog.Info("User role is not present", "host", r.Host)
+				return
+			}
+
+			var info pkg.UserInfo
+			if err := json.Unmarshal(data, &info); err != nil {
+				http.Error(w, "Could not interpret role data", http.StatusBadRequest)
+				slog.Error("Could not interpret role data", "error", err, "host", r.Host)
 				return
 			}
 			next.ServeHTTP(w, r)
@@ -95,6 +132,19 @@ func RequireAdmin(cookieStore *sessions.CookieStore) func(http.Handler) http.Han
 	return Chain(
 		RequireSession(cookieStore, AuthSession),
 		RequireMinimumRole(cookieStore, pkg.RoleAdmin),
+	)
+}
+
+func RequireSignedIn(cookieStore *sessions.CookieStore) func(http.Handler) http.Handler {
+	return Chain(
+		RequireSession(cookieStore, AuthSession),
+		RequireUserId(cookieStore),
+	)
+}
+func RequireUserInfo(cookieStore *sessions.CookieStore) func(http.Handler) http.Handler {
+	return Chain(
+		RequireSession(cookieStore, AuthSession),
+		RequireUserId(cookieStore),
 	)
 }
 

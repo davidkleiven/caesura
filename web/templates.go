@@ -41,6 +41,14 @@ func List() []byte {
 	return utils.Must(templatesFS.ReadFile("templates/list.html"))
 }
 
+func Index() []byte {
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/index.html", "templates/header.html"))
+	var buf bytes.Buffer
+
+	pkg.PanicOnErr(tmpl.Execute(&buf, nil))
+	return buf.Bytes()
+}
+
 func Overview() []byte {
 	tmpl := template.Must(template.ParseFS(templatesFS, "templates/overview.html", "templates/header.html", "templates/resource_table.html"))
 	var buf bytes.Buffer
@@ -135,4 +143,22 @@ type ResourceContentData struct {
 func ResourceContent(w io.Writer, data *ResourceContentData) {
 	template := template.Must(template.ParseFS(templatesFS, "templates/resource_content.html"))
 	pkg.PanicOnErr(template.Execute(w, data))
+}
+
+func Organizations() []byte {
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/organizations.html", "templates/header.html", "templates/organization_list.html"))
+	var buf bytes.Buffer
+
+	pkg.PanicOnErr(tmpl.Execute(&buf, LoadDependencies()))
+	return buf.Bytes()
+}
+
+func WriteOrganizationHTML(w io.Writer, organizations []pkg.Organization) {
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/organization_list.html"))
+	data := struct {
+		Organizations []pkg.Organization
+	}{
+		Organizations: organizations,
+	}
+	pkg.PanicOnErr(tmpl.ExecuteTemplate(w, "orgList", data))
 }

@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"github.com/davidkleiven/caesura/pkg"
+	"github.com/davidkleiven/caesura/testutils"
 	"github.com/gorilla/sessions"
 )
 
@@ -224,14 +225,14 @@ func TestAccessMiddleware(t *testing.T) {
 			}
 
 			ordId := "orgId"
-			userRoles := pkg.UserRole{
-				UserId: "aaa",
+			userInfos := pkg.UserInfo{
+				Id: "aaa",
 				Roles: map[string]pkg.RoleKind{
 					ordId: test.role,
 				},
 			}
 
-			data, err := json.Marshal(userRoles)
+			data, err := json.Marshal(userInfos)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -279,4 +280,72 @@ func TestAccessMiddlewareBadRequestOnMissingSession(t *testing.T) {
 		})
 
 	}
+}
+
+func TestRequireUserId(t *testing.T) {
+	req := httptest.NewRequest("GET", "/endpoint", nil)
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}
+
+	store := sessions.NewCookieStore([]byte("top-secret"))
+	session, err := store.Get(req, AuthSession)
+	testutils.AssertNil(t, err)
+
+	ctx := context.WithValue(req.Context(), sessionKey, session)
+
+	withMiddleware := RequireUserId(store)(http.HandlerFunc(handler))
+	t.Run("Test missing user id", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		withMiddleware.ServeHTTP(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusBadRequest)
+	})
+
+	t.Run("Test with userId", func(t *testing.T) {
+		session.Values["userId"] = "0000-0000"
+		recorder := httptest.NewRecorder()
+		withMiddleware.ServeHTTP(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+	})
+}
+
+func TestValidateUserInfo(t *testing.T) {
+	req := httptest.NewRequest("GET", "/endpoint", nil)
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}
+
+	store := sessions.NewCookieStore([]byte("top-secret"))
+	session, err := store.Get(req, AuthSession)
+	testutils.AssertNil(t, err)
+
+	withMiddleware := ValidateUserInfo(store)(http.HandlerFunc(handler))
+	ctx := context.WithValue(req.Context(), sessionKey, session)
+
+	t.Run("Test missing role", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		withMiddleware.ServeHTTP(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusBadRequest)
+	})
+
+	t.Run("Test role not byte", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		session.Values["role"] = "some string"
+		withMiddleware.ServeHTTP(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusBadRequest)
+	})
+
+	t.Run("Test role not JSON", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		session.Values["role"] = []byte("not JSON")
+		withMiddleware.ServeHTTP(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusBadRequest)
+	})
+
+	t.Run("Test role JSON", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		session.Values["role"] = []byte("{}")
+		withMiddleware.ServeHTTP(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+	})
 }

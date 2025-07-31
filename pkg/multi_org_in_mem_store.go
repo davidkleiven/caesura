@@ -33,16 +33,16 @@ func NewDemoStore() *MultiOrgInMemoryStore {
 	multiOrgStore.Data["9eab9a97-06a3-42a7-ae1e-7c67df5cbec7"] = *store
 	multiOrgStore.Data["cccc13f9-ddd5-489e-bd77-3b935b457f71"] = *store
 
-	multiOrgStore.Users = []UserRole{
+	multiOrgStore.Users = []UserInfo{
 		{
-			UserId: "217f40fa-c0d7-4d8e-a284-293347868289",
+			Id: "217f40fa-c0d7-4d8e-a284-293347868289",
 			Roles: map[string]RoleKind{
 				"9eab9a97-06a3-42a7-ae1e-7c67df5cbec7": RoleViewer,
 				"cccc13f9-ddd5-489e-bd77-3b935b457f71": RoleAdmin,
 			},
 		},
 		{
-			UserId: "6b2d9876-0bc4-407a-8f76-4fb1ad2a523b",
+			Id: "6b2d9876-0bc4-407a-8f76-4fb1ad2a523b",
 			Roles: map[string]RoleKind{
 				"cccc13f9-ddd5-489e-bd77-3b935b457f71": RoleEditor,
 			},
@@ -64,7 +64,7 @@ func NewDemoStore() *MultiOrgInMemoryStore {
 
 type MultiOrgInMemoryStore struct {
 	Data          map[string]InMemoryStore
-	Users         []UserRole
+	Users         []UserInfo
 	Organizations []Organization
 }
 
@@ -139,7 +139,7 @@ func (m *MultiOrgInMemoryStore) Clone() *MultiOrgInMemoryStore {
 		dst.Data[orgId] = *store.Clone()
 	}
 
-	dst.Users = make([]UserRole, len(m.Users))
+	dst.Users = make([]UserInfo, len(m.Users))
 	for i, users := range m.Users {
 		data := utils.Must(json.Marshal(users))
 		PanicOnErr(json.Unmarshal(data, &dst.Users[i]))
@@ -151,25 +151,25 @@ func (m *MultiOrgInMemoryStore) Clone() *MultiOrgInMemoryStore {
 	return dst
 }
 
-func (m *MultiOrgInMemoryStore) GetRole(ctx context.Context, userId string) (*UserRole, error) {
+func (m *MultiOrgInMemoryStore) GetUserInfo(ctx context.Context, userId string) (*UserInfo, error) {
 	for _, role := range m.Users {
-		if role.UserId == userId {
+		if role.Id == userId {
 			return &role, nil
 		}
 	}
-	return &UserRole{}, errors.Join(ErrUserNotFound, fmt.Errorf("user id: %s", userId))
+	return NewUserInfo(), errors.Join(ErrUserNotFound, fmt.Errorf("user id: %s", userId))
 }
 
 func (m *MultiOrgInMemoryStore) RegisterRole(ctx context.Context, userId string, organizationId string, role RoleKind) error {
 	for i, u := range m.Users {
-		if u.UserId == userId {
+		if u.Id == userId {
 			m.Users[i].Roles[organizationId] = role
 			return nil
 		}
 	}
 
-	m.Users = append(m.Users, UserRole{
-		UserId: userId,
+	m.Users = append(m.Users, UserInfo{
+		Id: userId,
 		Roles: map[string]RoleKind{
 			organizationId: role,
 		},
@@ -180,6 +180,11 @@ func (m *MultiOrgInMemoryStore) RegisterRole(ctx context.Context, userId string,
 func (m *MultiOrgInMemoryStore) RegisterOrganization(ctx context.Context, org *Organization) error {
 	m.Data[org.Id] = *NewInMemoryStore()
 	m.Organizations = append(m.Organizations, *org)
+	return nil
+}
+
+func (m *MultiOrgInMemoryStore) RegisterUser(ctx context.Context, user *UserInfo) error {
+	m.Users = append(m.Users, *user)
 	return nil
 }
 
@@ -197,10 +202,28 @@ func (m *MultiOrgInMemoryStore) FirstDataStore() *InMemoryStore {
 	return &InMemoryStore{}
 }
 
+func (m *MultiOrgInMemoryStore) GetOrganization(ctx context.Context, orgId string) (Organization, error) {
+	for _, org := range m.Organizations {
+		if org.Id == orgId && !org.Deleted {
+			return org, nil
+		}
+	}
+	return Organization{}, ErrOrganizationNotFound
+}
+
+func (m *MultiOrgInMemoryStore) DeleteOrganization(ctx context.Context, orgId string) error {
+	for i, org := range m.Organizations {
+		if org.Id == orgId {
+			m.Organizations[i].Deleted = true
+		}
+	}
+	return nil
+}
+
 func NewMultiOrgInMemoryStore() *MultiOrgInMemoryStore {
 	return &MultiOrgInMemoryStore{
 		Data:          make(map[string]InMemoryStore),
-		Users:         []UserRole{},
+		Users:         []UserInfo{},
 		Organizations: []Organization{},
 	}
 }
