@@ -8,6 +8,8 @@ import (
 	"io"
 	"slices"
 	"testing"
+
+	"github.com/davidkleiven/caesura/testutils"
 )
 
 func TestPanicOnErr(t *testing.T) {
@@ -170,5 +172,11 @@ func TestEmptyBytesOnErrorInZipAppender(t *testing.T) {
 	if !errors.Is(err, expectedError) {
 		t.Fatalf("Wanted error '%s' got '%s'", expectedError, err)
 	}
+}
 
+func TestRandomInsecureId(t *testing.T) {
+	for _, n := range []int{0, 10, 15, 32} {
+		id := RandomInsecureID(n)
+		testutils.AssertEqual(t, len(id), n)
+	}
 }

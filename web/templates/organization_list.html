@@ -1,0 +1,5 @@
+{{ define "orgList" }}
+    {{range .Organizations }}
+    <option value="{{.Id}}">{{.Name}}</option>
+    {{end}}
+{{end}}

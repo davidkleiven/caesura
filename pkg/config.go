@@ -33,6 +33,7 @@ type Config struct {
 	GoogleAuthClientSecretId string             `yaml:"google_auth_client_secret_id" env:"CAESURA_GOOGLE_AUTH_CLIENT_SECRET_ID"`
 	GoogleAuthRedirectURL    string             `yaml:"google_auth_rederict_url" env:"CAESURA_GOOGLE_AUTH_REDIRECT_URL"`
 	CookieSecretSignKey      string             `yaml:"cookie_secret_sign_key" env:"CAESURA_COOKIE_SECRET_SIGN_KEY"`
+	BaseURL                  string             `yaml:"base_url" env:"CAESURA_BASE_URL"`
 	Transport                http.RoundTripper
 }
 
@@ -68,6 +69,7 @@ func NewDefaultConfig() *Config {
 		MaxRequestSizeMb:      100,
 		GoogleAuthClientId:    "602223566336-77ugev7r0br5k1j8rc8i407kb0et34al.apps.googleusercontent.com",
 		GoogleAuthRedirectURL: "http://localhost:8080/auth/callback",
+		BaseURL:               "http://localhost:8080",
 	}
 }
 

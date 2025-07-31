@@ -3,10 +3,13 @@
     <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
         <!-- Logo / Brand -->
         <div class="text-xl font-bold text-indigo-600">Caesura</div>
+        <div id="active-organization" class="italic text-gray-700" hx-get="/session/active-organization/name"
+            hx-target="this" hx-swap="innerHTML" hx-trigger="load"></div>
 
         <!-- Navigation Links -->
         <nav class="space-x-6 hidden md:flex">
-            <a href="/login" class="text-gray-700 hover:text-indigo-500">Login</a>
+            <a href="/" class="text-gray-700 hover:text-indigo-500">Home</a>
+            <a href="/organizations/form" class="text-gray-700 hover:text-indigo-500">Organizations</a>
             <a href="/overview" class="text-gray-700 hover:text-indigo-500">Overview</a>
             <a href="/upload" class="text-gray-700 hover:text-indigo-500">Upload</a>
             <a href="/projects" class="text-gray-700 hover:text-indigo-500">Projects</a>

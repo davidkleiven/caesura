@@ -9,11 +9,13 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"slices"
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
-	"github.com/davidkleiven/caesura/utils"
 	"github.com/davidkleiven/caesura/web"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 )
@@ -59,14 +61,9 @@ func DeleteMode(w http.ResponseWriter, r *http.Request) {
 	const maxSize = 1 << 12 // 4 kB
 	r.Body = http.MaxBytesReader(w, r.Body, maxSize)
 
-	err := r.ParseForm()
-	var maxErr *http.MaxBytesError
-	if errors.As(err, &maxErr) {
-		msg := "File is larger than max allowed size (~4 kB)."
-		http.Error(w, msg, http.StatusRequestEntityTooLarge)
-		return
-	} else if err != nil {
-		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+	code, err := parseForm(r)
+	if err != nil {
+		http.Error(w, err.Error(), code)
 		return
 	}
 	checkBoxValue := r.FormValue("delete-mode")
@@ -460,12 +457,17 @@ func HandleGoogleLogin(oauthConfig *oauth2.Config) http.HandlerFunc {
 			return
 		}
 
+		inviteToken := r.URL.Query().Get("invite-token")
+		if inviteToken != "" {
+			session.Values["invite-token"] = inviteToken
+		}
+
 		url := oauthConfig.AuthCodeURL(stateString)
 		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 	}
 }
 
-func HandleGoogleCallback(getter pkg.RoleGetter, oauthConfig *oauth2.Config, timeout time.Duration, transport http.RoundTripper) http.HandlerFunc {
+func HandleGoogleCallback(roleStore pkg.RoleStore, oauthConfig *oauth2.Config, timeout time.Duration, signSecret string, transport http.RoundTripper) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		state := r.FormValue("state")
 		session := MustGetSession(r)
@@ -510,35 +512,241 @@ func HandleGoogleCallback(getter pkg.RoleGetter, oauthConfig *oauth2.Config, tim
 			return
 		}
 
-		userRole, err := getter.GetRole(ctx, userInfo.Id)
+		inviteTokenOrg, err := orgIdFromInviteToken(session, signSecret)
 		if err != nil {
-			http.Error(w, "Error retrieving user "+err.Error(), http.StatusNotFound)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		session.Values["userId"] = userInfo.Id
+
+		roleUpdater := pkg.NewUserRolePipeline(roleStore, ctx, &userInfo).
+			RegisterIfMissing().
+			AssignViewRoleIfNoRole(inviteTokenOrg)
+
+		if roleUpdater.Error != nil {
+			http.Error(w, "Failed to update user roles "+roleUpdater.Error.Error(), http.StatusInternalServerError)
+			slog.Error("Failed to update user roles", "error", roleUpdater.Error.Error(), "host", r.Host)
 			return
 		}
 
-		userRoleJson := utils.Must(json.Marshal(userRole))
-		session.Values["role"] = userRoleJson
-
-		for orgId := range userRole.Roles {
-			session.Values["orgId"] = orgId
-			break
-		}
+		userInfoWithRoles := roleUpdater.User
+		pkg.PopulateSessionWithRoles(session, userInfoWithRoles)
 
 		if err := session.Save(r, w); err != nil {
 			http.Error(w, "Could not save user role", http.StatusInternalServerError)
 			return
 		}
 
+		redirect := "/"
+		if len(userInfoWithRoles.Roles) != 1 {
+			// Either multiple roles -> user would have to select organization
+			// or no roles -> user would probably create an organization
+			redirect = "/organizations"
+		}
+
 		slog.Info("Successfully logged in user")
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+		http.Redirect(w, r, redirect, http.StatusSeeOther)
+	}
+}
+
+func RootHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(web.Index())
+}
+
+func OrganizationsHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(web.Organizations())
+}
+
+func InviteLink(baseURL, signSecret string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		orgId := r.PathValue("id")
+
+		currentTime := time.Now()
+		claims := InviteClaim{
+			OrgId: orgId,
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(currentTime.Add(48 * time.Hour)),
+				IssuedAt:  jwt.NewNumericDate(currentTime),
+				NotBefore: jwt.NewNumericDate(currentTime),
+			},
+		}
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		signedToken, err := token.SignedString([]byte(signSecret))
+		if err != nil {
+			http.Error(w, "Failed to sign token", http.StatusInternalServerError)
+			slog.Error("Failed to sign invite link token", "error", err, "host", r.Host)
+			return
+		}
+
+		inviteURL := baseURL + "/login?invite-token=" + url.QueryEscape(signedToken)
+
+		respBody := struct {
+			InviteLink string `json:"invite_link"`
+		}{
+			InviteLink: inviteURL,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(respBody)
+	}
+}
+
+func OrganizationRegisterHandler(store pkg.IAMStore, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		const maxSize = 4096
+		r.Body = http.MaxBytesReader(w, r.Body, maxSize)
+		code, err := parseForm(r)
+		if err != nil {
+			http.Error(w, err.Error(), code)
+			return
+		}
+
+		name := r.FormValue("name")
+		if name == "" {
+			http.Error(w, "Name can not be empty", http.StatusBadRequest)
+			return
+		}
+
+		org := pkg.Organization{
+			Id:   pkg.RandomInsecureID(32),
+			Name: name,
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		session := MustGetSession(r)
+		userId := MustGetUserId(session)
+
+		registrationFlow := pkg.NewRegisterOrganizationFlow(ctx, store, session)
+		registrationFlow.Register(&org).RegisterAdmin(userId, org.Id).RetrieveUserInfo(userId).UpdateSession(r, w, org.Id)
+		if err := registrationFlow.Error; err != nil {
+			http.Error(w, "Could not register organization: "+err.Error(), http.StatusInternalServerError)
+			slog.Error("Could not register organization", "error", err, "host", r.Host)
+			return
+		}
+		slog.Info("Successfully registered new organization", "name", org.Name, "id", org.Id)
+	}
+}
+
+func OptionsFromSessionHandler(orgGetter pkg.OrganizationGetter, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		session := MustGetSession(r)
+		roles := MustGetUserInfo(session)
+
+		// Optionally get the organization ID
+		orgId, ok := session.Values["orgId"].(string)
+		if !ok {
+			orgId = ""
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		options := make([]pkg.Organization, 0, len(roles.Roles))
+		for id := range roles.Roles {
+			org, err := orgGetter.GetOrganization(ctx, id)
+			if err != nil {
+				slog.Error("Could not fetch organization", "error", err, "organization-id", id)
+			} else {
+				options = append(options, org)
+			}
+		}
+
+		slices.SortStableFunc(options, func(a pkg.Organization, b pkg.Organization) int {
+			aEqual := a.Id == orgId
+			bEqual := b.Id == orgId
+			if aEqual {
+				return -1
+			} else if bEqual {
+				return 1
+			}
+			return 0
+		})
+
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		web.WriteOrganizationHTML(w, options)
+	}
+}
+
+func DeleteOrganizationHandler(deleter pkg.OrganizationDeleter, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		session := MustGetSession(r)
+		orgId := MustGetOrgId(session)
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		if err := deleter.DeleteOrganization(ctx, orgId); err != nil {
+			http.Error(w, "Could not delete organization", http.StatusInternalServerError)
+			slog.Error("Could not delete organization", "error", err, "organization-id", orgId, "host", r.Host)
+			return
+		}
+
+		session.Values["orgId"] = ""
+		info := MustGetUserInfo(session)
+		delete(info.Roles, orgId)
+		pkg.PopulateSessionWithRoles(session, info)
+		if err := session.Save(r, w); err != nil {
+			http.Error(w, "Could not update session", http.StatusInternalServerError)
+			slog.Error("Could not update session", "error", err, "host", r.Host, "organization-id", orgId)
+			return
+		}
+	}
+}
+
+func ChosenOrganizationSessionHandler(w http.ResponseWriter, r *http.Request) {
+	orgId := r.URL.Query().Get("existing_org")
+	if orgId == "" {
+		http.Error(w, "No organization id passed", http.StatusBadRequest)
+		slog.Error("No organization id passed", "host", r.Host)
+		return
+	}
+
+	session := MustGetSession(r)
+	session.Values["orgId"] = orgId
+	if err := session.Save(r, w); err != nil {
+		http.Error(w, "Could not save session: "+err.Error(), http.StatusInternalServerError)
+		slog.Error("Coult not save session", "error", err, "host", r.Host)
+		return
+	}
+}
+
+func ActiveOrganization(getter pkg.OrganizationGetter, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		session := MustGetSession(r)
+		orgId, ok := session.Values["orgId"].(string)
+		if !ok || orgId == "" {
+			w.Write([]byte("No organization"))
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		org, err := getter.GetOrganization(ctx, orgId)
+		if err != nil {
+			slog.Error("Could not get organization", "error", err, "host", r.Host)
+			w.Write([]byte("No organization"))
+			return
+		}
+		w.Write([]byte(org.Name))
 	}
 }
 
 func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
 	readRoute := RequireRead(cookieStore)
 	writeRoute := RequireWrite(cookieStore)
+	adminRoute := RequireAdmin(cookieStore)
+	signedInRoute := RequireSignedIn(cookieStore) // Require user to be signed in, but not to have a role
+	userInfoRoute := RequireUserInfo(cookieStore) // Require the info about user, but nessecarily a active orgId
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/", RootHandler)
 	mux.HandleFunc("/upload", UploadHandler)
 	mux.Handle("/css/", web.CssServer())
 	mux.HandleFunc("/instruments", InstrumentSearchHandler)
@@ -568,6 +776,15 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	oauthCfg := config.OAuthConfig()
 	requireAuthSession := RequireSession(cookieStore, AuthSession)
 	mux.Handle("/login", requireAuthSession(HandleGoogleLogin(oauthCfg)))
-	mux.Handle("/auth/callback", requireAuthSession(HandleGoogleCallback(store, oauthCfg, config.Timeout, config.Transport)))
+	mux.Handle("/auth/callback", requireAuthSession(HandleGoogleCallback(store, oauthCfg, config.Timeout, config.CookieSecretSignKey, config.Transport)))
+
+	mux.HandleFunc("GET /organizations/form", OrganizationsHandler)
+	mux.Handle("POST /organizations", signedInRoute(OrganizationRegisterHandler(store, config.Timeout)))
+	mux.Handle("DELETE /organizations", adminRoute(DeleteOrganizationHandler(store, config.Timeout)))
+	mux.Handle("GET /organizations/{id}/invite", adminRoute(InviteLink(config.BaseURL, config.CookieSecretSignKey)))
+	mux.Handle("GET /organizations/options", userInfoRoute(OptionsFromSessionHandler(store, config.Timeout)))
+	mux.Handle("GET /organizations/active/session", userInfoRoute(http.HandlerFunc(ChosenOrganizationSessionHandler)))
+
+	mux.Handle("GET /session/active-organization/name", requireAuthSession(ActiveOrganization(store, config.Timeout)))
 	return mux
 }
