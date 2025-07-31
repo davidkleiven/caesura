@@ -31,10 +31,10 @@ const sessionKey ctxKey = "session"
 const googleUserInfo = "https://www.googleapis.com/oauth2/v2/userinfo"
 const googleToken = "https://oauth2.googleapis.com/token"
 
-func RootHandler(w http.ResponseWriter, r *http.Request) {
+func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(web.Index(&web.ScoreMetaData{}))
+	w.Write(web.Upload(&web.ScoreMetaData{}))
 }
 
 func InstrumentSearchHandler(w http.ResponseWriter, r *http.Request) {
@@ -446,7 +446,7 @@ func AddToResourceHandler(metaGetter pkg.MetaByIdGetter, timeout time.Duration) 
 		}
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write(web.Index(&web.ScoreMetaData{Composer: meta.Composer, Arranger: meta.Arranger, Title: meta.Title}))
+		w.Write(web.Upload(&web.ScoreMetaData{Composer: meta.Composer, Arranger: meta.Arranger, Title: meta.Title}))
 	}
 }
 
@@ -539,7 +539,7 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	writeRoute := RequireWrite(cookieStore)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", RootHandler)
+	mux.HandleFunc("/upload", UploadHandler)
 	mux.Handle("/css/", web.CssServer())
 	mux.HandleFunc("/instruments", InstrumentSearchHandler)
 	mux.HandleFunc("/choice", ChoiceHandler)

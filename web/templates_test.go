@@ -10,7 +10,7 @@ import (
 )
 
 func TestIndex(t *testing.T) {
-	index := Index(&ScoreMetaData{})
+	index := Upload(&ScoreMetaData{})
 
 	if !bytes.Contains(index, []byte("Caesura</div>")) {
 		t.Error("Expected index to contain 'Caesura</div>'")

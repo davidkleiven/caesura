@@ -20,8 +20,8 @@ type ScoreMetaData struct {
 	Title    string
 }
 
-func Index(data *ScoreMetaData) []byte {
-	tmpl := template.Must(template.ParseFS(templatesFS, "templates/index.html", "templates/header.html"))
+func Upload(data *ScoreMetaData) []byte {
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/upload.html", "templates/header.html"))
 	var buf bytes.Buffer
 
 	deps := LoadDependencies().Dependencies

@@ -26,7 +26,7 @@ import (
 func TestRootHandler(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/", nil)
-	RootHandler(recorder, request)
+	UploadHandler(recorder, request)
 
 	if recorder.Code != 200 {
 		t.Errorf("Expected status code 200, got %d", recorder.Code)
@@ -1013,7 +1013,7 @@ func TestSetup(t *testing.T) {
 	config := pkg.NewDefaultConfig()
 	mux := Setup(pkg.NewDemoStore(), config, store)
 
-	req, _ := http.NewRequest("GET", "/", nil)
+	req, _ := http.NewRequest("GET", "/upload", nil)
 	recorder := httptest.NewRecorder()
 	mux.ServeHTTP(recorder, req)
 
