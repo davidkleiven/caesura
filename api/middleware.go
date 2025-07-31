@@ -53,7 +53,7 @@ func RequireMinimumRole(cookieStore *sessions.CookieStore, minimumRole pkg.RoleK
 				return
 			}
 
-			var role pkg.UserRole
+			var role pkg.UserInfo
 			if err := json.Unmarshal(data, &role); err != nil {
 				http.Error(w, "Could not unmarshal role info", http.StatusBadRequest)
 				slog.Info("Could not unmarshal role info", "error", err, "host", r.Host)
@@ -69,7 +69,7 @@ func RequireMinimumRole(cookieStore *sessions.CookieStore, minimumRole pkg.RoleK
 
 			if orgRole, ok := role.Roles[orgId]; !ok || orgRole < minimumRole {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				slog.Info("User is unauthorized", "host", r.Host, "user", role.UserId)
+				slog.Info("User is unauthorized", "host", r.Host, "user", role.Id)
 				return
 			}
 			next.ServeHTTP(w, r)

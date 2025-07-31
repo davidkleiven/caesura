@@ -17,13 +17,15 @@ import (
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
+	"github.com/davidkleiven/caesura/testutils"
 	"github.com/davidkleiven/caesura/utils"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/sessions"
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
 )
 
-func TestRootHandler(t *testing.T) {
+func TestUploadHandler(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/", nil)
 	UploadHandler(recorder, request)
@@ -124,7 +126,7 @@ func TestDeleteModeWhenFormNotPopulated(t *testing.T) {
 		return
 	}
 
-	expectedError := "Failed to parse form"
+	expectedError := "invalid URL"
 	if !strings.Contains(recorder.Body.String(), expectedError) {
 		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
 	}
@@ -264,14 +266,14 @@ func withAuthSession(r *http.Request, orgId string) *http.Request {
 		panic(err)
 	}
 
-	userRole := pkg.UserRole{
-		UserId: "0000-0000",
+	userInfo := pkg.UserInfo{
+		Id: "0000-0000",
 		Roles: map[string]pkg.RoleKind{
 			orgId: pkg.RoleAdmin,
 		},
 	}
 
-	data, err := json.Marshal(userRole)
+	data, err := json.Marshal(userInfo)
 	if err != nil {
 		panic(err)
 	}
@@ -1333,7 +1335,29 @@ func TestHandleGoogleLogin(t *testing.T) {
 	}
 }
 
-func prepareGoogleCallbackRequest(cookie sessions.Store) *http.Request {
+func TestInviteLinkAddedToSession(t *testing.T) {
+	cookie := sessions.NewCookieStore([]byte("top-secret"))
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/login?inviteToken=ddaa", nil)
+	handler := RequireSession(cookie, AuthSession)(HandleGoogleLogin(pkg.NewDefaultConfig().OAuthConfig()))
+	handler.ServeHTTP(recorder, request)
+
+	session, err := cookie.Get(request, AuthSession)
+	if err != nil {
+		t.Fatal(err)
+	}
+	link, ok := session.Values["inviteToken"].(string)
+	if !ok {
+		t.Fatal("Could not convert inviteToken to string")
+	}
+
+	if link != "ddaa" {
+		t.Fatalf("Wanted 'ddaa' got '%s'", link)
+	}
+}
+
+func prepareGoogleCallbackRequest(cookie sessions.Store, sessionModifier ...func(s *sessions.Session)) *http.Request {
 	stateString := "oauth-state-string"
 	formData := url.Values{}
 	formData.Set("state", stateString)
@@ -1344,6 +1368,10 @@ func prepareGoogleCallbackRequest(cookie sessions.Store) *http.Request {
 	session := utils.Must(cookie.Get(request, AuthSession))
 
 	session.Values[OAuthState] = stateString
+
+	for _, fn := range sessionModifier {
+		fn(session)
+	}
 	request = request.WithContext(context.WithValue(request.Context(), sessionKey, session))
 	request.ParseForm()
 	return request
@@ -1353,7 +1381,7 @@ func TestHandleGoogleLoginCallbackOk(t *testing.T) {
 	req := prepareGoogleCallbackRequest(sessions.NewCookieStore([]byte("some-random-key")))
 	transport := NewMockTransport()
 	store := pkg.NewDemoStore()
-	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), 1*time.Second, transport)
+	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), 1*time.Second, "signKey", transport)
 
 	recorder := httptest.NewRecorder()
 	handler(recorder, req)
@@ -1372,7 +1400,7 @@ func TestHandleGoogleLoginCallbackOk(t *testing.T) {
 		t.Fatal("Could not cast into bytes")
 	}
 
-	var role pkg.UserRole
+	var role pkg.UserInfo
 	if err := json.Unmarshal(data, &role); err != nil {
 		t.Fatalf("Could not unmarshal session content: %s", err)
 	}
@@ -1388,7 +1416,7 @@ func TestHandleGoogleLoginCallbackInvalidAuthState(t *testing.T) {
 
 	session.Values[OAuthState] = "altered-state-string"
 	store := pkg.NewMultiOrgInMemoryStore()
-	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, nil)
+	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, "signKey", nil)
 
 	recorder := httptest.NewRecorder()
 	handler(recorder, req)
@@ -1403,31 +1431,48 @@ func TestHandleGoogleLoginCallbackInvalidAuthState(t *testing.T) {
 	}
 }
 
-func TestNotFoundErrorOnUnkownUserId(t *testing.T) {
-	req := prepareGoogleCallbackRequest(sessions.NewCookieStore([]byte("some-random-key")))
+func TestOnlyIdPresentForNewUser(t *testing.T) {
+	cookieStore := sessions.NewCookieStore([]byte("some-random-key"))
+	req := prepareGoogleCallbackRequest(cookieStore)
 
 	store := pkg.NewMultiOrgInMemoryStore()
 	transport := NewMockTransport()
-	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, transport)
+	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, "signKey", transport)
 
 	recorder := httptest.NewRecorder()
 	handler(recorder, req)
 
-	if recorder.Code != http.StatusNotFound {
+	if recorder.Code != http.StatusSeeOther {
 		t.Fatalf("Wanted '%d' got '%d'", http.StatusFound, recorder.Code)
 	}
 
-	text := recorder.Body.String()
-	if !strings.Contains(text, "retrieving user") {
-		t.Fatalf("Wanted body to contain'retrieving user' got %s", text)
+	resp := recorder.Result()
+	cookies := resp.Cookies()
+	if len(cookies) != 1 {
+		t.Fatalf("Wanted 1 cookie got %d", len(cookies))
 	}
+
+	session, err := cookieStore.Get(req, AuthSession)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	userId, ok := session.Values["userId"].(string)
+	if !ok {
+		t.Fatalf("Could not get user ID")
+	}
+
+	if userId == "" {
+		t.Fatalf("User id should not be an emptry string")
+	}
+
 }
 
 func TestInternalServerErrorOnCookieSaveFailure(t *testing.T) {
 	req := prepareGoogleCallbackRequest(&errorStore{})
 	store := pkg.NewDemoStore()
 	transport := NewMockTransport()
-	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, transport)
+	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, "signKey", transport)
 
 	recorder := httptest.NewRecorder()
 	handler(recorder, req)
@@ -1452,7 +1497,7 @@ func TestHandleGoogleLoginCallbackBadRequestOnMissingCode(t *testing.T) {
 	req.ContentLength = int64(len(encoded))
 
 	store := pkg.NewMultiOrgInMemoryStore()
-	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, nil)
+	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, "signKey", nil)
 	recorder := httptest.NewRecorder()
 	handler(recorder, req)
 
@@ -1471,7 +1516,7 @@ func TestInternalServerErrorOnCodeExchangeFailure(t *testing.T) {
 
 	transport := NewMockTransport(WithTokenResponse(NewNotFoundResponse()))
 	store := pkg.NewMultiOrgInMemoryStore()
-	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, transport)
+	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, "signKey", transport)
 
 	recorder := httptest.NewRecorder()
 	handler(recorder, req)
@@ -1507,7 +1552,7 @@ func TestInternalServerErrorOnUserRespFailure(t *testing.T) {
 	} {
 		transport := NewMockTransport(WithUserInfoResponse(test.userResp))
 		store := pkg.NewMultiOrgInMemoryStore()
-		handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, transport)
+		handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, "signKey", transport)
 		recorder := httptest.NewRecorder()
 		handler(recorder, req)
 
@@ -1520,4 +1565,282 @@ func TestInternalServerErrorOnUserRespFailure(t *testing.T) {
 			t.Fatalf("Test #%d: Wanted body containing '%s' got '%s'", i, test.bodySubstr, body)
 		}
 	}
+}
+
+func TestViewerFromInviteLink(t *testing.T) {
+	store := pkg.NewMultiOrgInMemoryStore()
+	inviteClaim := InviteClaim{OrgId: "new-organization"}
+	signKey := "top-secret"
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, inviteClaim)
+	signedToken, err := token.SignedString([]byte(signKey))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cookie := sessions.NewCookieStore([]byte(signKey))
+	req := prepareGoogleCallbackRequest(cookie, func(s *sessions.Session) {
+		s.Values["inviteToken"] = signedToken
+	})
+
+	transport := NewMockTransport()
+	recorder := httptest.NewRecorder()
+	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, signKey, transport)
+	handler(recorder, req)
+
+	if recorder.Code != http.StatusSeeOther {
+		t.Fatalf("Wanted '%d' got '%d'", http.StatusSeeOther, recorder.Code)
+	}
+
+	var user pkg.UserInfo
+	for _, u := range store.Users {
+		user = u
+		break
+	}
+
+	// Confirm that the role of the user was registered
+	if role, ok := user.Roles["new-organization"]; role != pkg.RoleViewer || !ok {
+		t.Fatalf("Expected user to get a role in the provided organization")
+	}
+
+	session, err := cookie.Get(req, AuthSession)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	orgId, ok := session.Values["orgId"].(string)
+	if !ok {
+		t.Fatalf("Could not convert organization into string")
+	}
+
+	if orgId != "new-organization" {
+		t.Fatalf("Expected organization id to be set to the newly created organization got %s", orgId)
+	}
+
+	roles, ok := session.Values["role"].([]byte)
+	if !ok {
+		t.Fatalf("Could not convert role into []byte")
+	}
+
+	var userSession pkg.UserInfo
+	if err := json.Unmarshal(roles, &userSession); err != nil {
+		t.Fatal(err)
+	}
+
+	sessionRole, ok := userSession.Roles["new-organization"]
+	if !ok {
+		t.Fatalf("New organizatation not added in the session user info %v", userSession)
+	}
+	if sessionRole != pkg.RoleViewer {
+		t.Fatalf("Session role is not %d got %d", pkg.RoleViewer, sessionRole)
+	}
+}
+
+func TestBadRequestOnWrongToken(t *testing.T) {
+	store := pkg.NewMultiOrgInMemoryStore()
+	inviteClaim := InviteClaim{OrgId: "new-organization"}
+	signKey := "top-secret"
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, inviteClaim)
+
+	// Sign the token with the wrong key
+	signedToken, err := token.SignedString([]byte("another-signKey"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cookie := sessions.NewCookieStore([]byte(signKey))
+	req := prepareGoogleCallbackRequest(cookie, func(s *sessions.Session) {
+		s.Values["inviteToken"] = signedToken
+	})
+
+	transport := NewMockTransport()
+	recorder := httptest.NewRecorder()
+	handler := HandleGoogleCallback(store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, signKey, transport)
+	handler(recorder, req)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("Wanted '%d' got '%d'", http.StatusSeeOther, recorder.Code)
+	}
+
+	body := recorder.Body.String()
+
+	if !strings.Contains(body, "signature is invalid") {
+		t.Fatalf("Expected body to contain 'signature is invalid' got %s", body)
+	}
+}
+
+func TestInternalServerErrorOnFailingRoleHandling(t *testing.T) {
+	store := pkg.FailingRoleStore{
+		ErrRegisterRole: errors.New("some un expected error occured"),
+	}
+	inviteClaim := InviteClaim{OrgId: "new-organization"}
+	signKey := "top-secret"
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, inviteClaim)
+	signedToken, err := token.SignedString([]byte(signKey))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cookie := sessions.NewCookieStore([]byte(signKey))
+	req := prepareGoogleCallbackRequest(cookie, func(s *sessions.Session) {
+		s.Values["inviteToken"] = signedToken
+	})
+
+	transport := NewMockTransport()
+	recorder := httptest.NewRecorder()
+	handler := HandleGoogleCallback(&store, pkg.NewDefaultConfig().OAuthConfig(), time.Second, signKey, transport)
+	handler(recorder, req)
+
+	if recorder.Code != http.StatusInternalServerError {
+		t.Fatalf("Wanted '%d' got '%d'", http.StatusInternalServerError, recorder.Code)
+	}
+
+	body := recorder.Body.String()
+
+	if !strings.Contains(body, store.ErrRegisterRole.Error()) {
+		t.Fatalf("Wanted body to contain '%s' got '%s'", store.ErrRegisterRole.Error(), body)
+	}
+}
+
+func TestRootHandler(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/", nil)
+	RootHandler(recorder, req)
+	testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+}
+
+func TestOrganizationHandler(t *testing.T) {
+	cookie := sessions.NewCookieStore([]byte("top-secret"))
+	req := httptest.NewRequest("GET", "/organizations", nil)
+	session, err := cookie.Get(req, AuthSession)
+	testutils.AssertNil(t, err)
+
+	user := pkg.UserInfo{
+		Id: "0000-0000",
+		Roles: map[string]pkg.RoleKind{
+			"10": pkg.RoleViewer,
+			"11": pkg.RoleEditor,
+			"51": pkg.RoleAdmin, // Organization does not exist --> should not appear in result
+		},
+	}
+	data, err := json.Marshal(user)
+	testutils.AssertNil(t, err)
+
+	session.Values["role"] = data
+	ctx := context.WithValue(req.Context(), sessionKey, session)
+
+	orgGetter := pkg.NewMultiOrgInMemoryStore()
+	orgGetter.Organizations = []pkg.Organization{
+		{Id: "10", Name: "Organization 1"},
+		{Id: "11", Name: "Organization 2"},
+		{Id: "13", Name: "Organization 2"},
+	}
+
+	handler := OrganizationsHandler(orgGetter, time.Second)
+
+	recorder := httptest.NewRecorder()
+	handler(recorder, req.WithContext(ctx))
+	testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+
+	body := recorder.Body.String() // HTML body
+	tokens := []string{}
+	for _, org := range orgGetter.Organizations[:2] {
+		tokens = append(tokens, org.Id)
+		tokens = append(tokens, org.Name)
+	}
+	testutils.AssertContains(t, body, tokens...)
+}
+
+func TestInviteLinkHandler(t *testing.T) {
+	url := "http://myapp.com"
+	secret := "top-secret"
+	handler := InviteLink(url, secret)
+
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/organizations/1234-431/invite", nil)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("GET /organizations/{id}/invite", handler)
+	mux.ServeHTTP(recorder, request)
+
+	testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+	testutils.AssertEqual(t, recorder.Header()["Content-Type"][0], "application/json")
+
+	body := recorder.Body.String()
+	testutils.AssertContains(t, body, url, "/login?inviteToken=", "invite_link")
+}
+
+func TestOrganizationRegisterFormErrors(t *testing.T) {
+	for _, test := range []struct {
+		body []byte
+		code int
+		desc string
+	}{
+		{
+			body: bytes.Repeat([]byte("a"), 6*1024), // 6 * 1024 = 6144
+			code: http.StatusRequestEntityTooLarge,
+			desc: "Body is too large",
+		},
+		{
+			code: http.StatusBadRequest,
+			desc: "Name missing in form",
+		},
+	} {
+		t.Run(test.desc, func(t *testing.T) {
+			// Create a test HTTP POST request with the body
+			req := httptest.NewRequest(http.MethodPost, "/example", bytes.NewReader(test.body))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+			recorder := httptest.NewRecorder()
+			store := pkg.NewMultiOrgInMemoryStore()
+			handler := OrganizationRegisterHandler(store, time.Second)
+			handler(recorder, req)
+			testutils.AssertEqual(t, recorder.Code, test.code)
+		})
+	}
+}
+
+func TestOrganizationHandlerSuccess(t *testing.T) {
+	functioningStore := pkg.NewMultiOrgInMemoryStore()
+	failStore := pkg.MockIAMStore{
+		ErrRegisterRole: errors.New("an error occured"),
+	}
+
+	for _, test := range []struct {
+		store pkg.IAMStore
+		code  int
+		desc  string
+	}{
+		{
+			store: functioningStore,
+			code:  http.StatusSeeOther,
+			desc:  "Ok request",
+		},
+		{
+			store: &failStore,
+			code:  http.StatusInternalServerError,
+			desc:  "Registering role fails",
+		},
+	} {
+		t.Run(test.desc, func(t *testing.T) {
+			form := url.Values{}
+			form.Add("name", "my organization")
+
+			// Create a new HTTP POST request with form data
+			req := httptest.NewRequest(http.MethodPost, "/submit", strings.NewReader(form.Encode()))
+			req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+
+			cookie := sessions.NewCookieStore([]byte("top-secret"))
+			session, err := cookie.Get(req, AuthSession)
+			testutils.AssertNil(t, err)
+
+			session.Values["userId"] = "0000-0000"
+			ctx := context.WithValue(req.Context(), sessionKey, session)
+
+			recorder := httptest.NewRecorder()
+			handler := OrganizationRegisterHandler(test.store, time.Second)
+			handler(recorder, req.WithContext(ctx))
+			testutils.AssertEqual(t, recorder.Code, test.code)
+		})
+	}
+
 }

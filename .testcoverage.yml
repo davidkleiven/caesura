@@ -36,3 +36,4 @@ exclude:
   paths:
     - ^main.go$
     - ^testutils/.*
+    - ^pkg/failing_iam_store.go$

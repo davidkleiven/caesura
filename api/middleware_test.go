@@ -224,14 +224,14 @@ func TestAccessMiddleware(t *testing.T) {
 			}
 
 			ordId := "orgId"
-			userRoles := pkg.UserRole{
-				UserId: "aaa",
+			userInfos := pkg.UserInfo{
+				Id: "aaa",
 				Roles: map[string]pkg.RoleKind{
 					ordId: test.role,
 				},
 			}
 
-			data, err := json.Marshal(userRoles)
+			data, err := json.Marshal(userInfos)
 			if err != nil {
 				t.Fatal(err)
 			}
