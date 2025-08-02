@@ -21,6 +21,8 @@ var (
 	store  *pkg.MultiOrgInMemoryStore = pkg.NewDemoStore()
 )
 
+const uploadPage = "/upload"
+
 func createSignedInCookie(cookieStore *sessions.CookieStore, url string) playwright.OptionalCookie {
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/", nil)
@@ -146,7 +148,7 @@ func TestInstrumentListIsLoaded(t *testing.T) {
 		if !strings.Contains(text, "Trumpet") {
 			t.Errorf("Expepected to find 'Trumpet' in the instrument list, but got: %s", text)
 		}
-	}, "/")(t)
+	}, uploadPage)(t)
 }
 
 func TestFilterList(t *testing.T) {
@@ -186,7 +188,7 @@ func TestFilterList(t *testing.T) {
 				t.Errorf("Expected to find 'Flute' in the instrument list, but got: %s", text)
 			}
 		}
-	}, "/")(t)
+	}, uploadPage)(t)
 
 }
 
@@ -208,7 +210,7 @@ func TestFieldPopulatedOnClick(t *testing.T) {
 			t.Errorf("Expected to find 'Trumpet' in the chosen instrument, but got: %s", text)
 		}
 
-	}, "/")(t)
+	}, uploadPage)(t)
 }
 
 func loadPdf(page playwright.Page, t *testing.T) func() {
@@ -330,7 +332,7 @@ func TestLoadPdf(t *testing.T) {
 			}
 		}
 
-	}, "/")(t)
+	}, uploadPage)(t)
 }
 
 func TestAssign(t *testing.T) {
@@ -457,7 +459,7 @@ func TestAssign(t *testing.T) {
 				return
 			}
 		}
-	}, "/")(t)
+	}, uploadPage)(t)
 }
 
 func TestJumpToAssignedPage(t *testing.T) {
@@ -483,7 +485,7 @@ func TestJumpToAssignedPage(t *testing.T) {
 			t.Errorf("Expected current page to be '1', but got: %s (err: %v)", currentPage, err)
 			return
 		}
-	}, "/")(t)
+	}, uploadPage)(t)
 }
 
 func TestSubmit(t *testing.T) {
@@ -510,5 +512,5 @@ func TestSubmit(t *testing.T) {
 			return
 		}
 
-	}, "/")(t)
+	}, uploadPage)(t)
 }

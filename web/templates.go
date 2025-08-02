@@ -20,8 +20,8 @@ type ScoreMetaData struct {
 	Title    string
 }
 
-func Index(data *ScoreMetaData) []byte {
-	tmpl := template.Must(template.ParseFS(templatesFS, "templates/index.html", "templates/header.html"))
+func Upload(data *ScoreMetaData) []byte {
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/upload.html", "templates/header.html"))
 	var buf bytes.Buffer
 
 	deps := LoadDependencies().Dependencies
@@ -39,6 +39,14 @@ func Index(data *ScoreMetaData) []byte {
 
 func List() []byte {
 	return utils.Must(templatesFS.ReadFile("templates/list.html"))
+}
+
+func Index() []byte {
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/index.html", "templates/header.html"))
+	var buf bytes.Buffer
+
+	pkg.PanicOnErr(tmpl.Execute(&buf, nil))
+	return buf.Bytes()
 }
 
 func Overview() []byte {
@@ -135,4 +143,12 @@ type ResourceContentData struct {
 func ResourceContent(w io.Writer, data *ResourceContentData) {
 	template := template.Must(template.ParseFS(templatesFS, "templates/resource_content.html"))
 	pkg.PanicOnErr(template.Execute(w, data))
+}
+
+func Organizations(organizations []pkg.Organization) []byte {
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/organizations.html", "templates/header.html"))
+	var buf bytes.Buffer
+
+	pkg.PanicOnErr(tmpl.Execute(&buf, organizations))
+	return buf.Bytes()
 }

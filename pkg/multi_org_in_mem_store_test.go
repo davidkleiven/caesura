@@ -106,7 +106,7 @@ func TestMultiOrgClone(t *testing.T) {
 		},
 		{
 			modifier: func(s *MultiOrgInMemoryStore) {
-				s.Users[0].UserId = "otherId"
+				s.Users[0].Id = "otherId"
 			},
 			desc: "Edit user a user id",
 		},
@@ -140,10 +140,10 @@ func TestMultiOrgClone(t *testing.T) {
 	}
 }
 
-func TestGetRole(t *testing.T) {
+func TestGetUserInfo(t *testing.T) {
 	store := NewDemoStore()
 	ctx := context.Background()
-	user, err := store.GetRole(ctx, "non-existent-id")
+	user, err := store.GetUserInfo(ctx, "non-existent-id")
 	if !errors.Is(err, ErrUserNotFound) {
 		t.Fatalf("Wanted '%s' got '%s'", ErrUserNotFound, err)
 	}
@@ -153,21 +153,21 @@ func TestGetRole(t *testing.T) {
 	}
 
 	userId := "6b2d9876-0bc4-407a-8f76-4fb1ad2a523b"
-	user, err = store.GetRole(ctx, userId)
+	user, err = store.GetUserInfo(ctx, userId)
 	if err != nil {
 		t.Fatalf("User should be found")
 	}
 
-	if user.UserId != userId {
-		t.Fatalf("Wanted '%s' got'%s'", userId, user.UserId)
+	if user.Id != userId {
+		t.Fatalf("Wanted '%s' got'%s'", userId, user.Id)
 	}
 }
 
 func TestRegisterRole(t *testing.T) {
 	store := NewMultiOrgInMemoryStore()
-	store.Users = []UserRole{
+	store.Users = []UserInfo{
 		{
-			UserId: "user1",
+			Id: "user1",
 			Roles: map[string]RoleKind{
 				"org": RoleEditor,
 			},
