@@ -40,6 +40,7 @@ func createSignedInCookie(cookieStore *sessions.CookieStore, url string) playwri
 
 	session.Values["role"] = data
 	session.Values["orgId"] = orgId
+	session.Values["userId"] = userInfo.Id
 	if err := session.Save(request, recorder); err != nil {
 		panic(err)
 	}
