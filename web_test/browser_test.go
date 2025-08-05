@@ -16,9 +16,10 @@ import (
 )
 
 var (
-	server *httptest.Server
-	page   playwright.Page
-	store  *pkg.MultiOrgInMemoryStore = pkg.NewDemoStore()
+	server      *httptest.Server
+	store       = pkg.NewDemoStore()
+	cookieStore = sessions.NewCookieStore([]byte("some-random-key"))
+	browser     playwright.Browser
 )
 
 func createSignedInCookie(cookieStore *sessions.CookieStore, url string) playwright.OptionalCookie {
@@ -66,7 +67,7 @@ func TestMain(m *testing.M) {
 	}
 	defer pw.Stop()
 
-	browser, err := pw.Chromium.Launch()
+	browser, err = pw.Chromium.Launch()
 	if err != nil {
 		fmt.Print(err)
 		os.Exit(failureReturnCode())
@@ -77,35 +78,11 @@ func TestMain(m *testing.M) {
 	config := pkg.NewDefaultConfig()
 
 	// The key must match the store used to get the cookie value
-	cookieStore := sessions.NewCookieStore([]byte("some-random-key"))
 	mux := api.Setup(store, config, cookieStore)
 	server = httptest.NewServer(mux)
 	defer server.Close()
 
 	fmt.Printf("Test server started. url=%s\n", server.URL)
-
-	context, err := browser.NewContext()
-	if err != nil {
-		fmt.Print(err)
-		os.Exit(failureReturnCode())
-	}
-	defer context.Close()
-
-	cookie := createSignedInCookie(cookieStore, server.URL)
-	// Cookie value is obtained by extracting it from TestHandleGoogleLoginCallbackOk
-	// This makes the test behave as one of the signed in users in the demo store
-	err = context.AddCookies([]playwright.OptionalCookie{cookie})
-
-	if err != nil {
-		fmt.Print(err)
-		os.Exit(failureReturnCode())
-	}
-
-	page, err = context.NewPage()
-	if err != nil {
-		fmt.Print(err)
-		os.Exit(failureReturnCode())
-	}
 
 	rcode := m.Run()
 	os.Exit(rcode)
@@ -119,6 +96,24 @@ func withBrowser(testFunc func(t *testing.T, page playwright.Page), path string)
 			store.Organizations = initialStore.Organizations
 			store.Users = initialStore.Users
 		}()
+
+		context, err := browser.NewContext()
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer context.Close()
+
+		cookie := createSignedInCookie(cookieStore, server.URL)
+		err = context.AddCookies([]playwright.OptionalCookie{cookie})
+
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		page, err := context.NewPage()
+		if err != nil {
+			t.Fatal(err)
+		}
 
 		if _, err := page.Goto(server.URL + path); err != nil {
 			t.Fatal(err)
