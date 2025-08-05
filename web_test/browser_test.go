@@ -116,6 +116,10 @@ func withBrowser(testFunc func(t *testing.T, page playwright.Page), path string)
 			t.Fatal(err)
 		}
 
+		page.On("request", func(request playwright.Request) {
+			fmt.Printf("Request: %s %s\n", request.Method(), request.URL())
+		})
+
 		if _, err := page.Goto(server.URL + path); err != nil {
 			t.Fatal(err)
 		}
