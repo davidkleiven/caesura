@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -2042,5 +2043,193 @@ func TestActiveOrganization(t *testing.T) {
 		handler(recorder, req.WithContext(ctx))
 		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
 		testutils.AssertEqual(t, recorder.Body.String(), "No organization")
+	})
+}
+
+func TestPeopleHandler(t *testing.T) {
+	req := httptest.NewRequest("GET", "/endpoint", nil)
+	recorder := httptest.NewRecorder()
+	PeoplePage(recorder, req)
+	testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+}
+
+func TestAllUsers(t *testing.T) {
+	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
+	req := httptest.NewRequest("GET", "/endpoint", nil)
+	session, err := cookieStore.Get(req, AuthSession)
+	testutils.AssertNil(t, err)
+
+	store := pkg.NewMultiOrgInMemoryStore()
+	store.Users = []pkg.UserInfo{
+		{
+			Id:    "1000",
+			Roles: map[string]pkg.RoleKind{"1000": pkg.RoleViewer},
+			Name:  "John",
+		},
+		{
+			Id:   "0000",
+			Name: "Peter",
+			Roles: map[string]pkg.RoleKind{
+				"1000": pkg.RoleAdmin,
+				"2000": pkg.RoleEditor,
+			}},
+	}
+	session.Values["role"] = utils.Must(json.Marshal(store.Users[1]))
+
+	handler := AllUsers(store, time.Second)
+	ctx := context.WithValue(req.Context(), sessionKey, session)
+
+	t.Run("Test admin OK", func(t *testing.T) {
+		session.Values["orgId"] = "1000"
+		recorder := httptest.NewRecorder()
+		handler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+		body := recorder.Body.String()
+		testutils.AssertContains(t, body, "Peter", "John")
+	})
+
+	t.Run("Test reader OK", func(t *testing.T) {
+		session.Values["orgId"] = "2000"
+		recorder := httptest.NewRecorder()
+		handler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+		body := recorder.Body.String()
+		testutils.AssertContains(t, body, "Peter")
+		testutils.AssertNotContains(t, body, "John")
+	})
+
+	failingStore := pkg.MockIAMStore{
+		ErrUserInOrg:   errors.New("user in organization failed"),
+		ErrGetUserInfo: errors.New("get user info error"),
+	}
+
+	failingHandler := AllUsers(&failingStore, time.Second)
+	t.Run("Test failing admin", func(t *testing.T) {
+		session.Values["orgId"] = "1000"
+		recorder := httptest.NewRecorder()
+		failingHandler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusInternalServerError)
+	})
+
+	t.Run("Test failing reader", func(t *testing.T) {
+		session.Values["orgId"] = "2000"
+		recorder := httptest.NewRecorder()
+		failingHandler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusInternalServerError)
+	})
+
+	reqWithQuery := httptest.NewRequest("GET", "/users?name=pe", nil)
+	t.Run("Test admin OK with filter", func(t *testing.T) {
+		session.Values["orgId"] = "1000"
+		recorder := httptest.NewRecorder()
+		handler(recorder, reqWithQuery.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+		body := recorder.Body.String()
+		testutils.AssertContains(t, body, "Peter")
+		testutils.AssertNotContains(t, body, "John")
+	})
+}
+
+func TestAssignRoleHandler(t *testing.T) {
+	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
+	req := httptest.NewRequest("GET", "/endpoint", nil)
+	session, err := cookieStore.Get(req, AuthSession)
+	testutils.AssertNil(t, err)
+
+	store := pkg.NewMultiOrgInMemoryStore()
+	store.Users = []pkg.UserInfo{
+		{
+			Id:    "0000-0001",
+			Roles: map[string]pkg.RoleKind{"1000-0000": pkg.RoleViewer},
+		},
+	}
+	mux := http.NewServeMux()
+
+	handler := AssignRoleHandler(store, time.Second)
+	mux.HandleFunc("POST /organizations/users/{id}/role", handler)
+
+	session.Values["userId"] = "0000-0000"
+	session.Values["orgId"] = "1000-0000"
+	ctx := context.WithValue(req.Context(), sessionKey, session)
+
+	t.Run("test can not alter self", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/organizations/users/0000-0000/role", nil)
+		recorder := httptest.NewRecorder()
+		mux.ServeHTTP(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusForbidden)
+	})
+
+	t.Run("test fail on large body", func(t *testing.T) {
+		buf := bytes.NewReader(bytes.Repeat([]byte("a"), 6000))
+		req := httptest.NewRequest("POST", "/organizations/users/0000-0001/role", buf)
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		recorder := httptest.NewRecorder()
+		mux.ServeHTTP(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusRequestEntityTooLarge)
+	})
+
+	t.Run("test bad request on integer conversion error", func(t *testing.T) {
+		form := url.Values{}
+		form.Set("role", "not an int")
+
+		reader := bytes.NewReader([]byte(form.Encode()))
+		req := httptest.NewRequest("POST", "/organizations/users/0000-0001/role", reader)
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		recorder := httptest.NewRecorder()
+		mux.ServeHTTP(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusBadRequest)
+		body := recorder.Body.String()
+		testutils.AssertContains(t, body, "invalid")
+	})
+
+	for _, test := range []struct {
+		role     int
+		wantRole pkg.RoleKind
+		desc     string
+	}{
+		{
+			role:     1,
+			wantRole: 1,
+			desc:     "Register writer role",
+		},
+		{
+			role:     42,
+			wantRole: 0,
+			desc:     "Role larger than admin, should set to reader",
+		},
+	} {
+		t.Run(test.desc, func(t *testing.T) {
+			form := url.Values{}
+			form.Set("role", strconv.Itoa(test.role))
+			reader := bytes.NewReader([]byte(form.Encode()))
+			req := httptest.NewRequest("POST", "/organizations/users/0000-0001/role", reader)
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+			recorder := httptest.NewRecorder()
+			mux.ServeHTTP(recorder, req.WithContext(ctx))
+			testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+			testutils.AssertEqual(t, store.Users[0].Roles["1000-0000"], test.wantRole)
+		})
+	}
+
+	failingStore := pkg.MockIAMStore{
+		ErrRegisterRole: errors.New("something went wrong"),
+	}
+
+	failingHandler := AssignRoleHandler(&failingStore, time.Second)
+	t.Run("test registration fails", func(t *testing.T) {
+		form := url.Values{}
+		form.Set("role", "1")
+		reader := bytes.NewReader([]byte(form.Encode()))
+		req := httptest.NewRequest("POST", "/organizations/users/0000-0001/role", reader)
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recorder := httptest.NewRecorder()
+		failingHandler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusInternalServerError)
+		body := recorder.Body.String()
+		testutils.AssertContains(t, body, "register new role")
+
 	})
 }
