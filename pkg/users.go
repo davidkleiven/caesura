@@ -16,6 +16,7 @@ type UserInfo struct {
 	VerifiedEmail bool                `json:"verified_email,omitempty"`
 	Name          string              `json:"name,omitempty"`
 	Roles         map[string]RoleKind `json:"roles,omitempty"`
+	Groups        map[string][]string `json:"groups,omitempty"`
 }
 
 func (u *UserInfo) UnmarshalJSON(data []byte) error {
@@ -33,11 +34,15 @@ func (u *UserInfo) UnmarshalJSON(data []byte) error {
 	if u.Roles == nil {
 		u.Roles = make(map[string]RoleKind)
 	}
+
+	if u.Groups == nil {
+		u.Groups = make(map[string][]string)
+	}
 	return nil
 }
 
 func NewUserInfo() *UserInfo {
-	return &UserInfo{Roles: make(map[string]RoleKind)}
+	return &UserInfo{Roles: make(map[string]RoleKind), Groups: make(map[string][]string)}
 }
 
 type Organization struct {
@@ -229,6 +234,7 @@ func PopulateSessionWithRoles(session *sessions.Session, userInfo *UserInfo) {
 	userInfo.Email = ""
 	userInfo.Name = ""
 	userInfo.VerifiedEmail = false
+	userInfo.Groups = nil
 
 	userInfoJson := utils.Must(json.Marshal(userInfo))
 	session.Values["role"] = userInfoJson
