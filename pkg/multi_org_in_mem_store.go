@@ -233,6 +233,16 @@ func (m *MultiOrgInMemoryStore) DeleteOrganization(ctx context.Context, orgId st
 	return nil
 }
 
+func (m *MultiOrgInMemoryStore) GetUsersInOrg(ctx context.Context, orgId string) ([]UserInfo, error) {
+	result := make([]UserInfo, 0, len(m.Users))
+	for _, user := range m.Users {
+		if _, ok := user.Roles[orgId]; ok {
+			result = append(result, user)
+		}
+	}
+	return result, nil
+}
+
 func NewMultiOrgInMemoryStore() *MultiOrgInMemoryStore {
 	return &MultiOrgInMemoryStore{
 		Data:          make(map[string]InMemoryStore),

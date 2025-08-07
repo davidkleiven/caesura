@@ -71,6 +71,10 @@ type RoleRegisterer interface {
 	RegisterRole(ctx context.Context, userId string, organizationId string, role RoleKind) error
 }
 
+type UserInOrgGetter interface {
+	GetUsersInOrg(ctx context.Context, orgId string) ([]UserInfo, error)
+}
+
 type RoleStore interface {
 	RoleGetter
 	RoleRegisterer
@@ -89,15 +93,22 @@ type OrganizationDeleter interface {
 	DeleteOrganization(ctx context.Context, orgId string) error
 }
 
+type UserGetter interface {
+	UserInOrgGetter
+	RoleGetter
+}
+
 type OrganizationStore interface {
 	OrganizationGetter
 	OrganizationRegisterer
 	OrganizationDeleter
+	UserInOrgGetter
 }
 
 type IAMStore interface {
 	RoleStore
 	OrganizationStore
+	UserGetter
 }
 
 func GetUserOrRegisterNewUser(store RoleStore, ctx context.Context, info *UserInfo) (*UserInfo, error) {
