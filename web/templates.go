@@ -5,6 +5,7 @@ import (
 	"embed"
 	"html/template"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
@@ -161,4 +162,58 @@ func WriteOrganizationHTML(w io.Writer, organizations []pkg.Organization) {
 		Organizations: organizations,
 	}
 	pkg.PanicOnErr(tmpl.ExecuteTemplate(w, "orgList", data))
+}
+
+func WritePeopleHTML(w io.Writer) {
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/people.html", "templates/header.html"))
+	pkg.PanicOnErr(tmpl.Execute(w, LoadDependencies()))
+}
+
+type userListViewObj struct {
+	Id     string
+	Name   string
+	Email  string
+	Roles  []pkg.RoleKind
+	Groups string
+}
+
+func WriteUserList(w io.Writer, users []pkg.UserInfo, orgId string) {
+	tmpl := template.Must(
+		template.New("userList").Funcs(template.FuncMap{
+			"getRoleName": getRoleName,
+		}).ParseFS(templatesFS, "templates/user_list.html"),
+	)
+	viewObj := make([]userListViewObj, len(users))
+
+	roleOpts := map[pkg.RoleKind][]pkg.RoleKind{
+		pkg.RoleViewer: {pkg.RoleViewer, pkg.RoleEditor, pkg.RoleAdmin},
+		pkg.RoleEditor: {pkg.RoleEditor, pkg.RoleAdmin, pkg.RoleViewer},
+		pkg.RoleAdmin:  {pkg.RoleAdmin, pkg.RoleViewer, pkg.RoleEditor},
+	}
+
+	for i, u := range users {
+		groups := strings.Join(u.Groups[orgId], ", ")
+		viewObj[i] = userListViewObj{
+			Id:     u.Id,
+			Email:  u.Email,
+			Name:   u.Name,
+			Roles:  roleOpts[u.Roles[orgId]],
+			Groups: groups,
+		}
+	}
+
+	pkg.PanicOnErr(tmpl.ExecuteTemplate(w, "userList", viewObj))
+}
+
+func getRoleName(r pkg.RoleKind) string {
+	switch r {
+	case pkg.RoleViewer:
+		return "Viewer"
+	case pkg.RoleEditor:
+		return "Editor"
+	case pkg.RoleAdmin:
+		return "Admin"
+	default:
+		return ""
+	}
 }

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,8 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
@@ -738,6 +741,104 @@ func ActiveOrganization(getter pkg.OrganizationGetter, timeout time.Duration) ht
 	}
 }
 
+func AllUsers(store pkg.UserGetter, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		filter := r.URL.Query().Get("name")
+		session := MustGetSession(r)
+		orgId := MustGetOrgId(session)
+		userInfo := MustGetUserInfo(session)
+		role := userInfo.Roles[orgId]
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		var (
+			users []pkg.UserInfo
+			err   error
+		)
+		if role == pkg.RoleAdmin {
+			// Admins gets a list of all users
+			users, err = store.GetUsersInOrg(ctx, orgId)
+			if err != nil {
+				http.Error(w, "Error when fething users "+err.Error(), http.StatusInternalServerError)
+				slog.Error("Error when fething users ", "error", err, "host", r.Host)
+				return
+			}
+		} else {
+			// Other just gets information about themselves
+			userInfoFromStore, err := store.GetUserInfo(ctx, userInfo.Id)
+			if err != nil {
+				http.Error(w, "Could not fetch user info: "+err.Error(), http.StatusInternalServerError)
+				slog.Error("Could not fetch user info", "error", err, "host", r.Host, "userId", userInfo.Id)
+				return
+			}
+			users = append(users, *userInfoFromStore)
+		}
+
+		if filter != "" {
+			users = slices.DeleteFunc(users, func(u pkg.UserInfo) bool {
+				email := strings.ToLower(u.Email)
+				name := strings.ToLower(u.Name)
+				lowerFilter := strings.ToLower(filter)
+				return !strings.Contains(email, lowerFilter) && !strings.Contains(name, lowerFilter)
+			})
+		}
+		slices.SortStableFunc(users, func(a, b pkg.UserInfo) int {
+			return cmp.Compare(a.Name, b.Name)
+		})
+		web.WriteUserList(w, users, orgId)
+	}
+}
+
+func PeoplePage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	web.WritePeopleHTML(w)
+}
+
+func AssignRoleHandler(store pkg.RoleRegisterer, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		session := MustGetSession(r)
+		userId := MustGetUserId(session)
+		orgId := MustGetOrgId(session)
+		userIdFromPath := r.PathValue("id")
+		if userId == userIdFromPath {
+			http.Error(w, "It is not possible to change your own role", http.StatusForbidden)
+			slog.Info("User tried to change his own role", "host", r.Host)
+			return
+		}
+
+		r.Body = http.MaxBytesReader(w, r.Body, 4096)
+		code, err := parseForm(r)
+		if err != nil {
+			http.Error(w, err.Error(), code)
+			slog.Error("Failed to parse form", "error", err, "host", r.Host)
+			return
+		}
+
+		role, err := strconv.Atoi(r.FormValue("role"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			slog.Error("Could not convert role into int", "error", err, "host", r.Host)
+			return
+		}
+		if role > pkg.RoleAdmin {
+			role = pkg.RoleViewer
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		err = store.RegisterRole(ctx, userIdFromPath, orgId, pkg.RoleKind(role))
+		if err != nil {
+			http.Error(w, "Failed to register new role: "+err.Error(), http.StatusInternalServerError)
+			slog.Error("Failed to register new role", "error", err, "userId", userId, "targetUser", userIdFromPath, "orgId", orgId)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Successfully upgraded role for user"))
+	}
+}
+
 func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
 	readRoute := RequireRead(cookieStore)
 	writeRoute := RequireWrite(cookieStore)
@@ -784,7 +885,11 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("GET /organizations/{id}/invite", adminRoute(InviteLink(config.BaseURL, config.CookieSecretSignKey)))
 	mux.Handle("GET /organizations/options", userInfoRoute(OptionsFromSessionHandler(store, config.Timeout)))
 	mux.Handle("GET /organizations/active/session", userInfoRoute(http.HandlerFunc(ChosenOrganizationSessionHandler)))
+	mux.Handle("GET /organizations/users", requireAuthSession(AllUsers(store, config.Timeout)))
 
 	mux.Handle("GET /session/active-organization/name", requireAuthSession(ActiveOrganization(store, config.Timeout)))
+	mux.Handle("POST /organizations/users/{id}/role", adminRoute(AssignRoleHandler(store, config.Timeout)))
+
+	mux.HandleFunc("GET /people", PeoplePage)
 	return mux
 }

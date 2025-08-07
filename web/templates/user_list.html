@@ -1,0 +1,21 @@
+{{ define "userList" }}
+{{range .}}
+<tr id="{{ .Id }}" class="hover:bg-gray-50">
+    <td class="px-4 py-3">{{.Name}}</td>
+    <td class="px-4 py-3">{{.Email}}</td>
+    <td class="px-4 py-3">
+        <select id="role-select-{{.Id}}" hx-post="/organizations/users/{{.Id}}/role"
+            hx-trigger="change" hx-swap="none"
+            hx-on::401="alert('Unauthorized: only admins can change roles')"
+            hx-on::403="alert('Forbidden: you can not change your own role')"
+            name="role"
+            >
+            {{ range .Roles }}
+            <option value="{{.}}">{{getRoleName .}}</option>
+            {{end}}
+        </select>
+    </td>
+    <td class="px-4 py-3">{{.Groups}}</td>
+</tr>
+{{end}}
+{{end}}

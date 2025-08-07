@@ -159,3 +159,31 @@ func TestIndex(t *testing.T) {
 	index := string(Index())
 	testutils.AssertContains(t, index, "</body>")
 }
+
+func TestPeopleHtml(t *testing.T) {
+	var buf bytes.Buffer
+	WritePeopleHTML(&buf)
+	testutils.AssertContains(t, buf.String(), "</body>")
+}
+
+func TestWriteUserList(t *testing.T) {
+	var buf bytes.Buffer
+	orgId := "0000-0000-org-id"
+	users := []pkg.UserInfo{
+		{
+			Name:  "Peter",
+			Roles: map[string]pkg.RoleKind{orgId: 0},
+		},
+		{
+			Name:  "John",
+			Roles: map[string]pkg.RoleKind{orgId: 1},
+		},
+		{
+			Name:  "Susan",
+			Roles: map[string]pkg.RoleKind{orgId: 2},
+		},
+	}
+
+	WriteUserList(&buf, users, orgId)
+	testutils.AssertContains(t, buf.String(), "Peter", "John", "Susan")
+}
