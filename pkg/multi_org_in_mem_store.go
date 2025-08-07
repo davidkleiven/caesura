@@ -40,11 +40,17 @@ func NewDemoStore() *MultiOrgInMemoryStore {
 				"9eab9a97-06a3-42a7-ae1e-7c67df5cbec7": RoleViewer,
 				"cccc13f9-ddd5-489e-bd77-3b935b457f71": RoleAdmin,
 			},
+			Groups: map[string][]string{
+				"cccc13f9-ddd5-489e-bd77-3b935b457f71": {"Alto"},
+			},
 		},
 		{
 			Id: "6b2d9876-0bc4-407a-8f76-4fb1ad2a523b",
 			Roles: map[string]RoleKind{
 				"cccc13f9-ddd5-489e-bd77-3b935b457f71": RoleEditor,
+			},
+			Groups: map[string][]string{
+				"cccc13f9-ddd5-489e-bd77-3b935b457f71": {"Tenor", "Bass"},
 			},
 		},
 	}

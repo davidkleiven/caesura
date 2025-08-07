@@ -129,6 +129,17 @@ func TestMultiOrgClone(t *testing.T) {
 			},
 			desc: "Edit organization",
 		},
+		{
+			modifier: func(s *MultiOrgInMemoryStore) {
+				var orgId string
+				for k := range s.Users[0].Roles {
+					orgId = k
+					break
+				}
+				s.Users[0].Groups[orgId] = append(s.Users[0].Groups[orgId], "Flute")
+			},
+			desc: "Edit groups",
+		},
 	} {
 		t.Run(test.desc, func(t *testing.T) {
 			store := NewDemoStore()
