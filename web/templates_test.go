@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
+	"github.com/davidkleiven/caesura/testutils"
 )
 
-func TestIndex(t *testing.T) {
+func TestUpload(t *testing.T) {
 	index := Upload(&ScoreMetaData{})
 
 	if !bytes.Contains(index, []byte("Caesura</div>")) {
@@ -126,4 +127,35 @@ func TestProjectContent(t *testing.T) {
 			t.Errorf("Expected project content to contain '%s', but it did not", exp)
 		}
 	}
+}
+
+func TestResourceContent(t *testing.T) {
+	var buf bytes.Buffer
+	data := ResourceContentData{
+		ResourceId: "resource-id",
+		Filenames:  []string{"file.pdf", "file2.pdf"},
+	}
+
+	ResourceContent(&buf, &data)
+	testutils.AssertContains(t, buf.String(), "resource-id", "file.pdf", "file2.pdf")
+}
+
+func TestOrganizations(t *testing.T) {
+	content := Organizations()
+	testutils.AssertContains(t, string(content), "</body>")
+}
+
+func TestOrganizationsList(t *testing.T) {
+	var buf bytes.Buffer
+	organizations := []pkg.Organization{
+		{Name: "Org1"}, {Name: "Org2"},
+	}
+
+	WriteOrganizationHTML(&buf, organizations)
+	testutils.AssertContains(t, buf.String(), "Org1", "Org2")
+}
+
+func TestIndex(t *testing.T) {
+	index := string(Index())
+	testutils.AssertContains(t, index, "</body>")
 }
