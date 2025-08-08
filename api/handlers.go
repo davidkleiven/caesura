@@ -839,6 +839,44 @@ func AssignRoleHandler(store pkg.RoleRegisterer, timeout time.Duration) http.Han
 	}
 }
 
+func RegisterRecipent(store pkg.IAMStore, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		sessions := MustGetSession(r)
+		orgId := MustGetOrgId(sessions)
+
+		r.Body = http.MaxBytesReader(w, r.Body, 4096)
+		code, err := parseForm(r)
+		if err != nil {
+			http.Error(w, err.Error(), code)
+			slog.Error("Failed to parse form", "error", err, "host", r.Host)
+			return
+		}
+
+		user := pkg.UserInfo{
+			Id:    pkg.RandomInsecureID(32),
+			Name:  r.FormValue("name"),
+			Email: r.FormValue("email"),
+			Groups: map[string][]string{
+				orgId: {r.FormValue("group")},
+			},
+			Roles: map[string]pkg.RoleKind{orgId: pkg.RoleViewer},
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		if err := store.RegisterUser(ctx, &user); err != nil {
+			http.Error(w, "Failed to register recipent "+err.Error(), http.StatusInternalServerError)
+			slog.Error("Failed to register recipent", "error", err, "host", r.Host, "orgId", orgId)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte("Successfully registered new recipent"))
+	}
+}
+
 func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
 	readRoute := RequireRead(cookieStore)
 	writeRoute := RequireWrite(cookieStore)
@@ -886,6 +924,7 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("GET /organizations/options", userInfoRoute(OptionsFromSessionHandler(store, config.Timeout)))
 	mux.Handle("GET /organizations/active/session", userInfoRoute(http.HandlerFunc(ChosenOrganizationSessionHandler)))
 	mux.Handle("GET /organizations/users", requireAuthSession(AllUsers(store, config.Timeout)))
+	mux.Handle("POST /organizations/recipent", adminRoute(RegisterRecipent(store, config.Timeout)))
 
 	mux.Handle("GET /session/active-organization/name", requireAuthSession(ActiveOrganization(store, config.Timeout)))
 	mux.Handle("POST /organizations/users/{id}/role", adminRoute(AssignRoleHandler(store, config.Timeout)))

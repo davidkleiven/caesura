@@ -2233,3 +2233,55 @@ func TestAssignRoleHandler(t *testing.T) {
 
 	})
 }
+
+func TestRegisterRecipent(t *testing.T) {
+	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
+
+	form := url.Values{}
+	form.Set("name", "john")
+	form.Set("email", "john@gmail.com")
+	form.Set("group", "tenor")
+
+	formReader := bytes.NewReader([]byte(form.Encode()))
+	req := httptest.NewRequest("POST", "/endpoint", formReader)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	session, err := cookieStore.Get(req, AuthSession)
+	session.Values["orgId"] = "0000-0000"
+	testutils.AssertNil(t, err)
+
+	store := pkg.NewMultiOrgInMemoryStore()
+	ctx := context.WithValue(req.Context(), sessionKey, session)
+
+	handler := RegisterRecipent(store, time.Second)
+	t.Run("test register user", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		handler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+		testutils.AssertEqual(t, len(store.Users), 1)
+		testutils.AssertEqual(t, store.Users[0].Roles["0000-0000"], pkg.RoleViewer)
+	})
+
+	t.Run("test fail on too large", func(t *testing.T) {
+		data := bytes.Repeat([]byte("a"), 6000)
+		buf := bytes.NewBuffer(data)
+		largeReq := httptest.NewRequest("POST", "/endpoint", buf)
+		largeReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		recorder := httptest.NewRecorder()
+		handler(recorder, largeReq.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusRequestEntityTooLarge)
+	})
+
+	failing := pkg.MockIAMStore{
+		ErrRegisterUser: errors.New("something went wrong"),
+	}
+
+	failingHandler := RegisterRecipent(&failing, time.Second)
+	t.Run("test register user fails", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		failingHandler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusInternalServerError)
+		testutils.AssertContains(t, recorder.Body.String(), "register recipent")
+	})
+}
