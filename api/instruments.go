@@ -2,20 +2,11 @@ package api
 
 import "github.com/davidkleiven/caesura/pkg"
 
-var saxophones = []string{
-	"Soprano Saxophone",
-	"Alto Saxophone",
-	"Tenor Saxophone",
-	"Baritone Saxophone",
-	"Bass Saxophone",
-}
-
 var brass = []string{
-	"Piccolo Trumpet",
 	"Trumpet",
-	"Cornet Eb",
 	"Cornet",
 	"Baritone",
+	"Horn",
 	"Euphonium",
 	"Trombone",
 	"Tuba",
@@ -29,12 +20,8 @@ var choir = []string{
 }
 
 var percussion = []string{
-	"Cymbals",
-	"Drum kit",
-	"Marimba",
 	"Percussion",
-	"Vibraphone",
-	"Xylophone",
+	"Melodic percussion",
 }
 
 var stringInstruments = []string{
@@ -44,40 +31,24 @@ var stringInstruments = []string{
 	"Contrabass",
 }
 
-var clarinets = []string{
-	"Eb Clarinet",
+var reeds = []string{
+	"Saxophone",
 	"Clarinet",
-	"Alto Clarinet",
-	"Bass Clarinet",
-}
-
-var otherReeds = []string{
 	"Oboe",
 	"Basoon",
-}
-
-var flutes = []string{
-	"Piccolo",
 	"Flute",
-	"Alto Flute",
-	"Bass Flute",
 }
 
 var conductor = []string{
 	"Conductor",
-	"Score",
-	"Partitura",
 }
 
 func allInstruments() []string {
 	var allInstruments []string
-	allInstruments = append(allInstruments, clarinets...)
+	allInstruments = append(allInstruments, reeds...)
 	allInstruments = append(allInstruments, brass...)
-	allInstruments = append(allInstruments, saxophones...)
 	allInstruments = append(allInstruments, choir...)
-	allInstruments = append(allInstruments, flutes...)
 	allInstruments = append(allInstruments, stringInstruments...)
-	allInstruments = append(allInstruments, otherReeds...)
 	allInstruments = append(allInstruments, percussion...)
 	allInstruments = append(allInstruments, conductor...)
 	return allInstruments
