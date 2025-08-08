@@ -249,7 +249,7 @@ func loadPdf(page playwright.Page, t *testing.T) func() {
 }
 
 func assignPage(page playwright.Page, t *testing.T) {
-	score := page.Locator("li:text('Score')").First()
+	score := page.Locator("li:text('Conductor')").First()
 	if err := score.Click(); err != nil {
 		t.Error(err)
 		return
@@ -367,14 +367,14 @@ func TestAssign(t *testing.T) {
 		}
 
 		// Trigger population of the chosen instrument field
-		trumpetElement := page.Locator("li:text('Piccolo Trumpet')").First()
+		trumpetElement := page.Locator("li:text('Trumpet')").First()
 		if err := trumpetElement.Click(); err != nil {
 			t.Error(err)
 			return
 		}
 
-		if txt, err := page.Locator("#chosen-instrument").TextContent(); txt != "Piccolo Trumpet" || err != nil {
-			t.Errorf("Expected chosen instrument to be 'Piccolo Trumpet', but got: %s (err: %v)", txt, err)
+		if txt, err := page.Locator("#chosen-instrument").TextContent(); txt != "Trumpet" || err != nil {
+			t.Errorf("Expected chosen instrument to be 'Trumpet', but got: %s (err: %v)", txt, err)
 			return
 		}
 
@@ -390,19 +390,19 @@ func TestAssign(t *testing.T) {
 			assignButton.Click()
 
 			// Confirm that there is an element with id "trumpet"
-			trumpetElementAssignment := page.Locator("#piccolotrumpet")
+			trumpetElementAssignment := page.Locator("#trumpet")
 			if exists, err := trumpetElementAssignment.Count(); err != nil || exists != 1 {
 				t.Errorf("Click %d: Err %v number of occurences of #trumpet: %d", i, err, exists)
 				return
 			}
 
-			if txt, err := page.Locator("#piccolotrumpet-from").TextContent(); err != nil || txt != expect.from {
-				t.Errorf("Click %d: Expected #piccolotrumpet-from to be '%s', but got: %s (err: %v)", i, expect.to, txt, err)
+			if txt, err := page.Locator("#trumpet-from").TextContent(); err != nil || txt != expect.from {
+				t.Errorf("Click %d: Expected #trumpet-from to be '%s', but got: %s (err: %v)", i, expect.to, txt, err)
 				return
 			}
 
-			if txt, err := page.Locator("#piccolotrumpet-to").TextContent(); err != nil || txt != expect.to {
-				t.Errorf("Click %d: Expected #piccolotrumpet-to to be '%s', but got: %s (err: %v)", i, expect.to, txt, err)
+			if txt, err := page.Locator("#trumpet-to").TextContent(); err != nil || txt != expect.to {
+				t.Errorf("Click %d: Expected #trumpet-to to be '%s', but got: %s (err: %v)", i, expect.to, txt, err)
 				return
 			}
 		}
@@ -414,12 +414,12 @@ func TestAssign(t *testing.T) {
 		}
 
 		// Check that assignment tab is deleted when clocking it
-		if err := page.Locator("#piccolotrumpet").Click(); err != nil {
+		if err := page.Locator("#trumpet").Click(); err != nil {
 			t.Error(err)
 			return
 		}
-		if exists, err := page.Locator("#piccolotrumpet").Count(); err != nil || exists != 0 {
-			t.Errorf("Expected #piccolotrumpet to be deleted, but it still exists (count: %d, err: %v)", exists, err)
+		if exists, err := page.Locator("#trumpet").Count(); err != nil || exists != 0 {
+			t.Errorf("Expected #trumpet to be deleted, but it still exists (count: %d, err: %v)", exists, err)
 			return
 		}
 
@@ -450,8 +450,8 @@ func TestAssign(t *testing.T) {
 			check.preAction()
 			alertTriggered = false
 			assignButton.Click()
-			if num, err := page.Locator("#piccolotrumpet1brasspart").Count(); err != nil || num != 1 {
-				t.Errorf("Click #%d: Expected #piccolotrumpet1brasspart to be created, but it does not exist (count: %d, err: %v)", i, num, err)
+			if num, err := page.Locator("#trumpet1brasspart").Count(); err != nil || num != 1 {
+				t.Errorf("Click #%d: Expected #trumpet1brasspart to be created, but it does not exist (count: %d, err: %v)", i, num, err)
 				return
 			}
 
@@ -460,12 +460,12 @@ func TestAssign(t *testing.T) {
 				return
 			}
 
-			if txt, err := page.Locator("#piccolotrumpet1brasspart-from").TextContent(); err != nil || txt != check.from {
-				t.Errorf("Click #%d: Expected #piccolotrumpet1brasspart-from to be '%s', but got: %s (err: %v)", i, check.from, txt, err)
+			if txt, err := page.Locator("#trumpet1brasspart-from").TextContent(); err != nil || txt != check.from {
+				t.Errorf("Click #%d: Expected #trumpet1brasspart-from to be '%s', but got: %s (err: %v)", i, check.from, txt, err)
 				return
 			}
-			if txt, err := page.Locator("#piccolotrumpet1brasspart-to").TextContent(); err != nil || txt != check.to {
-				t.Errorf("Click #%d: Expected #piccolotrumpet1brasspart-to to be '%s', but got: %s (err: %v)", i, check.to, txt, err)
+			if txt, err := page.Locator("#trumpet1brasspart-to").TextContent(); err != nil || txt != check.to {
+				t.Errorf("Click #%d: Expected #trumpet1brasspart-to to be '%s', but got: %s (err: %v)", i, check.to, txt, err)
 				return
 			}
 		}
@@ -477,7 +477,7 @@ func TestJumpToAssignedPage(t *testing.T) {
 		deletePdf := loadPdf(page, t)
 		defer deletePdf()
 
-		score := page.Locator("li:text('Score')").First()
+		score := page.Locator("li:text('Conductor')").First()
 		if err := score.Click(); err != nil {
 			t.Error(err)
 			return
@@ -485,7 +485,7 @@ func TestJumpToAssignedPage(t *testing.T) {
 		assignPage(page, t)
 		pageNum := page.Locator("#page-num")
 
-		if err := page.Locator("#score").Click(); err != nil {
+		if err := page.Locator("#conductor").Click(); err != nil {
 			t.Error(err)
 			return
 		}
