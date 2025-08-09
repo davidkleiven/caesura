@@ -170,18 +170,19 @@ func WritePeopleHTML(w io.Writer) {
 }
 
 type userListViewObj struct {
-	Id     string
-	Name   string
-	Email  string
-	Roles  []pkg.RoleKind
-	Groups string
+	Id        string
+	Name      string
+	Email     string
+	Roles     []pkg.RoleKind
+	Groups    string
+	GroupOpts []Option
 }
 
-func WriteUserList(w io.Writer, users []pkg.UserInfo, orgId string) {
+func WriteUserList(w io.Writer, users []pkg.UserInfo, orgId string, groupOpts []string) {
 	tmpl := template.Must(
 		template.New("userList").Funcs(template.FuncMap{
 			"getRoleName": getRoleName,
-		}).ParseFS(templatesFS, "templates/user_list.html"),
+		}).ParseFS(templatesFS, "templates/user_list.html", "templates/options.html"),
 	)
 	viewObj := make([]userListViewObj, len(users))
 
@@ -191,14 +192,21 @@ func WriteUserList(w io.Writer, users []pkg.UserInfo, orgId string) {
 		pkg.RoleAdmin:  {pkg.RoleAdmin, pkg.RoleViewer, pkg.RoleEditor},
 	}
 
+	opts := make([]Option, len(groupOpts))
+	for i, g := range groupOpts {
+		opts[i].Value = g
+		opts[i].Name = g
+	}
+
 	for i, u := range users {
 		groups := strings.Join(u.Groups[orgId], ", ")
 		viewObj[i] = userListViewObj{
-			Id:     u.Id,
-			Email:  u.Email,
-			Name:   u.Name,
-			Roles:  roleOpts[u.Roles[orgId]],
-			Groups: groups,
+			Id:        u.Id,
+			Email:     u.Email,
+			Name:      u.Name,
+			Roles:     roleOpts[u.Roles[orgId]],
+			Groups:    groups,
+			GroupOpts: opts,
 		}
 	}
 

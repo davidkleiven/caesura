@@ -792,7 +792,10 @@ func AllUsers(store pkg.UserGetter, timeout time.Duration) http.HandlerFunc {
 		slices.SortStableFunc(users, func(a, b pkg.UserInfo) int {
 			return cmp.Compare(a.Name, b.Name)
 		})
-		web.WriteUserList(w, users, orgId)
+
+		groups := allInstruments()
+		slices.Sort(groups)
+		web.WriteUserList(w, users, orgId, append([]string{"-- Add to group --"}, groups...))
 	}
 }
 
@@ -908,7 +911,50 @@ func DeleteUserFromOrg(store pkg.DeleteRole, timeout time.Duration) http.Handler
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte("Successfully deleted user"))
 	}
+}
 
+func GroupHandler(store pkg.GroupStore, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 4096)
+
+		code, err := parseForm(r)
+		if err != nil {
+			http.Error(w, err.Error(), code)
+			slog.Error("Failed to parse form", "error", err)
+			return
+		}
+
+		session := MustGetSession(r)
+		orgId := MustGetOrgId(session)
+		userInfo := MustGetUserInfo(session)
+		role := userInfo.Roles[orgId]
+		userIdFromPath := r.PathValue("id")
+		if role < pkg.RoleAdmin && userIdFromPath != userInfo.Id {
+			http.Error(w, "Only admins can edit groups of others", http.StatusUnauthorized)
+			slog.Warn("Non-admin tried to edit group of another user", "orgId", orgId, "userId", userInfo.Id, "host", r.Host)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		switch r.Method {
+		case http.MethodPost:
+			group := r.FormValue("group")
+			err = store.RegisterGroup(ctx, userIdFromPath, orgId, group)
+		case http.MethodDelete:
+			group := r.URL.Query().Get("group")
+			err = store.RemoveGroup(ctx, userIdFromPath, orgId, group)
+		}
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			slog.Error("Failed to edit group", "error", err, "orgId", orgId, "userId", userInfo.Id, "host", r.Host, "targetUser", userIdFromPath)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Successfully edited group"))
+	}
 }
 
 func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
@@ -960,9 +1006,10 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("GET /organizations/users", requireAuthSession(AllUsers(store, config.Timeout)))
 	mux.Handle("DELETE /organizations/users/{id}", adminRoute(DeleteUserFromOrg(store, config.Timeout)))
 	mux.Handle("POST /organizations/recipent", adminRoute(RegisterRecipent(store, config.Timeout)))
+	mux.Handle("POST /organizations/users/{id}/groups", readRoute(GroupHandler(store, config.Timeout)))
+	mux.Handle("DELETE /organizations/users/{id}/groups", readRoute(GroupHandler(store, config.Timeout)))
 
 	mux.Handle("GET /session/active-organization/name", requireAuthSession(ActiveOrganization(store, config.Timeout)))
-	mux.Handle("POST /organizations/users/{id}/role", adminRoute(AssignRoleHandler(store, config.Timeout)))
 
 	mux.HandleFunc("GET /people", PeoplePage)
 	return mux

@@ -103,6 +103,11 @@ type UserGetter interface {
 	RoleGetter
 }
 
+type GroupStore interface {
+	RegisterGroup(ctx context.Context, userId, orgId, group string) error
+	RemoveGroup(ctx context.Context, userId, orgId, group string) error
+}
+
 type OrganizationStore interface {
 	OrganizationGetter
 	OrganizationRegisterer
@@ -114,6 +119,7 @@ type IAMStore interface {
 	RoleStore
 	OrganizationStore
 	UserGetter
+	GroupStore
 }
 
 func GetUserOrRegisterNewUser(store RoleStore, ctx context.Context, info *UserInfo) (*UserInfo, error) {

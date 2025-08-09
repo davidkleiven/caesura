@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"time"
 
 	"github.com/davidkleiven/caesura/utils"
@@ -247,6 +248,32 @@ func (m *MultiOrgInMemoryStore) DeleteRole(ctx context.Context, userId, orgId st
 	for i, u := range m.Users {
 		if u.Id == userId {
 			delete(m.Users[i].Roles, orgId)
+		}
+	}
+	return nil
+}
+
+func (m *MultiOrgInMemoryStore) RegisterGroup(ctx context.Context, userId, orgId, group string) error {
+	for i, u := range m.Users {
+		if u.Id == userId {
+			_, exists := m.Users[i].Groups[orgId]
+			if exists {
+				m.Users[i].Groups[orgId] = append(m.Users[i].Groups[orgId], group)
+			} else {
+				m.Users[i].Groups[orgId] = []string{group}
+			}
+		}
+	}
+	return nil
+}
+
+func (m *MultiOrgInMemoryStore) RemoveGroup(ctx context.Context, userId, orgId, group string) error {
+	for i, u := range m.Users {
+		if u.Id == userId {
+			groups, ok := u.Groups[orgId]
+			if ok {
+				m.Users[i].Groups[orgId] = slices.DeleteFunc(groups, func(item string) bool { return item == group })
+			}
 		}
 	}
 	return nil

@@ -184,7 +184,7 @@ func TestWriteUserList(t *testing.T) {
 		},
 	}
 
-	WriteUserList(&buf, users, orgId)
+	WriteUserList(&buf, users, orgId, []string{"opt A", "opt B"})
 	testutils.AssertContains(t, buf.String(), "Peter", "John", "Susan")
 }
 

@@ -13,6 +13,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"testing"
@@ -2342,5 +2343,100 @@ func TestDeleteRole(t *testing.T) {
 		failingHandler(recorder, req.WithContext(ctx))
 		testutils.AssertEqual(t, recorder.Code, http.StatusInternalServerError)
 		testutils.AssertContains(t, recorder.Body.String(), "delete role")
+	})
+}
+
+func TestGroupHandler(t *testing.T) {
+	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
+
+	form := url.Values{}
+	form.Set("group", "Alto")
+	req := httptest.NewRequest("POST", "/organizations/users/0000/groups", bytes.NewReader([]byte(form.Encode())))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	session, err := cookieStore.Get(req, AuthSession)
+	testutils.AssertNil(t, err)
+	readerOrg := "0000-0000"
+	adminOrg := "1000-0000"
+	userInfo := pkg.UserInfo{
+		Id: "0000",
+		Roles: map[string]pkg.RoleKind{
+			readerOrg: pkg.RoleViewer,
+			adminOrg:  pkg.RoleAdmin,
+		},
+		Groups: make(map[string][]string),
+	}
+
+	session.Values["userId"] = userInfo.Id
+	session.Values["role"] = utils.Must(json.Marshal(userInfo))
+	session.Values["orgId"] = readerOrg
+
+	store := pkg.NewMultiOrgInMemoryStore()
+	store.Users = []pkg.UserInfo{userInfo, {Id: "1000", Groups: make(map[string][]string)}}
+
+	ctx := context.WithValue(req.Context(), sessionKey, session)
+	handler := GroupHandler(store, time.Second)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /organizations/users/{id}/groups", handler)
+	mux.HandleFunc("DELETE /organizations/users/{id}/groups", handler)
+
+	t.Run("test error on too large body", func(t *testing.T) {
+		data := bytes.Repeat([]byte("a"), 6000)
+		largeReq := httptest.NewRequest("POST", "/organizations/users/0000/groups", bytes.NewReader(data))
+		largeReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recorder := httptest.NewRecorder()
+		mux.ServeHTTP(recorder, largeReq.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusRequestEntityTooLarge)
+	})
+
+	t.Run("test reader can edit own roles", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		mux.ServeHTTP(recorder, req.WithContext(ctx))
+
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+		groups := store.Users[0].Groups[readerOrg]
+		testutils.AssertEqual(t, slices.Contains(groups, "Alto"), true)
+	})
+
+	t.Run("test reader can not edit others roles", func(t *testing.T) {
+		r := httptest.NewRequest("POST", "/organizations/users/1000/groups", bytes.NewReader([]byte(form.Encode())))
+		recorder := httptest.NewRecorder()
+		mux.ServeHTTP(recorder, r.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusUnauthorized)
+	})
+
+	t.Run("test admin can edit other roles", func(t *testing.T) {
+		session.Values["orgId"] = adminOrg
+		formBody := []byte(form.Encode())
+		r := httptest.NewRequest("POST", "/organizations/users/1000/groups", bytes.NewReader(formBody))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recorder := httptest.NewRecorder()
+		mux.ServeHTTP(recorder, r.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+		testutils.AssertEqual(t, slices.Contains(store.Users[1].Groups[adminOrg], "Alto"), true)
+
+		delReq := httptest.NewRequest("DELETE", "/organizations/users/1000/groups?group=Alto", nil)
+		delRec := httptest.NewRecorder()
+		mux.ServeHTTP(delRec, delReq.WithContext(ctx))
+		testutils.AssertEqual(t, delRec.Code, http.StatusOK)
+		testutils.AssertEqual(t, len(store.Users[1].Groups[adminOrg]), 0)
+	})
+
+	failingStore := pkg.MockIAMStore{
+		ErrRegisterGroup: errors.New("something went wrong"),
+		ErrRemoveGroup:   errors.New("something went wrong"),
+	}
+
+	failingHandler := GroupHandler(&failingStore, time.Second)
+	t.Run("test internal server error on failing writes", func(t *testing.T) {
+		session.Values["orgId"] = adminOrg
+
+		for _, method := range []string{"POST", "DELETE"} {
+			req := httptest.NewRequest(method, "/organizations", nil)
+			rec := httptest.NewRecorder()
+			failingHandler(rec, req.WithContext(ctx))
+			testutils.AssertEqual(t, rec.Code, http.StatusInternalServerError)
+		}
 	})
 }
