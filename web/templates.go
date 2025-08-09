@@ -217,3 +217,18 @@ func getRoleName(r pkg.RoleKind) string {
 		return ""
 	}
 }
+
+type Option struct {
+	Value string
+	Name  string
+}
+
+func WriteStringAsOptions(w io.Writer, items []string) {
+	options := make([]Option, len(items))
+	for i, item := range items {
+		options[i].Name = item
+		options[i].Value = item
+	}
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/options.html"))
+	pkg.PanicOnErr(tmpl.ExecuteTemplate(w, "option-list", options))
+}

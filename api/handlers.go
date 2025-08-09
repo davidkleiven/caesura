@@ -45,12 +45,18 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 func InstrumentSearchHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
 	instruments := pkg.FilterList(allInstruments(), token)
+	format := r.URL.Query().Get("format")
 
-	html := string(web.List())
-	t := template.Must(template.New("list").Parse(html))
+	if format == "options" {
+		slices.Sort(instruments)
+		web.WriteStringAsOptions(w, instruments)
+	} else {
+		html := string(web.List())
+		t := template.Must(template.New("list").Parse(html))
 
-	err := t.Execute(w, IdentifiedList{Id: "instruments", Items: instruments, HxGet: "/choice", HxTarget: "#chosen-instrument"})
-	includeError(w, http.StatusInternalServerError, "Failed to render template", err)
+		err := t.Execute(w, IdentifiedList{Id: "instruments", Items: instruments, HxGet: "/choice", HxTarget: "#chosen-instrument"})
+		includeError(w, http.StatusInternalServerError, "Failed to render template", err)
+	}
 }
 
 func ChoiceHandler(w http.ResponseWriter, r *http.Request) {
