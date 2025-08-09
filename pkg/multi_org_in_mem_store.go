@@ -181,6 +181,7 @@ func (m *MultiOrgInMemoryStore) RegisterRole(ctx context.Context, userId string,
 		Roles: map[string]RoleKind{
 			organizationId: role,
 		},
+		Groups: make(map[string][]string),
 	})
 	return nil
 }
