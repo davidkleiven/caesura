@@ -197,7 +197,7 @@ func TestRegisterOrganizationFlow(t *testing.T) {
 	registrationFlow := NewRegisterOrganizationFlow(context.Background(), store, session)
 	registrationFlow.Register(&org).RegisterAdmin(user.Id, org.Id).RetrieveUserInfo(user.Id).UpdateSession(r, w, org.Id)
 	testutils.AssertEqual(t, org.Id, session.Values["orgId"].(string))
-	testutils.AssertEqual(t, user.Roles[org.Id], RoleAdmin)
+	testutils.AssertEqual(t, store.Users[0].Roles[org.Id], RoleAdmin)
 	testutils.AssertEqual(t, utils.Must(store.GetUserInfo(context.Background(), user.Id)).Roles[org.Id], RoleAdmin)
 }
 

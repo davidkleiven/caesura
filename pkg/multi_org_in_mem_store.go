@@ -192,7 +192,11 @@ func (m *MultiOrgInMemoryStore) RegisterOrganization(ctx context.Context, org *O
 }
 
 func (m *MultiOrgInMemoryStore) RegisterUser(ctx context.Context, user *UserInfo) error {
-	m.Users = append(m.Users, *user)
+	// Make copies because there is some special handling on nullable fields
+	var userContent UserInfo
+	data := utils.Must(json.Marshal(user))
+	PanicOnErr(json.Unmarshal(data, &userContent))
+	m.Users = append(m.Users, userContent)
 	return nil
 }
 
