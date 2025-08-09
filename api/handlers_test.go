@@ -13,6 +13,8 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"regexp"
+	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -69,7 +71,14 @@ func TestInstrumentSearchHandler(t *testing.T) {
 		t.Error("Expected response body to not contain 'Trumpet'")
 		return
 	}
+}
 
+func TestInstrumentHandlerFormatOptions(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/instruments?format=options", nil)
+	InstrumentSearchHandler(recorder, request)
+	testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+	testutils.AssertContains(t, recorder.Body.String(), "<option", "Flute", "</option>")
 }
 
 func TestChoiceHandler(t *testing.T) {
@@ -2042,5 +2051,392 @@ func TestActiveOrganization(t *testing.T) {
 		handler(recorder, req.WithContext(ctx))
 		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
 		testutils.AssertEqual(t, recorder.Body.String(), "No organization")
+	})
+}
+
+func TestPeopleHandler(t *testing.T) {
+	req := httptest.NewRequest("GET", "/endpoint", nil)
+	recorder := httptest.NewRecorder()
+	PeoplePage(recorder, req)
+	testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+}
+
+func TestAllUsers(t *testing.T) {
+	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
+	req := httptest.NewRequest("GET", "/endpoint", nil)
+	session, err := cookieStore.Get(req, AuthSession)
+	testutils.AssertNil(t, err)
+
+	store := pkg.NewMultiOrgInMemoryStore()
+	store.Users = []pkg.UserInfo{
+		{
+			Id:    "1000",
+			Roles: map[string]pkg.RoleKind{"1000": pkg.RoleViewer},
+			Name:  "John",
+		},
+		{
+			Id:   "0000",
+			Name: "Peter",
+			Roles: map[string]pkg.RoleKind{
+				"1000": pkg.RoleAdmin,
+				"2000": pkg.RoleEditor,
+			}},
+	}
+	session.Values["role"] = utils.Must(json.Marshal(store.Users[1]))
+
+	handler := AllUsers(store, time.Second)
+	ctx := context.WithValue(req.Context(), sessionKey, session)
+
+	t.Run("Test admin OK", func(t *testing.T) {
+		session.Values["orgId"] = "1000"
+		recorder := httptest.NewRecorder()
+		handler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+		body := recorder.Body.String()
+		testutils.AssertContains(t, body, "Peter", "John")
+	})
+
+	t.Run("Test reader OK", func(t *testing.T) {
+		session.Values["orgId"] = "2000"
+		recorder := httptest.NewRecorder()
+		handler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+		body := recorder.Body.String()
+		testutils.AssertContains(t, body, "Peter")
+		testutils.AssertNotContains(t, body, "John")
+	})
+
+	failingStore := pkg.MockIAMStore{
+		ErrUserInOrg:   errors.New("user in organization failed"),
+		ErrGetUserInfo: errors.New("get user info error"),
+	}
+
+	failingHandler := AllUsers(&failingStore, time.Second)
+	t.Run("Test failing admin", func(t *testing.T) {
+		session.Values["orgId"] = "1000"
+		recorder := httptest.NewRecorder()
+		failingHandler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusInternalServerError)
+	})
+
+	t.Run("Test failing reader", func(t *testing.T) {
+		session.Values["orgId"] = "2000"
+		recorder := httptest.NewRecorder()
+		failingHandler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusInternalServerError)
+	})
+
+	reqWithQuery := httptest.NewRequest("GET", "/users?name=pe", nil)
+	t.Run("Test admin OK with filter", func(t *testing.T) {
+		session.Values["orgId"] = "1000"
+		recorder := httptest.NewRecorder()
+		handler(recorder, reqWithQuery.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+		body := recorder.Body.String()
+		testutils.AssertContains(t, body, "Peter")
+		testutils.AssertNotContains(t, body, "John")
+	})
+}
+
+func TestAssignRoleHandler(t *testing.T) {
+	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
+	req := httptest.NewRequest("GET", "/endpoint", nil)
+	session, err := cookieStore.Get(req, AuthSession)
+	testutils.AssertNil(t, err)
+
+	store := pkg.NewMultiOrgInMemoryStore()
+	store.Users = []pkg.UserInfo{
+		{
+			Id:    "0000-0001",
+			Roles: map[string]pkg.RoleKind{"1000-0000": pkg.RoleViewer},
+		},
+	}
+	mux := http.NewServeMux()
+
+	handler := AssignRoleHandler(store, time.Second)
+	mux.HandleFunc("POST /organizations/users/{id}/role", handler)
+
+	session.Values["userId"] = "0000-0000"
+	session.Values["orgId"] = "1000-0000"
+	ctx := context.WithValue(req.Context(), sessionKey, session)
+
+	t.Run("test can not alter self", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/organizations/users/0000-0000/role", nil)
+		recorder := httptest.NewRecorder()
+		mux.ServeHTTP(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusForbidden)
+	})
+
+	t.Run("test fail on large body", func(t *testing.T) {
+		buf := bytes.NewReader(bytes.Repeat([]byte("a"), 6000))
+		req := httptest.NewRequest("POST", "/organizations/users/0000-0001/role", buf)
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		recorder := httptest.NewRecorder()
+		mux.ServeHTTP(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusRequestEntityTooLarge)
+	})
+
+	t.Run("test bad request on integer conversion error", func(t *testing.T) {
+		form := url.Values{}
+		form.Set("role", "not an int")
+
+		reader := bytes.NewReader([]byte(form.Encode()))
+		req := httptest.NewRequest("POST", "/organizations/users/0000-0001/role", reader)
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		recorder := httptest.NewRecorder()
+		mux.ServeHTTP(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusBadRequest)
+		body := recorder.Body.String()
+		testutils.AssertContains(t, body, "invalid")
+	})
+
+	for _, test := range []struct {
+		role     int
+		wantRole pkg.RoleKind
+		desc     string
+	}{
+		{
+			role:     1,
+			wantRole: 1,
+			desc:     "Register writer role",
+		},
+		{
+			role:     42,
+			wantRole: 0,
+			desc:     "Role larger than admin, should set to reader",
+		},
+	} {
+		t.Run(test.desc, func(t *testing.T) {
+			form := url.Values{}
+			form.Set("role", strconv.Itoa(test.role))
+			reader := bytes.NewReader([]byte(form.Encode()))
+			req := httptest.NewRequest("POST", "/organizations/users/0000-0001/role", reader)
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+			recorder := httptest.NewRecorder()
+			mux.ServeHTTP(recorder, req.WithContext(ctx))
+			testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+			testutils.AssertEqual(t, store.Users[0].Roles["1000-0000"], test.wantRole)
+		})
+	}
+
+	failingStore := pkg.MockIAMStore{
+		ErrRegisterRole: errors.New("something went wrong"),
+	}
+
+	failingHandler := AssignRoleHandler(&failingStore, time.Second)
+	t.Run("test registration fails", func(t *testing.T) {
+		form := url.Values{}
+		form.Set("role", "1")
+		reader := bytes.NewReader([]byte(form.Encode()))
+		req := httptest.NewRequest("POST", "/organizations/users/0000-0001/role", reader)
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recorder := httptest.NewRecorder()
+		failingHandler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusInternalServerError)
+		body := recorder.Body.String()
+		testutils.AssertContains(t, body, "register new role")
+
+	})
+}
+
+func TestRegisterRecipent(t *testing.T) {
+	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
+
+	form := url.Values{}
+	form.Set("name", "john")
+	form.Set("email", "john@gmail.com")
+	form.Set("group", "tenor")
+
+	formReader := bytes.NewReader([]byte(form.Encode()))
+	req := httptest.NewRequest("POST", "/endpoint", formReader)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	session, err := cookieStore.Get(req, AuthSession)
+	session.Values["orgId"] = "0000-0000"
+	testutils.AssertNil(t, err)
+
+	store := pkg.NewMultiOrgInMemoryStore()
+	ctx := context.WithValue(req.Context(), sessionKey, session)
+
+	handler := RegisterRecipent(store, time.Second)
+	t.Run("test register user", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		handler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+		testutils.AssertEqual(t, len(store.Users), 1)
+		testutils.AssertEqual(t, store.Users[0].Roles["0000-0000"], pkg.RoleViewer)
+	})
+
+	t.Run("test fail on too large", func(t *testing.T) {
+		data := bytes.Repeat([]byte("a"), 6000)
+		buf := bytes.NewBuffer(data)
+		largeReq := httptest.NewRequest("POST", "/endpoint", buf)
+		largeReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		recorder := httptest.NewRecorder()
+		handler(recorder, largeReq.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusRequestEntityTooLarge)
+	})
+
+	failing := pkg.MockIAMStore{
+		ErrRegisterUser: errors.New("something went wrong"),
+	}
+
+	failingHandler := RegisterRecipent(&failing, time.Second)
+	t.Run("test register user fails", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		failingHandler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusInternalServerError)
+		testutils.AssertContains(t, recorder.Body.String(), "register recipent")
+	})
+}
+
+func TestDeleteRole(t *testing.T) {
+	req := httptest.NewRequest("DELETE", "/organizations/users/1000", nil)
+	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
+	session, err := cookieStore.Get(req, AuthSession)
+	session.Values["userId"] = "2000"
+	session.Values["orgId"] = "0000-0000"
+	testutils.AssertNil(t, err)
+
+	store := pkg.NewMultiOrgInMemoryStore()
+	store.Users = []pkg.UserInfo{
+		{
+			Id:    "1000",
+			Roles: map[string]pkg.RoleKind{"0000-0000": pkg.RoleViewer},
+		},
+	}
+	ctx := context.WithValue(req.Context(), sessionKey, session)
+
+	handler := DeleteUserFromOrg(store, time.Second)
+	mux := http.NewServeMux()
+	mux.HandleFunc("DELETE /organizations/users/{id}", handler)
+
+	t.Run("test not possible to delete self", func(t *testing.T) {
+		selfDelete := httptest.NewRequest("DELETE", "/organizations/users/2000", nil)
+		recorder := httptest.NewRecorder()
+		mux.ServeHTTP(recorder, selfDelete.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusForbidden)
+	})
+
+	t.Run("test delete other user", func(t *testing.T) {
+		orgId := "0000-0000"
+		recorder := httptest.NewRecorder()
+		_, hasRole := store.Users[0].Roles[orgId]
+		testutils.AssertEqual(t, hasRole, true)
+
+		mux.ServeHTTP(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+		_, hasRole = store.Users[0].Roles[orgId]
+		testutils.AssertEqual(t, hasRole, false)
+	})
+
+	failingStore := pkg.MockIAMStore{
+		ErrDeleteUserRole: errors.New("unexpected error"),
+	}
+	failingHandler := DeleteUserFromOrg(&failingStore, time.Second)
+	t.Run("deletion fails", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		failingHandler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusInternalServerError)
+		testutils.AssertContains(t, recorder.Body.String(), "delete role")
+	})
+}
+
+func TestGroupHandler(t *testing.T) {
+	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
+
+	form := url.Values{}
+	form.Set("group", "Alto")
+	req := httptest.NewRequest("POST", "/organizations/users/0000/groups", bytes.NewReader([]byte(form.Encode())))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	session, err := cookieStore.Get(req, AuthSession)
+	testutils.AssertNil(t, err)
+	readerOrg := "0000-0000"
+	adminOrg := "1000-0000"
+	userInfo := pkg.UserInfo{
+		Id: "0000",
+		Roles: map[string]pkg.RoleKind{
+			readerOrg: pkg.RoleViewer,
+			adminOrg:  pkg.RoleAdmin,
+		},
+		Groups: make(map[string][]string),
+	}
+
+	session.Values["userId"] = userInfo.Id
+	session.Values["role"] = utils.Must(json.Marshal(userInfo))
+	session.Values["orgId"] = readerOrg
+
+	store := pkg.NewMultiOrgInMemoryStore()
+	store.Users = []pkg.UserInfo{userInfo, {Id: "1000", Groups: make(map[string][]string)}}
+
+	ctx := context.WithValue(req.Context(), sessionKey, session)
+	handler := GroupHandler(store, time.Second)
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /organizations/users/{id}/groups", handler)
+	mux.HandleFunc("DELETE /organizations/users/{id}/groups", handler)
+
+	t.Run("test error on too large body", func(t *testing.T) {
+		data := bytes.Repeat([]byte("a"), 6000)
+		largeReq := httptest.NewRequest("POST", "/organizations/users/0000/groups", bytes.NewReader(data))
+		largeReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recorder := httptest.NewRecorder()
+		mux.ServeHTTP(recorder, largeReq.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusRequestEntityTooLarge)
+	})
+
+	t.Run("test reader can edit own roles", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		mux.ServeHTTP(recorder, req.WithContext(ctx))
+
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+		groups := store.Users[0].Groups[readerOrg]
+		testutils.AssertEqual(t, slices.Contains(groups, "Alto"), true)
+	})
+
+	t.Run("test reader can not edit others roles", func(t *testing.T) {
+		r := httptest.NewRequest("POST", "/organizations/users/1000/groups", bytes.NewReader([]byte(form.Encode())))
+		recorder := httptest.NewRecorder()
+		mux.ServeHTTP(recorder, r.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusUnauthorized)
+	})
+
+	t.Run("test admin can edit other roles", func(t *testing.T) {
+		session.Values["orgId"] = adminOrg
+		formBody := []byte(form.Encode())
+		r := httptest.NewRequest("POST", "/organizations/users/1000/groups", bytes.NewReader(formBody))
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		recorder := httptest.NewRecorder()
+		mux.ServeHTTP(recorder, r.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+		testutils.AssertEqual(t, slices.Contains(store.Users[1].Groups[adminOrg], "Alto"), true)
+
+		delReq := httptest.NewRequest("DELETE", "/organizations/users/1000/groups?group=Alto", nil)
+		delRec := httptest.NewRecorder()
+		mux.ServeHTTP(delRec, delReq.WithContext(ctx))
+		testutils.AssertEqual(t, delRec.Code, http.StatusOK)
+		testutils.AssertEqual(t, len(store.Users[1].Groups[adminOrg]), 0)
+	})
+
+	failingStore := pkg.MockIAMStore{
+		ErrRegisterGroup: errors.New("something went wrong"),
+		ErrRemoveGroup:   errors.New("something went wrong"),
+	}
+
+	failingHandler := GroupHandler(&failingStore, time.Second)
+	t.Run("test internal server error on failing writes", func(t *testing.T) {
+		session.Values["orgId"] = adminOrg
+
+		for _, method := range []string{"POST", "DELETE"} {
+			req := httptest.NewRequest(method, "/organizations", nil)
+			rec := httptest.NewRecorder()
+			failingHandler(rec, req.WithContext(ctx))
+			testutils.AssertEqual(t, rec.Code, http.StatusInternalServerError)
+		}
 	})
 }

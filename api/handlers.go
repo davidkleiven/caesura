@@ -1,6 +1,7 @@
 package api
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
@@ -11,6 +12,8 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
@@ -42,12 +45,18 @@ func UploadHandler(w http.ResponseWriter, r *http.Request) {
 func InstrumentSearchHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
 	instruments := pkg.FilterList(allInstruments(), token)
+	format := r.URL.Query().Get("format")
 
-	html := string(web.List())
-	t := template.Must(template.New("list").Parse(html))
+	if format == "options" {
+		slices.Sort(instruments)
+		web.WriteStringAsOptions(w, instruments)
+	} else {
+		html := string(web.List())
+		t := template.Must(template.New("list").Parse(html))
 
-	err := t.Execute(w, IdentifiedList{Id: "instruments", Items: instruments, HxGet: "/choice", HxTarget: "#chosen-instrument"})
-	includeError(w, http.StatusInternalServerError, "Failed to render template", err)
+		err := t.Execute(w, IdentifiedList{Id: "instruments", Items: instruments, HxGet: "/choice", HxTarget: "#chosen-instrument"})
+		includeError(w, http.StatusInternalServerError, "Failed to render template", err)
+	}
 }
 
 func ChoiceHandler(w http.ResponseWriter, r *http.Request) {
@@ -738,6 +747,216 @@ func ActiveOrganization(getter pkg.OrganizationGetter, timeout time.Duration) ht
 	}
 }
 
+func AllUsers(store pkg.UserGetter, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		filter := r.URL.Query().Get("name")
+		session := MustGetSession(r)
+		orgId := MustGetOrgId(session)
+		userInfo := MustGetUserInfo(session)
+		role := userInfo.Roles[orgId]
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		var (
+			users []pkg.UserInfo
+			err   error
+		)
+		if role == pkg.RoleAdmin {
+			// Admins gets a list of all users
+			users, err = store.GetUsersInOrg(ctx, orgId)
+			if err != nil {
+				http.Error(w, "Error when fething users "+err.Error(), http.StatusInternalServerError)
+				slog.Error("Error when fething users ", "error", err, "host", r.Host)
+				return
+			}
+		} else {
+			// Other just gets information about themselves
+			userInfoFromStore, err := store.GetUserInfo(ctx, userInfo.Id)
+			if err != nil {
+				http.Error(w, "Could not fetch user info: "+err.Error(), http.StatusInternalServerError)
+				slog.Error("Could not fetch user info", "error", err, "host", r.Host, "userId", userInfo.Id)
+				return
+			}
+			users = append(users, *userInfoFromStore)
+		}
+
+		if filter != "" {
+			users = slices.DeleteFunc(users, func(u pkg.UserInfo) bool {
+				email := strings.ToLower(u.Email)
+				name := strings.ToLower(u.Name)
+				lowerFilter := strings.ToLower(filter)
+				return !strings.Contains(email, lowerFilter) && !strings.Contains(name, lowerFilter)
+			})
+		}
+		slices.SortStableFunc(users, func(a, b pkg.UserInfo) int {
+			return cmp.Compare(a.Name, b.Name)
+		})
+
+		groups := allInstruments()
+		slices.Sort(groups)
+		web.WriteUserList(w, users, orgId, append([]string{"-- Add to group --"}, groups...))
+	}
+}
+
+func PeoplePage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	web.WritePeopleHTML(w)
+}
+
+func AssignRoleHandler(store pkg.RoleRegisterer, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		session := MustGetSession(r)
+		userId := MustGetUserId(session)
+		orgId := MustGetOrgId(session)
+		userIdFromPath := r.PathValue("id")
+		if userId == userIdFromPath {
+			http.Error(w, "It is not possible to change your own role", http.StatusForbidden)
+			slog.Info("User tried to change his own role", "host", r.Host)
+			return
+		}
+
+		r.Body = http.MaxBytesReader(w, r.Body, 4096)
+		code, err := parseForm(r)
+		if err != nil {
+			http.Error(w, err.Error(), code)
+			slog.Error("Failed to parse form", "error", err, "host", r.Host)
+			return
+		}
+
+		role, err := strconv.Atoi(r.FormValue("role"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			slog.Error("Could not convert role into int", "error", err, "host", r.Host)
+			return
+		}
+		if role > pkg.RoleAdmin {
+			role = pkg.RoleViewer
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		err = store.RegisterRole(ctx, userIdFromPath, orgId, pkg.RoleKind(role))
+		if err != nil {
+			http.Error(w, "Failed to register new role: "+err.Error(), http.StatusInternalServerError)
+			slog.Error("Failed to register new role", "error", err, "userId", userId, "targetUser", userIdFromPath, "orgId", orgId)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Successfully upgraded role for user"))
+	}
+}
+
+func RegisterRecipent(store pkg.UserRegisterer, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		sessions := MustGetSession(r)
+		orgId := MustGetOrgId(sessions)
+
+		r.Body = http.MaxBytesReader(w, r.Body, 4096)
+		code, err := parseForm(r)
+		if err != nil {
+			http.Error(w, err.Error(), code)
+			slog.Error("Failed to parse form", "error", err, "host", r.Host)
+			return
+		}
+
+		user := pkg.UserInfo{
+			Id:    pkg.RandomInsecureID(32),
+			Name:  r.FormValue("name"),
+			Email: r.FormValue("email"),
+			Groups: map[string][]string{
+				orgId: {r.FormValue("group")},
+			},
+			Roles: map[string]pkg.RoleKind{orgId: pkg.RoleViewer},
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		if err := store.RegisterUser(ctx, &user); err != nil {
+			http.Error(w, "Failed to register recipent "+err.Error(), http.StatusInternalServerError)
+			slog.Error("Failed to register recipent", "error", err, "host", r.Host, "orgId", orgId)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte("Successfully registered new recipent"))
+	}
+}
+
+func DeleteUserFromOrg(store pkg.DeleteRole, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		session := MustGetSession(r)
+		userId := MustGetUserId(session)
+		orgId := MustGetOrgId(session)
+		userIdFromPath := r.PathValue("id")
+		if userIdFromPath == userId {
+			http.Error(w, "It is not possible to delete yourself", http.StatusForbidden)
+			slog.Info("User tried to delete himself", "host", r.Host)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		if err := store.DeleteRole(ctx, userIdFromPath, orgId); err != nil {
+			http.Error(w, "Could not delete role: "+err.Error(), http.StatusInternalServerError)
+			slog.Error("Could not delete role", "error", err, "host", r.Host, "userId", userId, "orgId", orgId, "targetUser", userIdFromPath)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte("Successfully deleted user"))
+	}
+}
+
+func GroupHandler(store pkg.GroupStore, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 4096)
+
+		code, err := parseForm(r)
+		if err != nil {
+			http.Error(w, err.Error(), code)
+			slog.Error("Failed to parse form", "error", err)
+			return
+		}
+
+		session := MustGetSession(r)
+		orgId := MustGetOrgId(session)
+		userInfo := MustGetUserInfo(session)
+		role := userInfo.Roles[orgId]
+		userIdFromPath := r.PathValue("id")
+		if role < pkg.RoleAdmin && userIdFromPath != userInfo.Id {
+			http.Error(w, "Only admins can edit groups of others", http.StatusUnauthorized)
+			slog.Warn("Non-admin tried to edit group of another user", "orgId", orgId, "userId", userInfo.Id, "host", r.Host)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		switch r.Method {
+		case http.MethodPost:
+			group := r.FormValue("group")
+			err = store.RegisterGroup(ctx, userIdFromPath, orgId, group)
+		case http.MethodDelete:
+			group := r.URL.Query().Get("group")
+			err = store.RemoveGroup(ctx, userIdFromPath, orgId, group)
+		}
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			slog.Error("Failed to edit group", "error", err, "orgId", orgId, "userId", userInfo.Id, "host", r.Host, "targetUser", userIdFromPath)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Successfully edited group"))
+	}
+}
+
 func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
 	readRoute := RequireRead(cookieStore)
 	writeRoute := RequireWrite(cookieStore)
@@ -784,7 +1003,14 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("GET /organizations/{id}/invite", adminRoute(InviteLink(config.BaseURL, config.CookieSecretSignKey)))
 	mux.Handle("GET /organizations/options", userInfoRoute(OptionsFromSessionHandler(store, config.Timeout)))
 	mux.Handle("GET /organizations/active/session", userInfoRoute(http.HandlerFunc(ChosenOrganizationSessionHandler)))
+	mux.Handle("GET /organizations/users", requireAuthSession(AllUsers(store, config.Timeout)))
+	mux.Handle("DELETE /organizations/users/{id}", adminRoute(DeleteUserFromOrg(store, config.Timeout)))
+	mux.Handle("POST /organizations/recipent", adminRoute(RegisterRecipent(store, config.Timeout)))
+	mux.Handle("POST /organizations/users/{id}/groups", readRoute(GroupHandler(store, config.Timeout)))
+	mux.Handle("DELETE /organizations/users/{id}/groups", readRoute(GroupHandler(store, config.Timeout)))
 
 	mux.Handle("GET /session/active-organization/name", requireAuthSession(ActiveOrganization(store, config.Timeout)))
+
+	mux.HandleFunc("GET /people", PeoplePage)
 	return mux
 }

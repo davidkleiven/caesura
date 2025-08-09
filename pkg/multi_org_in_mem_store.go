@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"time"
 
 	"github.com/davidkleiven/caesura/utils"
@@ -40,12 +41,20 @@ func NewDemoStore() *MultiOrgInMemoryStore {
 				"9eab9a97-06a3-42a7-ae1e-7c67df5cbec7": RoleViewer,
 				"cccc13f9-ddd5-489e-bd77-3b935b457f71": RoleAdmin,
 			},
+			Groups: map[string][]string{
+				"cccc13f9-ddd5-489e-bd77-3b935b457f71": {"Alto"},
+			},
+			Name: "John",
 		},
 		{
 			Id: "6b2d9876-0bc4-407a-8f76-4fb1ad2a523b",
 			Roles: map[string]RoleKind{
 				"cccc13f9-ddd5-489e-bd77-3b935b457f71": RoleEditor,
 			},
+			Groups: map[string][]string{
+				"cccc13f9-ddd5-489e-bd77-3b935b457f71": {"Tenor", "Bass"},
+			},
+			Name: "Susan",
 		},
 	}
 
@@ -173,6 +182,7 @@ func (m *MultiOrgInMemoryStore) RegisterRole(ctx context.Context, userId string,
 		Roles: map[string]RoleKind{
 			organizationId: role,
 		},
+		Groups: make(map[string][]string),
 	})
 	return nil
 }
@@ -184,7 +194,11 @@ func (m *MultiOrgInMemoryStore) RegisterOrganization(ctx context.Context, org *O
 }
 
 func (m *MultiOrgInMemoryStore) RegisterUser(ctx context.Context, user *UserInfo) error {
-	m.Users = append(m.Users, *user)
+	// Make copies because there is some special handling on nullable fields
+	var userContent UserInfo
+	data := utils.Must(json.Marshal(user))
+	PanicOnErr(json.Unmarshal(data, &userContent))
+	m.Users = append(m.Users, userContent)
 	return nil
 }
 
@@ -215,6 +229,51 @@ func (m *MultiOrgInMemoryStore) DeleteOrganization(ctx context.Context, orgId st
 	for i, org := range m.Organizations {
 		if org.Id == orgId {
 			m.Organizations[i].Deleted = true
+		}
+	}
+	return nil
+}
+
+func (m *MultiOrgInMemoryStore) GetUsersInOrg(ctx context.Context, orgId string) ([]UserInfo, error) {
+	result := make([]UserInfo, 0, len(m.Users))
+	for _, user := range m.Users {
+		if _, ok := user.Roles[orgId]; ok {
+			result = append(result, user)
+		}
+	}
+	return result, nil
+}
+
+func (m *MultiOrgInMemoryStore) DeleteRole(ctx context.Context, userId, orgId string) error {
+	for i, u := range m.Users {
+		if u.Id == userId {
+			delete(m.Users[i].Roles, orgId)
+		}
+	}
+	return nil
+}
+
+func (m *MultiOrgInMemoryStore) RegisterGroup(ctx context.Context, userId, orgId, group string) error {
+	for i, u := range m.Users {
+		if u.Id == userId {
+			_, exists := m.Users[i].Groups[orgId]
+			if exists {
+				m.Users[i].Groups[orgId] = append(m.Users[i].Groups[orgId], group)
+			} else {
+				m.Users[i].Groups[orgId] = []string{group}
+			}
+		}
+	}
+	return nil
+}
+
+func (m *MultiOrgInMemoryStore) RemoveGroup(ctx context.Context, userId, orgId, group string) error {
+	for i, u := range m.Users {
+		if u.Id == userId {
+			groups, ok := u.Groups[orgId]
+			if ok {
+				m.Users[i].Groups[orgId] = slices.DeleteFunc(groups, func(item string) bool { return item == group })
+			}
 		}
 	}
 	return nil

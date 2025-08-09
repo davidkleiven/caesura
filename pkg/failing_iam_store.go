@@ -9,6 +9,10 @@ type MockIAMStore struct {
 	ErrGetOrganization      error
 	ErrRegisterOrganization error
 	ErrDeleteOrganization   error
+	ErrUserInOrg            error
+	ErrDeleteUserRole       error
+	ErrRegisterGroup        error
+	ErrRemoveGroup          error
 }
 
 func (m *MockIAMStore) RegisterUser(ctx context.Context, userInfo *UserInfo) error {
@@ -33,4 +37,20 @@ func (m *MockIAMStore) RegisterOrganization(ctx context.Context, org *Organizati
 
 func (m *MockIAMStore) DeleteOrganization(ctx context.Context, orgId string) error {
 	return m.ErrDeleteOrganization
+}
+
+func (m *MockIAMStore) GetUsersInOrg(ctx context.Context, orgId string) ([]UserInfo, error) {
+	return []UserInfo{}, m.ErrUserInOrg
+}
+
+func (m *MockIAMStore) DeleteRole(ctx context.Context, userId, orgId string) error {
+	return m.ErrDeleteUserRole
+}
+
+func (m *MockIAMStore) RegisterGroup(ctx context.Context, userId, orgId, group string) error {
+	return m.ErrRegisterGroup
+}
+
+func (m *MockIAMStore) RemoveGroup(ctx context.Context, userId, orgId, group string) error {
+	return m.ErrRemoveGroup
 }

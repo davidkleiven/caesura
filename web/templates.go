@@ -162,3 +162,79 @@ func WriteOrganizationHTML(w io.Writer, organizations []pkg.Organization) {
 	}
 	pkg.PanicOnErr(tmpl.ExecuteTemplate(w, "orgList", data))
 }
+
+func WritePeopleHTML(w io.Writer) {
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/people.html", "templates/header.html"))
+	pkg.PanicOnErr(tmpl.Execute(w, LoadDependencies()))
+}
+
+type userListViewObj struct {
+	Id        string
+	Name      string
+	Email     string
+	Roles     []pkg.RoleKind
+	Groups    []string
+	GroupOpts []Option
+}
+
+func WriteUserList(w io.Writer, users []pkg.UserInfo, orgId string, groupOpts []string) {
+	tmpl := template.Must(
+		template.New("userList").Funcs(template.FuncMap{
+			"getRoleName": getRoleName,
+		}).ParseFS(templatesFS, "templates/user_list.html", "templates/options.html"),
+	)
+	viewObj := make([]userListViewObj, len(users))
+
+	roleOpts := map[pkg.RoleKind][]pkg.RoleKind{
+		pkg.RoleViewer: {pkg.RoleViewer, pkg.RoleEditor, pkg.RoleAdmin},
+		pkg.RoleEditor: {pkg.RoleEditor, pkg.RoleAdmin, pkg.RoleViewer},
+		pkg.RoleAdmin:  {pkg.RoleAdmin, pkg.RoleViewer, pkg.RoleEditor},
+	}
+
+	opts := make([]Option, len(groupOpts))
+	for i, g := range groupOpts {
+		opts[i].Value = g
+		opts[i].Name = g
+	}
+
+	for i, u := range users {
+		viewObj[i] = userListViewObj{
+			Id:        u.Id,
+			Email:     u.Email,
+			Name:      u.Name,
+			Roles:     roleOpts[u.Roles[orgId]],
+			Groups:    u.Groups[orgId],
+			GroupOpts: opts,
+		}
+	}
+
+	pkg.PanicOnErr(tmpl.ExecuteTemplate(w, "userList", viewObj))
+}
+
+func getRoleName(r pkg.RoleKind) string {
+	switch r {
+	case pkg.RoleViewer:
+		return "Viewer"
+	case pkg.RoleEditor:
+		return "Editor"
+	case pkg.RoleAdmin:
+		return "Admin"
+	default:
+		return ""
+	}
+}
+
+type Option struct {
+	Value string
+	Name  string
+}
+
+func WriteStringAsOptions(w io.Writer, items []string) {
+	options := make([]Option, len(items))
+	for i, item := range items {
+		options[i].Name = item
+		options[i].Value = item
+	}
+	tmpl := template.Must(template.ParseFS(templatesFS, "templates/options.html"))
+	pkg.PanicOnErr(tmpl.ExecuteTemplate(w, "option-list", options))
+}

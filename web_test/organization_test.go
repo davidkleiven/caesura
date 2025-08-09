@@ -59,7 +59,6 @@ func NewOrganizationRefreshMonitor() *OrganizationRefreshMonitor {
 }
 
 func TestOrganizationPage(t *testing.T) {
-	//t.Skip("Does currently not work")
 	withBrowser(func(t *testing.T, page playwright.Page) {
 		// Wait for initial load
 		currentOrganization := page.Locator("#active-organization", playwright.PageLocatorOptions{

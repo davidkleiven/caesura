@@ -16,6 +16,7 @@ type UserInfo struct {
 	VerifiedEmail bool                `json:"verified_email,omitempty"`
 	Name          string              `json:"name,omitempty"`
 	Roles         map[string]RoleKind `json:"roles,omitempty"`
+	Groups        map[string][]string `json:"groups,omitempty"`
 }
 
 func (u *UserInfo) UnmarshalJSON(data []byte) error {
@@ -33,11 +34,15 @@ func (u *UserInfo) UnmarshalJSON(data []byte) error {
 	if u.Roles == nil {
 		u.Roles = make(map[string]RoleKind)
 	}
+
+	if u.Groups == nil {
+		u.Groups = make(map[string][]string)
+	}
 	return nil
 }
 
 func NewUserInfo() *UserInfo {
-	return &UserInfo{Roles: make(map[string]RoleKind)}
+	return &UserInfo{Roles: make(map[string]RoleKind), Groups: make(map[string][]string)}
 }
 
 type Organization struct {
@@ -66,10 +71,19 @@ type RoleRegisterer interface {
 	RegisterRole(ctx context.Context, userId string, organizationId string, role RoleKind) error
 }
 
+type UserInOrgGetter interface {
+	GetUsersInOrg(ctx context.Context, orgId string) ([]UserInfo, error)
+}
+
+type DeleteRole interface {
+	DeleteRole(ctx context.Context, userId, orgId string) error
+}
+
 type RoleStore interface {
 	RoleGetter
 	RoleRegisterer
 	UserRegisterer
+	DeleteRole
 }
 
 type OrganizationGetter interface {
@@ -84,15 +98,28 @@ type OrganizationDeleter interface {
 	DeleteOrganization(ctx context.Context, orgId string) error
 }
 
+type UserGetter interface {
+	UserInOrgGetter
+	RoleGetter
+}
+
+type GroupStore interface {
+	RegisterGroup(ctx context.Context, userId, orgId, group string) error
+	RemoveGroup(ctx context.Context, userId, orgId, group string) error
+}
+
 type OrganizationStore interface {
 	OrganizationGetter
 	OrganizationRegisterer
 	OrganizationDeleter
+	UserInOrgGetter
 }
 
 type IAMStore interface {
 	RoleStore
 	OrganizationStore
+	UserGetter
+	GroupStore
 }
 
 func GetUserOrRegisterNewUser(store RoleStore, ctx context.Context, info *UserInfo) (*UserInfo, error) {
@@ -155,9 +182,10 @@ func (u *UserRolePipeline) AssignViewRoleIfNoRole(orgId string) *UserRolePipelin
 }
 
 type FailingRoleStore struct {
-	ErrRegisterUser error
-	ErrRegisterRole error
-	ErrGetUserRole  error
+	ErrRegisterUser   error
+	ErrRegisterRole   error
+	ErrGetUserRole    error
+	ErrDeleteUserRole error
 }
 
 func (frs *FailingRoleStore) RegisterUser(ctx context.Context, user *UserInfo) error {
@@ -170,6 +198,10 @@ func (frs *FailingRoleStore) RegisterRole(ctx context.Context, userId, orgId str
 
 func (frs *FailingRoleStore) GetUserInfo(ctx context.Context, userId string) (*UserInfo, error) {
 	return NewUserInfo(), frs.ErrGetUserRole
+}
+
+func (frs *FailingRoleStore) DeleteRole(ctx context.Context, userId, orgId string) error {
+	return frs.ErrDeleteUserRole
 }
 
 type RegisterOrganizationFlow struct {
@@ -229,6 +261,7 @@ func PopulateSessionWithRoles(session *sessions.Session, userInfo *UserInfo) {
 	userInfo.Email = ""
 	userInfo.Name = ""
 	userInfo.VerifiedEmail = false
+	userInfo.Groups = nil
 
 	userInfoJson := utils.Must(json.Marshal(userInfo))
 	session.Values["role"] = userInfoJson
