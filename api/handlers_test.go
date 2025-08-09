@@ -70,7 +70,14 @@ func TestInstrumentSearchHandler(t *testing.T) {
 		t.Error("Expected response body to not contain 'Trumpet'")
 		return
 	}
+}
 
+func TestInstrumentHandlerFormatOptions(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest("GET", "/instruments?format=options", nil)
+	InstrumentSearchHandler(recorder, request)
+	testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+	testutils.AssertContains(t, recorder.Body.String(), "<option", "Flute", "</option>")
 }
 
 func TestChoiceHandler(t *testing.T) {
