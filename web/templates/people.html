@@ -13,10 +13,7 @@
   {{ template "header" . }}
   <!-- Page Content Placeholder -->
   <div id="page-content" class="flex-col pt-16">
-    <form id="recipent-form" class="max-w-4xl mx-auto p-6 bg-white rounded-md shadow-md"
-      hx-post="/organizations/recipent" hx-swap="none"
-      hx-on::after-request="htmx.ajax('GET', '/organizations/users', {target: '#people-list', swap: 'innerHTML'})"
-      hx-on::401="Unauthorized: only admins can register a new recipent">
+    <form id="recipent-form" class="max-w-4xl mx-auto p-6 bg-white rounded-md shadow-md">
       <label for="recipent-form" class="block mb-4 text-sm font-medium text-gray-700">
         Register recipent:
         <span class="relative inline-block ml-1 group cursor-pointer align-middle">
