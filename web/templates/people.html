@@ -14,11 +14,9 @@
   <!-- Page Content Placeholder -->
   <div id="page-content" class="flex-col pt-16">
     <form id="recipent-form" class="max-w-4xl mx-auto p-6 bg-white rounded-md shadow-md"
-      hx-post="/organizations/recipent"
-      hx-swap="none"
+      hx-post="/organizations/recipent" hx-swap="none"
       hx-on::after-request="htmx.ajax('GET', '/organizations/users', {target: '#people-list', swap: 'innerHTML'})"
-      hx-on::401="Unauthorized: only admins can register a new recipent"
-    >
+      hx-on::401="Unauthorized: only admins can register a new recipent">
       <label for="recipent-form" class="block mb-4 text-sm font-medium text-gray-700">
         Register recipent:
         <span class="relative inline-block ml-1 group cursor-pointer align-middle">
@@ -31,7 +29,8 @@
 
           <span
             class="absolute z-10 bottom-full mb-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            A recipient is not a regular user and cannot log in or use Caesura. However, they will still receive emails from Caesura like regular users.
+            A recipient is not a regular user and cannot log in or use Caesura. However, they will still receive emails
+            from Caesura like regular users.
           </span>
         </span>
       </label>
@@ -66,6 +65,7 @@
             <th class="px-4 py-3">Email</th>
             <th class="px-4 py-3">Role</th>
             <th class="px-4 py-3">Groups</th>
+            <th class="px-4 py-3"></th>
           </tr>
         </thead>
         <tbody id="people-list" class="divide-y divide-gray-100 bg-white" hx-get="/organizations/users"
@@ -74,4 +74,9 @@
       </table>
     </div>
   </div>
+  <svg xmlns="http://www.w3.org/2000/svg" class="hidden">
+    <symbol id="delete-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M6 18L18 6M6 6l12 12" />
+    </symbol>
+  </svg>
 </body>

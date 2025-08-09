@@ -839,7 +839,7 @@ func AssignRoleHandler(store pkg.RoleRegisterer, timeout time.Duration) http.Han
 	}
 }
 
-func RegisterRecipent(store pkg.IAMStore, timeout time.Duration) http.HandlerFunc {
+func RegisterRecipent(store pkg.UserRegisterer, timeout time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessions := MustGetSession(r)
 		orgId := MustGetOrgId(sessions)
@@ -875,6 +875,34 @@ func RegisterRecipent(store pkg.IAMStore, timeout time.Duration) http.HandlerFun
 		w.Header().Set("Content-Type", "text/plain")
 		w.Write([]byte("Successfully registered new recipent"))
 	}
+}
+
+func DeleteUserFromOrg(store pkg.DeleteRole, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		session := MustGetSession(r)
+		userId := MustGetUserId(session)
+		orgId := MustGetOrgId(session)
+		userIdFromPath := r.PathValue("id")
+		if userIdFromPath == userId {
+			http.Error(w, "It is not possible to delete yourself", http.StatusForbidden)
+			slog.Info("User tried to delete himself", "host", r.Host)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		if err := store.DeleteRole(ctx, userIdFromPath, orgId); err != nil {
+			http.Error(w, "Could not delete role: "+err.Error(), http.StatusInternalServerError)
+			slog.Error("Could not delete role", "error", err, "host", r.Host, "userId", userId, "orgId", orgId, "targetUser", userIdFromPath)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "text/plain")
+		w.Write([]byte("Successfully deleted user"))
+	}
+
 }
 
 func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
@@ -924,6 +952,7 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("GET /organizations/options", userInfoRoute(OptionsFromSessionHandler(store, config.Timeout)))
 	mux.Handle("GET /organizations/active/session", userInfoRoute(http.HandlerFunc(ChosenOrganizationSessionHandler)))
 	mux.Handle("GET /organizations/users", requireAuthSession(AllUsers(store, config.Timeout)))
+	mux.Handle("DELETE /organizations/users/{id}", adminRoute(DeleteUserFromOrg(store, config.Timeout)))
 	mux.Handle("POST /organizations/recipent", adminRoute(RegisterRecipent(store, config.Timeout)))
 
 	mux.Handle("GET /session/active-organization/name", requireAuthSession(ActiveOrganization(store, config.Timeout)))
