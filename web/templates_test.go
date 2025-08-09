@@ -187,3 +187,10 @@ func TestWriteUserList(t *testing.T) {
 	WriteUserList(&buf, users, orgId)
 	testutils.AssertContains(t, buf.String(), "Peter", "John", "Susan")
 }
+
+func TestWriteStringAsOptions(t *testing.T) {
+	opts := []string{"opt A", "opt B"}
+	var buf bytes.Buffer
+	WriteStringAsOptions(&buf, opts)
+	testutils.AssertContains(t, buf.String(), "opt A", "opt B")
+}
