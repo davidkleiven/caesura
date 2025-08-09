@@ -75,10 +75,15 @@ type UserInOrgGetter interface {
 	GetUsersInOrg(ctx context.Context, orgId string) ([]UserInfo, error)
 }
 
+type DeleteRole interface {
+	DeleteRole(ctx context.Context, userId, orgId string) error
+}
+
 type RoleStore interface {
 	RoleGetter
 	RoleRegisterer
 	UserRegisterer
+	DeleteRole
 }
 
 type OrganizationGetter interface {
@@ -171,9 +176,10 @@ func (u *UserRolePipeline) AssignViewRoleIfNoRole(orgId string) *UserRolePipelin
 }
 
 type FailingRoleStore struct {
-	ErrRegisterUser error
-	ErrRegisterRole error
-	ErrGetUserRole  error
+	ErrRegisterUser   error
+	ErrRegisterRole   error
+	ErrGetUserRole    error
+	ErrDeleteUserRole error
 }
 
 func (frs *FailingRoleStore) RegisterUser(ctx context.Context, user *UserInfo) error {
@@ -186,6 +192,10 @@ func (frs *FailingRoleStore) RegisterRole(ctx context.Context, userId, orgId str
 
 func (frs *FailingRoleStore) GetUserInfo(ctx context.Context, userId string) (*UserInfo, error) {
 	return NewUserInfo(), frs.ErrGetUserRole
+}
+
+func (frs *FailingRoleStore) DeleteRole(ctx context.Context, userId, orgId string) error {
+	return frs.ErrDeleteUserRole
 }
 
 type RegisterOrganizationFlow struct {

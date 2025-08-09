@@ -16,6 +16,17 @@
         </select>
     </td>
     <td class="px-4 py-3">{{.Groups}}</td>
+    <td class="px-4 py-3"><button type="button"
+            class="text-red-600 hover:text-red-800 hover:cursor-pointer"
+            title="Remove user from organization" hx-delete="/organizations/users/{{.Id}}" hx-swap="none"
+            hx-confirm="Are you sure you want to delete the user?"
+            hx-on::401="alert('Unauthorized: only admins can delete users')"
+            hx-on::403="alert('Forbidden: you can not delete yourself')"
+            hx-on::after-request="htmx.ajax('GET', '/organizations/users', {target: '#people-list', swap: 'innerHTML'})"
+            >
+            <svg class="inline h-5 w-5"><use href="#delete-icon"/></svg>
+        </button>
+    </td>
 </tr>
 {{end}}
 {{end}}

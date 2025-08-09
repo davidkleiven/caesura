@@ -10,6 +10,7 @@ type MockIAMStore struct {
 	ErrRegisterOrganization error
 	ErrDeleteOrganization   error
 	ErrUserInOrg            error
+	ErrDeleteUserRole       error
 }
 
 func (m *MockIAMStore) RegisterUser(ctx context.Context, userInfo *UserInfo) error {
@@ -38,4 +39,8 @@ func (m *MockIAMStore) DeleteOrganization(ctx context.Context, orgId string) err
 
 func (m *MockIAMStore) GetUsersInOrg(ctx context.Context, orgId string) ([]UserInfo, error) {
 	return []UserInfo{}, m.ErrUserInOrg
+}
+
+func (m *MockIAMStore) DeleteRole(ctx context.Context, userId, orgId string) error {
+	return m.ErrDeleteUserRole
 }

@@ -243,6 +243,15 @@ func (m *MultiOrgInMemoryStore) GetUsersInOrg(ctx context.Context, orgId string)
 	return result, nil
 }
 
+func (m *MultiOrgInMemoryStore) DeleteRole(ctx context.Context, userId, orgId string) error {
+	for i, u := range m.Users {
+		if u.Id == userId {
+			delete(m.Users[i].Roles, orgId)
+		}
+	}
+	return nil
+}
+
 func NewMultiOrgInMemoryStore() *MultiOrgInMemoryStore {
 	return &MultiOrgInMemoryStore{
 		Data:          make(map[string]InMemoryStore),

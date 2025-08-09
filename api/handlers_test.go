@@ -2285,3 +2285,55 @@ func TestRegisterRecipent(t *testing.T) {
 		testutils.AssertContains(t, recorder.Body.String(), "register recipent")
 	})
 }
+
+func TestDeleteRole(t *testing.T) {
+	req := httptest.NewRequest("DELETE", "/organizations/users/1000", nil)
+	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
+	session, err := cookieStore.Get(req, AuthSession)
+	session.Values["userId"] = "2000"
+	session.Values["orgId"] = "0000-0000"
+	testutils.AssertNil(t, err)
+
+	store := pkg.NewMultiOrgInMemoryStore()
+	store.Users = []pkg.UserInfo{
+		{
+			Id:    "1000",
+			Roles: map[string]pkg.RoleKind{"0000-0000": pkg.RoleViewer},
+		},
+	}
+	ctx := context.WithValue(req.Context(), sessionKey, session)
+
+	handler := DeleteUserFromOrg(store, time.Second)
+	mux := http.NewServeMux()
+	mux.HandleFunc("DELETE /organizations/users/{id}", handler)
+
+	t.Run("test not possible to delete self", func(t *testing.T) {
+		selfDelete := httptest.NewRequest("DELETE", "/organizations/users/2000", nil)
+		recorder := httptest.NewRecorder()
+		mux.ServeHTTP(recorder, selfDelete.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusForbidden)
+	})
+
+	t.Run("test delete other user", func(t *testing.T) {
+		orgId := "0000-0000"
+		recorder := httptest.NewRecorder()
+		_, hasRole := store.Users[0].Roles[orgId]
+		testutils.AssertEqual(t, hasRole, true)
+
+		mux.ServeHTTP(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+		_, hasRole = store.Users[0].Roles[orgId]
+		testutils.AssertEqual(t, hasRole, false)
+	})
+
+	failingStore := pkg.MockIAMStore{
+		ErrDeleteUserRole: errors.New("unexpected error"),
+	}
+	failingHandler := DeleteUserFromOrg(&failingStore, time.Second)
+	t.Run("deletion fails", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		failingHandler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusInternalServerError)
+		testutils.AssertContains(t, recorder.Body.String(), "delete role")
+	})
+}
