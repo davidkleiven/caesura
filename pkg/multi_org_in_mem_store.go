@@ -43,6 +43,7 @@ func NewDemoStore() *MultiOrgInMemoryStore {
 			Groups: map[string][]string{
 				"cccc13f9-ddd5-489e-bd77-3b935b457f71": {"Alto"},
 			},
+			Name: "Susan",
 		},
 		{
 			Id: "6b2d9876-0bc4-407a-8f76-4fb1ad2a523b",
@@ -52,6 +53,7 @@ func NewDemoStore() *MultiOrgInMemoryStore {
 			Groups: map[string][]string{
 				"cccc13f9-ddd5-489e-bd77-3b935b457f71": {"Tenor", "Bass"},
 			},
+			Name: "John",
 		},
 	}
 
