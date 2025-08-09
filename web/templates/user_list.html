@@ -4,33 +4,47 @@
     <td class="px-4 py-3">{{.Name}}</td>
     <td class="px-4 py-3">{{.Email}}</td>
     <td class="px-4 py-3">
-        <select id="role-select-{{.Id}}" hx-post="/organizations/users/{{.Id}}/role"
-            hx-trigger="change" hx-swap="none"
+        <select id="role-select-{{.Id}}" hx-post="/organizations/users/{{.Id}}/role" hx-trigger="change" hx-swap="none"
             hx-on::401="alert('Unauthorized: only admins can change roles')"
-            hx-on::403="alert('Forbidden: you can not change your own role')"
-            name="role"
-            >
+            hx-on::403="alert('Forbidden: you can not change your own role')" name="role">
             {{ range .Roles }}
             <option value="{{.}}">{{getRoleName .}}</option>
             {{end}}
         </select>
     </td>
-    <td class="px-4 py-3 w-1/5">{{.Groups}}</td>
+    <td class="px-4 py-3 w-1/5">
+        {{ $outer := . }}
+        {{ range .Groups}}
+        <span>{{.}}</span>
+        <button class="text-red-600 hover:text-red-800 hover:cursor-pointer" title="Remove group"
+            hx-delete="/organizations/users/{{$outer.Id}}/groups" hx-swap="none"
+            hx-vals='{"group": "{{.}}"}'
+            hx-on::after-request="htmx.ajax('GET', '/organizations/users', {target: '#people-list', swap: 'innerHTML'})"
+            id="remove-group-{{$outer.Id}}-{{.}}-btn">
+            <svg class="inline h-5 w-5">
+                <use href="#delete-icon" />
+            </svg>
+        </button>
+        {{end}}
+    </td>
     <td class="px-4 py-3">
         <select name="group" hx-post="/organizations/users/{{.Id}}/groups" hx-trigger="change" hx-swap="none"
             hx-on::after-request="htmx.ajax('GET', '/organizations/users', {target: '#people-list', swap: 'innerHTML'})"
-        >
+            id="group-selector-{{.Id}}"
+            >
             {{ template "option-list" .GroupOpts }}
         </select>
-        <button type="button"
-            class="text-red-600 hover:text-red-800 hover:cursor-pointer"
+        <button type="button" class="text-red-600 hover:text-red-800 hover:cursor-pointer"
             title="Remove user from organization" hx-delete="/organizations/users/{{.Id}}" hx-swap="none"
             hx-confirm="Are you sure you want to delete the user?"
             hx-on::401="alert('Unauthorized: only admins can delete users')"
             hx-on::403="alert('Forbidden: you can not delete yourself')"
             hx-on::after-request="htmx.ajax('GET', '/organizations/users', {target: '#people-list', swap: 'innerHTML'})"
+            id="delete-user-{{.Id}}-btn"
             >
-            <svg class="inline h-5 w-5"><use href="#delete-icon"/></svg>
+            <svg class="inline h-5 w-5">
+                <use href="#delete-icon" />
+            </svg>
         </button>
     </td>
 </tr>
