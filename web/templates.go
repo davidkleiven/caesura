@@ -5,7 +5,6 @@ import (
 	"embed"
 	"html/template"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
@@ -174,7 +173,7 @@ type userListViewObj struct {
 	Name      string
 	Email     string
 	Roles     []pkg.RoleKind
-	Groups    string
+	Groups    []string
 	GroupOpts []Option
 }
 
@@ -199,13 +198,12 @@ func WriteUserList(w io.Writer, users []pkg.UserInfo, orgId string, groupOpts []
 	}
 
 	for i, u := range users {
-		groups := strings.Join(u.Groups[orgId], ", ")
 		viewObj[i] = userListViewObj{
 			Id:        u.Id,
 			Email:     u.Email,
 			Name:      u.Name,
 			Roles:     roleOpts[u.Roles[orgId]],
-			Groups:    groups,
+			Groups:    u.Groups[orgId],
 			GroupOpts: opts,
 		}
 	}
