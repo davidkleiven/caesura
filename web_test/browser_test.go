@@ -122,6 +122,10 @@ func withBrowser(testFunc func(t *testing.T, page playwright.Page), path string)
 			fmt.Printf("Request: %s %s\n", request.Method(), request.URL())
 		})
 
+		page.On("response", func(resp playwright.Response) {
+			fmt.Printf("Response: %s, Status: %d\n", resp.URL(), resp.Status())
+		})
+
 		page.On("console", func(msg playwright.ConsoleMessage) {
 			fmt.Printf("Console: %s\n", msg.Text())
 		})
