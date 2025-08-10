@@ -22,7 +22,10 @@ var (
 	browser     playwright.Browser
 )
 
-const uploadPage = "/upload"
+const (
+	uploadPage = "/upload"
+	orgId      = "cccc13f9-ddd5-489e-bd77-3b935b457f71"
+)
 
 func createSignedInCookie(cookieStore *sessions.CookieStore, url string) playwright.OptionalCookie {
 	recorder := httptest.NewRecorder()
@@ -34,7 +37,6 @@ func createSignedInCookie(cookieStore *sessions.CookieStore, url string) playwri
 	}
 
 	userInfo := store.Users[0]
-	orgId := "cccc13f9-ddd5-489e-bd77-3b935b457f71"
 	data, err := json.Marshal(userInfo)
 	if err != nil {
 		panic(err)
