@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/davidkleiven/caesura/utils"
+	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"gopkg.in/yaml.v2"
@@ -34,6 +35,7 @@ type Config struct {
 	GoogleAuthRedirectURL    string             `yaml:"google_auth_rederict_url" env:"CAESURA_GOOGLE_AUTH_REDIRECT_URL"`
 	CookieSecretSignKey      string             `yaml:"cookie_secret_sign_key" env:"CAESURA_COOKIE_SECRET_SIGN_KEY"`
 	BaseURL                  string             `yaml:"base_url" env:"CAESURA_BASE_URL"`
+	SessionMaxAge            int                `yaml:"session_max_age" env:"CAESURA_SESSION_MAX_AGE"`
 	Transport                http.RoundTripper
 }
 
@@ -61,6 +63,13 @@ func (c *Config) OAuthConfig() *oauth2.Config {
 	}
 }
 
+func (c *Config) SessionOpts() *sessions.Options {
+	return &sessions.Options{
+		Path:   "/",
+		MaxAge: c.SessionMaxAge,
+	}
+}
+
 func NewDefaultConfig() *Config {
 	return &Config{
 		StoreType:             "in-memory",
@@ -70,6 +79,7 @@ func NewDefaultConfig() *Config {
 		GoogleAuthClientId:    "602223566336-77ugev7r0br5k1j8rc8i407kb0et34al.apps.googleusercontent.com",
 		GoogleAuthRedirectURL: "http://localhost:8080/auth/callback",
 		BaseURL:               "http://localhost:8080",
+		SessionMaxAge:         3600,
 	}
 }
 

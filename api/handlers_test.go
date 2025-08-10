@@ -1315,8 +1315,9 @@ func TestAddResourceSubmitFormResourceNotFound(t *testing.T) {
 }
 
 func TestHandleGoogleLoginMissingKey(t *testing.T) {
+	opt := sessions.Options{}
 	cookie := sessions.NewCookieStore([]byte{})
-	handler := RequireSession(cookie, AuthSession)(HandleGoogleLogin(pkg.NewDefaultConfig().OAuthConfig()))
+	handler := RequireSession(cookie, AuthSession, &opt)(HandleGoogleLogin(pkg.NewDefaultConfig().OAuthConfig()))
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/login", nil)
@@ -1333,8 +1334,9 @@ func TestHandleGoogleLoginMissingKey(t *testing.T) {
 }
 
 func TestHandleGoogleLogin(t *testing.T) {
+	opt := sessions.Options{}
 	cookie := sessions.NewCookieStore([]byte("some-random-key"))
-	handler := RequireSession(cookie, AuthSession)(HandleGoogleLogin(pkg.NewDefaultConfig().OAuthConfig()))
+	handler := RequireSession(cookie, AuthSession, &opt)(HandleGoogleLogin(pkg.NewDefaultConfig().OAuthConfig()))
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/login", nil)
@@ -1346,11 +1348,12 @@ func TestHandleGoogleLogin(t *testing.T) {
 }
 
 func TestInviteLinkAddedToSession(t *testing.T) {
+	opt := sessions.Options{}
 	cookie := sessions.NewCookieStore([]byte("top-secret"))
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/login?invite-token=ddaa", nil)
-	handler := RequireSession(cookie, AuthSession)(HandleGoogleLogin(pkg.NewDefaultConfig().OAuthConfig()))
+	handler := RequireSession(cookie, AuthSession, &opt)(HandleGoogleLogin(pkg.NewDefaultConfig().OAuthConfig()))
 	handler.ServeHTTP(recorder, request)
 
 	session, err := cookie.Get(request, AuthSession)
@@ -2438,5 +2441,28 @@ func TestGroupHandler(t *testing.T) {
 			failingHandler(rec, req.WithContext(ctx))
 			testutils.AssertEqual(t, rec.Code, http.StatusInternalServerError)
 		}
+	})
+}
+
+func TestLoggedIn(t *testing.T) {
+	store := sessions.NewCookieStore([]byte("top-secret"))
+	req := httptest.NewRequest("GET", "/endpoint", nil)
+	session, err := store.Get(req, AuthSession)
+	testutils.AssertNil(t, err)
+
+	ctx := context.WithValue(req.Context(), sessionKey, session)
+	t.Run("Not logged in", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		LoggedIn(rec, req.WithContext(ctx))
+		testutils.AssertEqual(t, rec.Code, http.StatusOK)
+		testutils.AssertContains(t, rec.Body.String(), "Sign in")
+	})
+
+	t.Run("Logged in", func(t *testing.T) {
+		session.Values["userId"] = "1234s"
+		rec := httptest.NewRecorder()
+		LoggedIn(rec, req.WithContext(ctx))
+		testutils.AssertEqual(t, rec.Code, http.StatusOK)
+		testutils.AssertContains(t, rec.Body.String(), "Signed in")
 	})
 }
