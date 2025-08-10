@@ -59,7 +59,8 @@ func TestHandleGoogleLoginInternalErrorWrongSession(t *testing.T) {
 		Value: "CorruptedCookieValue",
 	})
 
-	middleware := RequireSession(cookie, AuthSession)
+	opt := sessions.Options{}
+	middleware := RequireSession(cookie, AuthSession, &opt)
 	middleware(handler).ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusInternalServerError {
@@ -150,8 +151,9 @@ func TestRequireminimumRoleNoBytes(t *testing.T) {
 }
 
 func TestAccessMiddleware(t *testing.T) {
+	opt := sessions.Options{}
 	for _, test := range []struct {
-		middleware func(cookie *sessions.CookieStore) func(http.Handler) http.Handler
+		middleware func(cookie *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler
 		role       pkg.RoleKind
 		code       int
 		desc       string
@@ -220,6 +222,7 @@ func TestAccessMiddleware(t *testing.T) {
 			recorder := httptest.NewRecorder()
 			request := httptest.NewRequest("GET", "/route", nil)
 			session, err := cookie.Get(request, AuthSession)
+			session.IsNew = false
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -240,7 +243,7 @@ func TestAccessMiddleware(t *testing.T) {
 			session.Values["role"] = data
 			session.Values["orgId"] = ordId
 
-			middleware := test.middleware(cookie)
+			middleware := test.middleware(cookie, &opt)
 
 			ctx := context.WithValue(request.Context(), sessionKey, session)
 			middleware(handler).ServeHTTP(recorder, request.WithContext(ctx))
@@ -253,18 +256,22 @@ func TestAccessMiddleware(t *testing.T) {
 }
 
 func TestAccessMiddlewareBadRequestOnMissingSession(t *testing.T) {
+	opt := sessions.Options{}
 	cookie := sessions.NewCookieStore([]byte("key"))
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 	for i, middleware := range []func(http.Handler) http.Handler{
-		RequireRead(cookie),
-		RequireWrite(cookie),
-		RequireAdmin(cookie),
+		RequireRead(cookie, &opt),
+		RequireWrite(cookie, &opt),
+		RequireAdmin(cookie, &opt),
 	} {
 		t.Run(fmt.Sprintf("Test: #%d", i), func(t *testing.T) {
 			recorder := httptest.NewRecorder()
 			request := httptest.NewRequest("GET", "/endpoint", nil)
+			session, err := cookie.Get(request, AuthSession)
+			testutils.AssertNil(t, err)
+			session.IsNew = false
 			wrappedHandler := middleware(handler)
 			wrappedHandler.ServeHTTP(recorder, request)
 

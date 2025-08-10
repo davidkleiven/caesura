@@ -26,7 +26,7 @@ func LogRequest(handler http.Handler) http.Handler {
 	})
 }
 
-func RequireSession(cookieStore *sessions.CookieStore, name string) func(http.Handler) http.Handler {
+func RequireSession(cookieStore *sessions.CookieStore, name string, opts *sessions.Options) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			session, err := cookieStore.Get(r, name)
@@ -36,6 +36,7 @@ func RequireSession(cookieStore *sessions.CookieStore, name string) func(http.Ha
 				return
 			}
 
+			session.Options = opts
 			ctx := context.WithValue(r.Context(), sessionKey, session)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
@@ -114,36 +115,36 @@ func ValidateUserInfo(cookieStore *sessions.CookieStore) func(http.Handler) http
 	}
 }
 
-func RequireRead(cookieStore *sessions.CookieStore) func(http.Handler) http.Handler {
+func RequireRead(cookieStore *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
 	return Chain(
-		RequireSession(cookieStore, AuthSession),
+		RequireSession(cookieStore, AuthSession, opts),
 		RequireMinimumRole(cookieStore, pkg.RoleViewer),
 	)
 }
 
-func RequireWrite(cookieStore *sessions.CookieStore) func(http.Handler) http.Handler {
+func RequireWrite(cookieStore *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
 	return Chain(
-		RequireSession(cookieStore, AuthSession),
+		RequireSession(cookieStore, AuthSession, opts),
 		RequireMinimumRole(cookieStore, pkg.RoleEditor),
 	)
 }
 
-func RequireAdmin(cookieStore *sessions.CookieStore) func(http.Handler) http.Handler {
+func RequireAdmin(cookieStore *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
 	return Chain(
-		RequireSession(cookieStore, AuthSession),
+		RequireSession(cookieStore, AuthSession, opts),
 		RequireMinimumRole(cookieStore, pkg.RoleAdmin),
 	)
 }
 
-func RequireSignedIn(cookieStore *sessions.CookieStore) func(http.Handler) http.Handler {
+func RequireSignedIn(cookieStore *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
 	return Chain(
-		RequireSession(cookieStore, AuthSession),
+		RequireSession(cookieStore, AuthSession, opts),
 		RequireUserId(cookieStore),
 	)
 }
-func RequireUserInfo(cookieStore *sessions.CookieStore) func(http.Handler) http.Handler {
+func RequireUserInfo(cookieStore *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
 	return Chain(
-		RequireSession(cookieStore, AuthSession),
+		RequireSession(cookieStore, AuthSession, opts),
 		RequireUserId(cookieStore),
 	)
 }

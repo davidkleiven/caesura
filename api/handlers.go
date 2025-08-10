@@ -957,12 +957,26 @@ func GroupHandler(store pkg.GroupStore, timeout time.Duration) http.HandlerFunc 
 	}
 }
 
+func LoggedIn(w http.ResponseWriter, r *http.Request) {
+	s := MustGetSession(r)
+	_, loggedIn := s.Values["userId"].(string)
+	html := `<a href="/login">Sign in</a>`
+	if loggedIn {
+		html = "Signed in"
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(html))
+}
+
 func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
-	readRoute := RequireRead(cookieStore)
-	writeRoute := RequireWrite(cookieStore)
-	adminRoute := RequireAdmin(cookieStore)
-	signedInRoute := RequireSignedIn(cookieStore) // Require user to be signed in, but not to have a role
-	userInfoRoute := RequireUserInfo(cookieStore) // Require the info about user, but nessecarily a active orgId
+	sessionOpt := config.SessionOpts()
+	readRoute := RequireRead(cookieStore, sessionOpt)
+	writeRoute := RequireWrite(cookieStore, sessionOpt)
+	adminRoute := RequireAdmin(cookieStore, sessionOpt)
+	signedInRoute := RequireSignedIn(cookieStore, sessionOpt) // Require user to be signed in, but not to have a role
+	userInfoRoute := RequireUserInfo(cookieStore, sessionOpt) // Require the info about user, but nessecarily a active orgId
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", RootHandler)
@@ -993,7 +1007,7 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("POST /resources", writeRoute(SubmitHandler(store, config.Timeout, int(config.MaxRequestSizeMb))))
 
 	oauthCfg := config.OAuthConfig()
-	requireAuthSession := RequireSession(cookieStore, AuthSession)
+	requireAuthSession := RequireSession(cookieStore, AuthSession, sessionOpt)
 	mux.Handle("/login", requireAuthSession(HandleGoogleLogin(oauthCfg)))
 	mux.Handle("/auth/callback", requireAuthSession(HandleGoogleCallback(store, oauthCfg, config.Timeout, config.CookieSecretSignKey, config.Transport)))
 
@@ -1010,6 +1024,7 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("DELETE /organizations/users/{id}/groups", readRoute(GroupHandler(store, config.Timeout)))
 
 	mux.Handle("GET /session/active-organization/name", requireAuthSession(ActiveOrganization(store, config.Timeout)))
+	mux.Handle("GET /session/logged-in", requireAuthSession(http.HandlerFunc(LoggedIn)))
 
 	mux.HandleFunc("GET /people", PeoplePage)
 	return mux
