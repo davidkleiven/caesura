@@ -24,7 +24,7 @@ func preppedInMemporyFetcher() *MultiOrgInMemoryStore {
 	}
 
 	store := NewMultiOrgInMemoryStore()
-	store.Data["org1"] = data
+	store.Data["org1"] = &data
 	return store
 }
 

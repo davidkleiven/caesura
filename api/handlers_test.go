@@ -640,7 +640,7 @@ func TestSearchProjectHandler(t *testing.T) {
 	}
 
 	inMemStore := pkg.NewMultiOrgInMemoryStore()
-	inMemStore.Data["org1"] = *store
+	inMemStore.Data["org1"] = store
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/projects/names?projectQuery=test", nil)
@@ -880,7 +880,7 @@ func TestSearchProjectListHandler(t *testing.T) {
 	}
 
 	multiStore := pkg.NewMultiOrgInMemoryStore()
-	multiStore.Data["org1"] = *inMemStore
+	multiStore.Data["org1"] = inMemStore
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/projects/info?projectQuery=test", nil)
@@ -1213,7 +1213,7 @@ func TestFailingRemover(t *testing.T) {
 func TestAddToResourceSubmitForm(t *testing.T) {
 	store := pkg.NewDemoStore()
 
-	var inMemStore pkg.InMemoryStore
+	var inMemStore *pkg.InMemoryStore
 	var orgId string
 	for id, s := range store.Data {
 		inMemStore = s

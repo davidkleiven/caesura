@@ -41,8 +41,8 @@ func NewDemoStore() *MultiOrgInMemoryStore {
 	store.Projects[project.Id()] = project
 
 	multiOrgStore := NewMultiOrgInMemoryStore()
-	multiOrgStore.Data["9eab9a97-06a3-42a7-ae1e-7c67df5cbec7"] = *store
-	multiOrgStore.Data["cccc13f9-ddd5-489e-bd77-3b935b457f71"] = *store
+	multiOrgStore.Data["9eab9a97-06a3-42a7-ae1e-7c67df5cbec7"] = store
+	multiOrgStore.Data["cccc13f9-ddd5-489e-bd77-3b935b457f71"] = store
 
 	multiOrgStore.Users = []UserInfo{
 		{
@@ -82,7 +82,7 @@ func NewDemoStore() *MultiOrgInMemoryStore {
 }
 
 type MultiOrgInMemoryStore struct {
-	Data          map[string]InMemoryStore
+	Data          map[string]*InMemoryStore
 	Users         []UserInfo
 	Organizations []Organization
 }
@@ -155,7 +155,7 @@ func (m *MultiOrgInMemoryStore) Clone() *MultiOrgInMemoryStore {
 	dst := NewMultiOrgInMemoryStore()
 
 	for orgId, store := range m.Data {
-		dst.Data[orgId] = *store.Clone()
+		dst.Data[orgId] = store.Clone()
 	}
 
 	dst.Users = make([]UserInfo, len(m.Users))
@@ -198,7 +198,7 @@ func (m *MultiOrgInMemoryStore) RegisterRole(ctx context.Context, userId string,
 }
 
 func (m *MultiOrgInMemoryStore) RegisterOrganization(ctx context.Context, org *Organization) error {
-	m.Data[org.Id] = *NewInMemoryStore()
+	m.Data[org.Id] = NewInMemoryStore()
 	m.Organizations = append(m.Organizations, *org)
 	return nil
 }
@@ -221,7 +221,7 @@ func (m *MultiOrgInMemoryStore) FirstOrganizationId() string {
 
 func (m *MultiOrgInMemoryStore) FirstDataStore() *InMemoryStore {
 	for _, v := range m.Data {
-		return &v
+		return v
 	}
 	return &InMemoryStore{}
 }
@@ -291,7 +291,7 @@ func (m *MultiOrgInMemoryStore) RemoveGroup(ctx context.Context, userId, orgId, 
 
 func NewMultiOrgInMemoryStore() *MultiOrgInMemoryStore {
 	return &MultiOrgInMemoryStore{
-		Data:          make(map[string]InMemoryStore),
+		Data:          make(map[string]*InMemoryStore),
 		Users:         []UserInfo{},
 		Organizations: []Organization{},
 	}
