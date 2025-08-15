@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"iter"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -324,17 +325,8 @@ func TestSubmitHandlerValidRequest(t *testing.T) {
 	}
 
 	// Check content in the store
-	content := inMemStore.Data["orgId"].Data["brandenburgconcertono3_johansebastianbach.zip"]
-
-	zipReader, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
-	if err != nil {
-		t.Errorf("Failed to read zip file: %v", err)
-		return
-	}
-	if len(zipReader.File) != 2 {
-		t.Errorf("Expected 2 files in zip, got %d", len(zipReader.File))
-		return
-	}
+	content := inMemStore.Data["orgId"]
+	testutils.AssertEqual(t, len(content.Data), 2)
 }
 
 func TestSubmitHandlerInvalidJson(t *testing.T) {
@@ -417,6 +409,7 @@ func TestSubmitNonPdfFileAsDocument(t *testing.T) {
 
 	request := httptest.NewRequest("POST", "/resources", multipartBuffer)
 	request.Header.Set("Content-Type", contentType)
+	request = withAuthSession(request, "orgId")
 
 	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
 	handler(recorder, request)
@@ -426,7 +419,7 @@ func TestSubmitNonPdfFileAsDocument(t *testing.T) {
 		return
 	}
 
-	expectedError := "Failed to split PDF"
+	expectedError := "Failed to store"
 	if !strings.Contains(recorder.Body.String(), expectedError) {
 		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
 	}
@@ -498,33 +491,11 @@ func TestSubmitHandlerInvalidMetaData(t *testing.T) {
 	}
 }
 
-func TestSubmitWithEmptyMetaData(t *testing.T) {
-	inMemStore := pkg.NewMultiOrgInMemoryStore()
-	recorder := httptest.NewRecorder()
-
-	multipartBuffer, contentType := multipartForm(withPdf, withAssignments, withEmptyMetaData)
-	request := httptest.NewRequest("POST", "/resources", multipartBuffer)
-	request.Header.Set("Content-Type", contentType)
-
-	handler := SubmitHandler(inMemStore, 10*time.Second, 10)
-	handler(recorder, request)
-
-	if recorder.Code != http.StatusBadRequest {
-		t.Errorf("Expected status code 400, got %d", recorder.Code)
-		return
-	}
-
-	expectedResponse := "Filename is empty."
-	if !strings.Contains(recorder.Body.String(), expectedResponse) {
-		t.Errorf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
-	}
-}
-
 type failingSubmitter struct {
 	err error
 }
 
-func (f *failingSubmitter) Submit(ctx context.Context, orgId string, meta *pkg.MetaData, r io.Reader) error {
+func (f *failingSubmitter) Submit(ctx context.Context, orgId string, meta *pkg.MetaData, i iter.Seq2[string, []byte]) error {
 	return f.err
 }
 
@@ -558,6 +529,22 @@ func TestEntityTooLargeWhenUploadIsTooLarge(t *testing.T) {
 
 	if recorder.Code != http.StatusRequestEntityTooLarge {
 		t.Fatalf("Expected code %d got %d", http.StatusRequestEntityTooLarge, recorder.Code)
+	}
+}
+
+func TestBadRequestOnEmptyResourceName(t *testing.T) {
+	inMemStore := pkg.NewMultiOrgInMemoryStore()
+	recorder := httptest.NewRecorder()
+
+	multipartBuffer, contentType := multipartForm(withInvalidPdf, withAssignments, withEmptyMetaData)
+	request := httptest.NewRequest("POST", "/resources", multipartBuffer)
+	request.Header.Set("Content-Type", contentType)
+
+	handler := SubmitHandler(inMemStore, 10*time.Second, 4096)
+	handler(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("Expected code %d got %d", http.StatusBadRequest, recorder.Code)
 	}
 }
 
@@ -1063,22 +1050,6 @@ func TestResourceContentByIdHandler(t *testing.T) {
 	}
 }
 
-func TestResourceContentInternalServerErrorOnGenericError(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("GET", "/content/0aab", nil)
-	request = withAuthSession(request, "someOrg")
-	getter := failingResourceGetter{
-		err: errors.New("something went wrong"),
-	}
-
-	handler := ResourceContentByIdHandler(&getter, 1*time.Second)
-	handler(recorder, request)
-
-	if recorder.Code != http.StatusInternalServerError {
-		t.Fatalf("Expected %d got %d", http.StatusInternalServerError, recorder.Code)
-	}
-}
-
 func TestResourceDownloaderFullZipDownload(t *testing.T) {
 	store := pkg.NewDemoStore()
 
@@ -1179,34 +1150,6 @@ func TestNotFoundWhenRequestingNonExistingResource(t *testing.T) {
 
 	if recorder.Code != http.StatusNotFound {
 		t.Fatalf("Expected %d got %d", http.StatusNotFound, recorder.Code)
-	}
-}
-
-type failingResourceGetter struct {
-	err error
-}
-
-func (f *failingResourceGetter) MetaById(ctx context.Context, orgId, id string) (*pkg.MetaData, error) {
-	return &pkg.MetaData{}, f.err
-}
-
-func (f *failingResourceGetter) Resource(ctx context.Context, orgId, name string) (io.Reader, error) {
-	return bytes.NewBuffer([]byte{}), f.err
-}
-
-func TestInternalServerErrorOnGenericFailure(t *testing.T) {
-	recorder := httptest.NewRecorder()
-	request := httptest.NewRequest("GET", "/resources/0aaax", nil)
-	request = withAuthSession(request, "someOrg")
-	getter := failingResourceGetter{
-		err: errors.New("some generic error"),
-	}
-
-	handler := ResourceDownload(&getter, 1*time.Second)
-	handler(recorder, request)
-
-	if recorder.Code != http.StatusInternalServerError {
-		t.Fatalf("Expected %d got %d", http.StatusInternalServerError, recorder.Code)
 	}
 }
 

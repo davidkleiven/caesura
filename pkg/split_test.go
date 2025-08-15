@@ -1,13 +1,11 @@
 package pkg
 
 import (
-	"archive/zip"
 	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
@@ -52,59 +50,32 @@ func TestSplitPdf(t *testing.T) {
 		}
 	}
 
-	result, err := SplitPdf(bytes.NewReader(buffer.Bytes()), assignements)
-	if err != nil {
-		t.Errorf("failed to split pdf: %s", err)
-		return
-	}
-
-	reader, err := zip.NewReader(bytes.NewReader((result.Bytes())), int64(result.Len()))
-	if err != nil {
-		t.Errorf("failed to read splitted pdf: %s", err)
-		return
-	}
-	if len(reader.File) != 2 {
-		t.Errorf("Expected 2 files in zip, got %d", len(reader.File))
-		return
-	}
+	pdfIter := SplitPdf(bytes.NewReader(buffer.Bytes()), assignements)
 
 	expectNames := []string{"Part1.pdf", "Part2.pdf"}
-	for i, file := range reader.File {
-		if file.Name != expectNames[i] {
-			t.Errorf("Expected file name %s, got %s", expectNames[i], file.Name)
-			return
-		}
-		rc, err := file.Open()
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		defer rc.Close()
-
-		content, err := io.ReadAll(rc)
-		if err != nil {
-			t.Error(err)
+	count := 0
+	for name, content := range pdfIter {
+		if name != expectNames[count] {
+			t.Errorf("Expected file name %s, got %s", expectNames[count], name)
 			return
 		}
 
 		if pageCount, err := api.PageCount(bytes.NewReader(content), nil); pageCount != 5 || err != nil {
-			t.Errorf("Expected 5 pages in %s, got %d with error %v", file.Name, pageCount, err)
+			t.Errorf("Expected 5 pages in %s, got %d with error %v", name, pageCount, err)
 			return
 		}
+		count++
 	}
 }
 
 func TestProcessingPipelineAbortOnError(t *testing.T) {
 	pipeline := &PDFPipeline{
-		zipWriter: zip.NewWriter(io.Discard),
-		err:       errors.New("test error"),
+		err: errors.New("test error"),
 	}
 
 	for _, step := range []func() *PDFPipeline{
 		func() *PDFPipeline { return pipeline.ExtractPages(nil, 1, 5) },
-		func() *PDFPipeline { return pipeline.WriteContext() },
-		func() *PDFPipeline { return pipeline.CreateZipEntry("test") },
-		func() *PDFPipeline { return pipeline.CopyToZip() },
+		func() *PDFPipeline { pipeline.WriteContext(); return pipeline },
 	} {
 		if step().Error() == nil {
 			t.Error("Expected error to propagate through the pipeline")
@@ -121,15 +92,16 @@ func TestEmptyBufferReturnedOnInvalidPdf(t *testing.T) {
 	invalidPDF := bytes.NewBufferString("This is not a valid PDF content")
 	assignments := []Assignment{}
 
-	result, err := SplitPdf(bytes.NewReader(invalidPDF.Bytes()), assignments)
-	if err == nil {
-		t.Error("Expected an error for invalid PDF content, but got none")
-		return
+	pdfIter := SplitPdf(bytes.NewReader(invalidPDF.Bytes()), assignments)
+
+	num := 0
+	for _, _ = range pdfIter {
+		num++
 	}
 
 	// Ensure empty buffer is returned on error
-	if result.Len() == 0 {
-		t.Errorf("Expected empty buffer on error, got %d bytes", result.Len())
+	if num != 0 {
+		t.Errorf("Expected empty buffer on error, got %d bytes", num)
 	}
 }
 
@@ -144,19 +116,16 @@ func TestProcessingAbortOnError(t *testing.T) {
 	assignments := []Assignment{
 		{Id: "Part1", From: 1000, To: 1500},
 	}
-	result, err := SplitPdf(bytes.NewReader(buffer.Bytes()), assignments)
-	if err == nil {
-		t.Error("Expected an error due to invalid assignment ID, but got none")
+	pdfIter := SplitPdf(bytes.NewReader(buffer.Bytes()), assignments)
+
+	num := 0
+	for _, _ = range pdfIter {
+		num++
+	}
+
+	if num != 0 {
+		t.Errorf("Expected 0 files got %d", num)
 		return
 	}
 
-	if result.Len() == 0 {
-		t.Errorf("Expected non-empty buffer on error, got %d bytes", result.Len())
-		return
-	}
-
-	if !strings.Contains(err.Error(), "failed to process assignment") {
-		t.Errorf("Expected error about invalid assignment ID, got: %v", err)
-		return
-	}
 }

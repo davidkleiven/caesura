@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"iter"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,7 +24,7 @@ const (
 )
 
 type Submitter interface {
-	Submit(ctx context.Context, orgId string, m *MetaData, r io.Reader) error
+	Submit(ctx context.Context, orgId string, m *MetaData, pdfIter iter.Seq2[string, []byte]) error
 }
 
 type Duration time.Duration
@@ -76,7 +77,7 @@ func (m *MetaData) ResourceName() string {
 	if m.Arranger != "" {
 		result = append(result, m.Arranger)
 	}
-	return SanitizeString(strings.Join(result, "_")) + ".zip"
+	return SanitizeString(strings.Join(result, "_"))
 }
 
 func (m *MetaData) MarshalJSON() ([]byte, error) {

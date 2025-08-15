@@ -2,7 +2,7 @@ package pkg
 
 import (
 	"context"
-	"io"
+	"iter"
 	"time"
 )
 
@@ -28,7 +28,7 @@ type MetaByIdGetter interface {
 
 type ResourceGetter interface {
 	MetaByIdGetter
-	Resource(ctx context.Context, orgId string, path string) (io.Reader, error)
+	Resource(ctx context.Context, orgId string, path string) iter.Seq2[string, []byte]
 }
 
 type BlobStore interface {

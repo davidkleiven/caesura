@@ -1,11 +1,12 @@
 package pkg
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"iter"
 	"slices"
 	"time"
 
@@ -18,8 +19,17 @@ func NewDemoStore() *MultiOrgInMemoryStore {
 		{Title: "Demo Title 1", Composer: "Composer A", Arranger: "Arranger X"},
 		{Title: "Demo Title 2", Composer: "Composer B", Arranger: "Arranger Y"},
 	}
-	store.Data[store.Metadata[0].ResourceName()] = MustCreateResource(5)
-	store.Data[store.Metadata[1].ResourceName()] = MustCreateResource(3)
+
+	var pdfBuf bytes.Buffer
+	PanicOnErr(CreateNPagePdf(&pdfBuf, 2))
+	content := pdfBuf.Bytes()
+	for _, m := range store.Metadata {
+		name := m.ResourceName()
+		for i := range 5 {
+			fname := fmt.Sprintf("%s/Part%d.pdf", name, i)
+			store.Data[fname] = content
+		}
+	}
 
 	projectDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	project := Project{
@@ -77,12 +87,12 @@ type MultiOrgInMemoryStore struct {
 	Organizations []Organization
 }
 
-func (m *MultiOrgInMemoryStore) Submit(ctx context.Context, orgId string, meta *MetaData, r io.Reader) error {
+func (m *MultiOrgInMemoryStore) Submit(ctx context.Context, orgId string, meta *MetaData, pdfIter iter.Seq2[string, []byte]) error {
 	store, ok := m.Data[orgId]
 	if !ok {
 		return ErrOrganizationNotFound
 	}
-	return store.Submit(ctx, meta, r)
+	return store.Submit(ctx, meta, pdfIter)
 }
 
 func (m *MultiOrgInMemoryStore) MetaByPattern(ctx context.Context, orgId string, pattern *MetaData) ([]MetaData, error) {
@@ -133,10 +143,10 @@ func (m *MultiOrgInMemoryStore) MetaById(ctx context.Context, orgId, id string) 
 	return store.MetaById(ctx, id)
 }
 
-func (m *MultiOrgInMemoryStore) Resource(ctx context.Context, orgId, name string) (io.Reader, error) {
+func (m *MultiOrgInMemoryStore) Resource(ctx context.Context, orgId, name string) iter.Seq2[string, []byte] {
 	store, ok := m.Data[orgId]
 	if !ok {
-		return nil, ErrOrganizationNotFound
+		return func(yield func(string, []byte) bool) {}
 	}
 	return store.Resource(ctx, name)
 }

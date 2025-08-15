@@ -1,7 +1,6 @@
 package pkg
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"reflect"
@@ -14,7 +13,7 @@ func TestMultiOrgErrorHandling(t *testing.T) {
 	store := NewMultiOrgInMemoryStore()
 	ctx := context.Background()
 	meta := MetaData{}
-	data := bytes.NewBuffer([]byte{})
+	data := func(yield func(string, []byte) bool) {}
 
 	for _, test := range []struct {
 		fn             func(orgId string) error
@@ -63,14 +62,6 @@ func TestMultiOrgErrorHandling(t *testing.T) {
 			},
 			desc:           "MetaById",
 			afterOrgRegErr: ErrResourceMetadataNotFound,
-		},
-		{
-			fn: func(orgId string) error {
-				_, err := store.Resource(ctx, orgId, "someResourceId")
-				return err
-			},
-			desc:           "Resource",
-			afterOrgRegErr: ErrResourceNotFound,
 		},
 	} {
 		t.Run(test.desc, func(t *testing.T) {

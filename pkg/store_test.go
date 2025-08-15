@@ -210,11 +210,11 @@ func TestMetaDataString(t *testing.T) {
 		metaData MetaData
 		expected string
 	}{
-		{MetaData{Title: "Title", Composer: "Composer", Arranger: "Arranger"}, "title_composer_arranger.zip"},
-		{MetaData{Title: "", Composer: "", Arranger: ""}, ".zip"},
-		{MetaData{Title: "Title", Composer: "", Arranger: ""}, "title.zip"},
-		{MetaData{Title: "", Composer: "Composer", Arranger: ""}, "composer.zip"},
-		{MetaData{Title: "", Composer: "", Arranger: "Arranger"}, "arranger.zip"},
+		{MetaData{Title: "Title", Composer: "Composer", Arranger: "Arranger"}, "title_composer_arranger"},
+		{MetaData{Title: "", Composer: "", Arranger: ""}, ""},
+		{MetaData{Title: "Title", Composer: "", Arranger: ""}, "title"},
+		{MetaData{Title: "", Composer: "Composer", Arranger: ""}, "composer"},
+		{MetaData{Title: "", Composer: "", Arranger: "Arranger"}, "arranger"},
 	} {
 		m := test.metaData
 		result := m.ResourceName()
