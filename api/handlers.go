@@ -156,7 +156,7 @@ func SubmitHandler(submitter pkg.Submitter, timeout time.Duration, maxSize int) 
 			slog.Error("Failed to store file", "error", err)
 			return
 		}
-		slog.Info("File stored successfully", "filename", resourceName)
+		slog.Info("File stored successfully", "filename", resourceName, "resourceId", metaData.ResourceId(), "orgId", orgId)
 		w.Write([]byte("File uploaded successfully!"))
 	}
 }
