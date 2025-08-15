@@ -1,12 +1,12 @@
 package pkg
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"iter"
+	"path"
 	"slices"
 	"strings"
 
@@ -19,22 +19,18 @@ type InMemoryStore struct {
 	Projects map[string]Project
 }
 
-func (s *InMemoryStore) Submit(ctx context.Context, meta *MetaData, r io.Reader) error {
+func (s *InMemoryStore) Submit(ctx context.Context, meta *MetaData, pdfIter iter.Seq2[string, []byte]) error {
 	if _, err := s.MetaById(ctx, meta.ResourceId()); err != nil {
 		s.Metadata = append(s.Metadata, *meta)
 	}
-	data, err := io.ReadAll(r)
-	if err != nil {
-		return errors.Join(ErrRetrievingContent, err)
-	}
 
-	name := meta.ResourceName()
-	if current, ok := s.Data[name]; ok {
-		s.Data[name], err = NewZipAppender().Add(data).Add(current).Merge()
-	} else {
-		s.Data[name] = data
+	resourceName := meta.ResourceName()
+
+	for name, pdfContent := range pdfIter {
+		fullName := resourceName + "/" + name
+		s.Data[fullName] = pdfContent
 	}
-	return err
+	return nil
 }
 
 func (s *InMemoryStore) MetaByPattern(ctx context.Context, pattern *MetaData) ([]MetaData, error) {
@@ -108,12 +104,17 @@ func (s *InMemoryStore) MetaById(ctx context.Context, id string) (*MetaData, err
 	return &MetaData{}, errors.Join(ErrResourceMetadataNotFound, fmt.Errorf("metadata with id %s not found", id))
 }
 
-func (s *InMemoryStore) Resource(ctx context.Context, name string) (io.Reader, error) {
-	content, exists := s.Data[name]
-	if !exists {
-		return nil, errors.Join(ErrResourceNotFound, fmt.Errorf("resource %s", name))
+func (s *InMemoryStore) Resource(ctx context.Context, name string) iter.Seq2[string, []byte] {
+	return func(yield func(k string, c []byte) bool) {
+		for k, content := range s.Data {
+			if strings.Contains(k, name) {
+				filename := path.Base(k)
+				if !yield(filename, content) {
+					return
+				}
+			}
+		}
 	}
-	return bytes.NewReader(content), nil
 }
 
 func (s *InMemoryStore) Clone() *InMemoryStore {

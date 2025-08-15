@@ -1,16 +1,14 @@
 package pkg
 
 import (
-	"archive/zip"
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"reflect"
 	"slices"
-	"strings"
 	"testing"
+
+	"github.com/davidkleiven/caesura/testutils"
 )
 
 func preppedInMemporyFetcher() *MultiOrgInMemoryStore {
@@ -69,9 +67,16 @@ func TestSubmit(t *testing.T) {
 		Arranger: "Test Arranger",
 	}
 
-	content := "This is a test content."
+	content := []byte("This is a test content.")
+	iter := func(yield func(name string, c []byte) bool) {
+		for range 1 {
+			if !yield("name", content) {
+				return
+			}
+		}
+	}
 
-	err := inMemStore.Submit(context.Background(), meta, strings.NewReader(content))
+	err := inMemStore.Submit(context.Background(), meta, iter)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -80,52 +85,27 @@ func TestSubmit(t *testing.T) {
 		t.Errorf("Expected 1 resource, got %d", len(inMemStore.Data))
 	}
 
-	if string(inMemStore.Data[meta.ResourceName()]) != content {
+	if string(inMemStore.Data[meta.ResourceName()+"/name"]) != string(content) {
 		t.Errorf("Expected content '%s', got '%s'", content, string(inMemStore.Data[meta.ResourceName()]))
 	}
 }
 
-func TestErrRetrievingContentOnFailingReader(t *testing.T) {
-	inMemStore := &InMemoryStore{
-		Data:     make(map[string][]byte),
-		Metadata: []MetaData{},
-	}
-
-	meta := &MetaData{
-		Title:    "Test Title",
-		Composer: "Test Composer",
-		Arranger: "Test Arranger",
-	}
-
-	err := inMemStore.Submit(context.Background(), meta, &failingReader{}) // Passing nil to simulate a failing reader
-	if err == nil {
-		t.Fatal("Expected an error when submitting with a nil reader, but got none")
-	}
-
-	if !errors.Is(err, ErrRetrievingContent) {
-		t.Errorf("Expected error to contain '%s', got '%s'", ErrRetrievingContent.Error(), err.Error())
-	}
-}
-
 func TestAppendWhenExist(t *testing.T) {
-	var buffer1 bytes.Buffer
-	zipWriter := zip.NewWriter(&buffer1)
-	w, err := zipWriter.Create("file1.txt")
-	if err != nil {
-		t.Fatal(err)
+	iter1 := func(yield func(n string, c []byte) bool) {
+		for range 1 {
+			if !yield("file1.txt", []byte("Content1")) {
+				return
+			}
+		}
 	}
-	w.Write([]byte("Content1"))
-	zipWriter.Close()
 
-	var buffer2 bytes.Buffer
-	zipWriter2 := zip.NewWriter(&buffer2)
-	w, err = zipWriter2.Create("file2.txt")
-	if err != nil {
-		t.Fatal(err)
+	iter2 := func(yield func(n string, c []byte) bool) {
+		for range 1 {
+			if !yield("file2.txt", []byte("Content2")) {
+				return
+			}
+		}
 	}
-	w.Write([]byte("Content2"))
-	zipWriter2.Close()
-
 	store := NewInMemoryStore()
 
 	meta := MetaData{
@@ -133,21 +113,18 @@ func TestAppendWhenExist(t *testing.T) {
 		Arranger: "None",
 		Title:    "My song",
 	}
-	store.Submit(context.Background(), &meta, &buffer1)
-	store.Submit(context.Background(), &meta, &buffer2)
+	store.Submit(context.Background(), &meta, iter1)
+	store.Submit(context.Background(), &meta, iter2)
 
 	resourceName := meta.ResourceName()
 
-	content := store.Data[resourceName]
-	zipReader, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
-	if err != nil {
-		t.Fatal(err)
+	testutils.AssertEqual(t, len(store.Data), 2)
+	expectFilenames := []string{resourceName + "/" + "file1.txt", resourceName + "/" + "file2.txt"}
+	for _, e := range expectFilenames {
+		if _, ok := store.Data[e]; !ok {
+			t.Fatalf("Expected %s to be part of %v", e, store.Data)
+		}
 	}
-
-	if len(zipReader.File) != 2 {
-		t.Fatalf("Expected 2 files got '%d'", len(zipReader.File))
-	}
-
 }
 
 func TestProjectByName(t *testing.T) {
@@ -270,7 +247,7 @@ func TestMetaById(t *testing.T) {
 		metaId   string
 		expected string
 	}{
-		{"Existing Meta", "b51b44dd2b01d6553d4718c74ed4ed68", "Test Title"},
+		{"Existing Meta", "42d5a41d5487948b29d6aa433e3d2bfb", "Test Title"},
 		{"Non-existing Meta", "nonexisting", ""},
 	}
 
@@ -293,32 +270,21 @@ func TestResourceById(t *testing.T) {
 	store := NewDemoStore().FirstDataStore()
 	name := store.Metadata[0].ResourceName()
 
-	reader, err := store.Resource(context.Background(), name)
-	if err != nil {
-		t.Fatalf("ResourceById: %s", err)
+	num := 0
+	for range store.Resource(context.Background(), name) {
+		num++
 	}
-
-	content, err := io.ReadAll(reader)
-	if err != nil {
-		t.Fatalf("Failed to read all: %s", err)
-	}
-	zipReader, err := zip.NewReader(bytes.NewReader(content), int64(len(content)))
-	if err != nil {
-		t.Fatalf("Failed to create zip reader: %s", err)
-	}
-
-	if n := len(zipReader.File); n != 5 {
-		t.Fatalf("Expected 5 files got %d", n)
-	}
+	testutils.AssertEqual(t, num, 5)
 }
 
 func TestResourceByIdUnknownId(t *testing.T) {
 	store := NewDemoStore()
 	orgId := store.FirstOrganizationId()
-	_, err := store.Resource(context.Background(), orgId, "unknownName")
-	if !errors.Is(err, ErrResourceNotFound) {
-		t.Fatalf("Wanted %s got %s", ErrResourceNotFound, err)
+	num := 0
+	for range store.Resource(context.Background(), orgId, "unknownName") {
+		num++
 	}
+	testutils.AssertEqual(t, num, 0)
 }
 
 func TestClone(t *testing.T) {

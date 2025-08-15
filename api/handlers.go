@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
@@ -141,24 +140,18 @@ func SubmitHandler(submitter pkg.Submitter, timeout time.Duration, maxSize int) 
 		}
 
 		resourceName := metaData.ResourceName()
-		if resourceName == ".zip" {
+		if resourceName == "" {
 			http.Error(w, "Filename is empty. Note that only alphanumeric characters are allowed", http.StatusBadRequest)
 			slog.Error("Filename cannot be empty.", "title", metaData.Title, "composer", metaData.Composer, "arranger", metaData.Arranger)
 			return
 		}
 
-		buf, err := pkg.SplitPdf(file, assignments)
-		if err != nil {
-			http.Error(w, "Failed to split PDF", http.StatusInternalServerError)
-			slog.Error("Failed to split PDF", "error", err)
-			return
-		}
-
+		pdfIter := pkg.SplitPdf(file, assignments)
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
 
 		orgId := MustGetOrgId(MustGetSession(r))
-		if err := submitter.Submit(ctx, orgId, &metaData, buf); err != nil {
+		if err := submitter.Submit(ctx, orgId, &metaData, pdfIter); err != nil {
 			http.Error(w, "Failed to store file", http.StatusInternalServerError)
 			slog.Error("Failed to store file", "error", err)
 			return
@@ -362,20 +355,15 @@ func ResourceContentByIdHandler(s pkg.ResourceGetter, timeout time.Duration) htt
 		id := r.PathValue("id")
 		downloader := pkg.NewResourceDownloader().GetMetaData(ctx, s, orgId, id).GetResource(ctx, s, orgId)
 
-		resource, err := downloader.ZipReader()
-		if err != nil {
+		if downloader.Error != nil {
 			http.Error(w, "could not fetch resource", http.StatusInternalServerError)
-			slog.Error("Failed to fetch resource", "error", err)
+			slog.Error("Failed to fetch resource", "error", downloader.Error)
 		}
 
 		content := web.ResourceContentData{
 			ResourceId: id,
-			Filenames:  make([]string, len(resource.File)),
+			Filenames:  downloader.Filenames(),
 		}
-		for i, file := range resource.File {
-			content.Filenames[i] = file.Name
-		}
-
 		web.ResourceContent(w, &content)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	}
@@ -392,9 +380,6 @@ func ResourceDownload(s pkg.ResourceGetter, timeout time.Duration) http.HandlerF
 		downloader := pkg.NewResourceDownloader().GetMetaData(ctx, s, orgId, resourceId).GetResource(ctx, s, orgId)
 
 		var (
-			reader             io.Reader
-			contentReader      io.ReadCloser
-			err                error
 			statusCode         int
 			contentDisposition string
 			contentType        string
@@ -403,14 +388,14 @@ func ResourceDownload(s pkg.ResourceGetter, timeout time.Duration) http.HandlerF
 			zipFilename := downloader.ZipFilename()
 			contentDisposition = "attachment; filename=\"" + zipFilename + "\""
 			contentType = "application/zip"
-			reader, err = downloader.Content()
-			contentReader = io.NopCloser(reader)
+			downloader.ZipResource(w)
 		} else {
 			contentDisposition = "attachment; filename=\"" + filename + "\""
 			contentType = "application/pdf"
-			contentReader, err = downloader.ExtractSingleFile(filename).FileReader()
+			downloader.ExtractSingleFile(filename, w)
 		}
 
+		err := downloader.Error
 		switch {
 		case errors.Is(err, pkg.ErrFileNotInZipArchive),
 			errors.Is(err, pkg.ErrFileNotFound),
@@ -427,11 +412,8 @@ func ResourceDownload(s pkg.ResourceGetter, timeout time.Duration) http.HandlerF
 			slog.Error("Error during download resource", "error", err, "id", resourceId, "file", filename)
 			return
 		}
-		defer contentReader.Close()
-
 		w.Header().Set("Content-Type", contentType)
 		w.Header().Set("Content-Disposition", contentDisposition)
-		io.Copy(w, contentReader)
 		slog.Info("Resource downloaded")
 	}
 }

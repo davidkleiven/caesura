@@ -1,15 +1,14 @@
 package pkg
 
 import (
-	"archive/zip"
 	"bytes"
-	"fmt"
 	"io"
+	"iter"
+	"log/slog"
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu/model"
-	"github.com/pkg/errors"
 )
 
 type Assignment struct {
@@ -18,36 +17,32 @@ type Assignment struct {
 	To   int    `json:"to"`
 }
 
-func SplitPdf(rs io.ReadSeeker, assignments []Assignment) (*bytes.Buffer, error) {
-	var buf bytes.Buffer
-	zipWriter := zip.NewWriter(&buf)
-	defer zipWriter.Close()
+func SplitPdf(rs io.ReadSeeker, assignments []Assignment) iter.Seq2[string, []byte] {
+	return func(yield func(string, []byte) bool) {
+		ctx, err := api.ReadValidateAndOptimize(rs, model.NewDefaultConfiguration())
+		if err != nil {
+			slog.Error("failed to read and validate PDF context", "error", err)
+			return
+		}
 
-	ctx, err := api.ReadValidateAndOptimize(rs, model.NewDefaultConfiguration())
-	if err != nil {
-		return &buf, errors.Wrap(err, "failed to read and validate PDF context")
-	}
+		for _, assignment := range assignments {
+			pdfProcessor := &PDFPipeline{}
+			buf, err := pdfProcessor.ExtractPages(ctx, assignment.From, assignment.To).WriteContext()
 
-	for _, assignment := range assignments {
-		pdfProcessor := &PDFPipeline{zipWriter: zipWriter}
-		pdfProcessor.ExtractPages(ctx, assignment.From, assignment.To).
-			WriteContext().
-			CreateZipEntry(assignment.Id).
-			CopyToZip()
-
-		if err := pdfProcessor.Error(); err != nil {
-			return &buf, fmt.Errorf("failed to process assignment %s: %w", assignment.Id, err)
+			if err != nil {
+				slog.Error("failed to process assignment", "id", assignment.Id, "error", err)
+				return
+			}
+			if !yield(assignment.Id+".pdf", buf.Bytes()) {
+				return
+			}
 		}
 	}
-	return &buf, nil
 }
 
 type PDFPipeline struct {
-	ctx            *model.Context
-	internalBuffer bytes.Buffer
-	zipWriter      *zip.Writer
-	zipFile        io.Writer
-	err            error
+	ctx *model.Context
+	err error
 }
 
 func (p *PDFPipeline) ExtractPages(ctx *model.Context, fromPage int, toPage int) *PDFPipeline {
@@ -63,28 +58,14 @@ func (p *PDFPipeline) ExtractPages(ctx *model.Context, fromPage int, toPage int)
 	return p
 }
 
-func (p *PDFPipeline) WriteContext() *PDFPipeline {
+func (p *PDFPipeline) WriteContext() (*bytes.Buffer, error) {
+	var buf bytes.Buffer
 	if p.err != nil {
-		return p
+		return &buf, p.err
 	}
-	p.err = api.WriteContext(p.ctx, &p.internalBuffer)
-	return p
-}
 
-func (p *PDFPipeline) CreateZipEntry(assignmentID string) *PDFPipeline {
-	if p.err != nil {
-		return p
-	}
-	p.zipFile, p.err = p.zipWriter.Create(assignmentID + ".pdf")
-	return p
-}
-
-func (p *PDFPipeline) CopyToZip() *PDFPipeline {
-	if p.err != nil {
-		return p
-	}
-	_, p.err = io.Copy(p.zipFile, &p.internalBuffer)
-	return p
+	p.err = api.WriteContext(p.ctx, &buf)
+	return &buf, p.err
 }
 
 func (p *PDFPipeline) Error() error {
