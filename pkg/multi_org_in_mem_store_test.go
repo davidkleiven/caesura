@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/davidkleiven/caesura/testutils"
@@ -252,4 +253,107 @@ func TestDeleteOrganization(t *testing.T) {
 	err := store.DeleteOrganization(context.Background(), "0000")
 	testutils.AssertNil(t, err)
 	testutils.AssertEqual(t, true, store.Organizations[0].Deleted)
+}
+
+func TestEmptyIteratorOnMissingOrg(t *testing.T) {
+	store := NewMultiOrgInMemoryStore()
+	num := 0
+	for range store.Resource(context.Background(), "whatever", "whatever") {
+		num++
+	}
+	testutils.AssertEqual(t, num, 0)
+}
+
+func TestGetUsersInOrg(t *testing.T) {
+	store := NewMultiOrgInMemoryStore()
+	store.Users = []UserInfo{
+		{
+			Id:    "0000-0000",
+			Roles: map[string]RoleKind{"org1": RoleAdmin},
+		},
+		*NewUserInfo(),
+		{
+			Id:    "0000-1000",
+			Roles: map[string]RoleKind{"org1": RoleAdmin},
+		},
+	}
+
+	users, err := store.GetUsersInOrg(context.Background(), "org1")
+	testutils.AssertNil(t, err)
+	testutils.AssertEqual(t, len(users), 2)
+}
+
+func TestDeleteRole(t *testing.T) {
+	store := NewMultiOrgInMemoryStore()
+	store.Users = []UserInfo{
+		{
+			Id: "0000",
+			Roles: map[string]RoleKind{
+				"org1": RoleAdmin,
+				"org2": RoleEditor,
+			},
+		},
+	}
+
+	err := store.DeleteRole(context.Background(), "0000", "org1")
+	testutils.AssertNil(t, err)
+	_, exists := store.Users[0].Roles["org1"]
+	testutils.AssertEqual(t, exists, false)
+	_, exists = store.Users[0].Roles["org2"]
+	testutils.AssertEqual(t, exists, true)
+}
+
+func TestRegisterGroup(t *testing.T) {
+	store := NewMultiOrgInMemoryStore()
+	store.Users = []UserInfo{
+		{
+			Id:     "0000",
+			Groups: make(map[string][]string),
+		},
+		{
+			Id: "0001",
+			Groups: map[string][]string{
+				"org1": {"Tenor"},
+			},
+		},
+	}
+
+	t.Run("non existing", func(t *testing.T) {
+		err := store.RegisterGroup(context.Background(), "non-existing", "org", "group")
+		testutils.AssertNil(t, err)
+	})
+
+	t.Run("add to user without groups", func(t *testing.T) {
+		err := store.RegisterGroup(context.Background(), "0000", "org5", "Alto")
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, store.Users[0].Groups["org5"][0], "Alto")
+	})
+
+	t.Run("add to user with former groups", func(t *testing.T) {
+		err := store.RegisterGroup(context.Background(), "0001", "org1", "Alto")
+		testutils.AssertNil(t, err)
+		groups := store.Users[1].Groups["org1"]
+		testutils.AssertEqual(t, slices.Compare(groups, []string{"Tenor", "Alto"}), 0)
+	})
+}
+
+func TestRemoveGroup(t *testing.T) {
+	store := NewMultiOrgInMemoryStore()
+	store.Users = []UserInfo{
+		{
+			Id: "0000",
+			Groups: map[string][]string{
+				"org1": {"Tenor", "Alto", "Soprano"},
+			},
+		},
+	}
+
+	err := store.RemoveGroup(context.Background(), "0000", "org1", "Alto")
+	testutils.AssertNil(t, err)
+	want := []string{"Tenor", "Soprano"}
+	has := store.Users[0].Groups["org1"]
+	if slices.Compare(has, want) != 0 {
+		t.Fatalf("Watned\n%v\ngot%v\n", want, has)
+	}
+
 }
