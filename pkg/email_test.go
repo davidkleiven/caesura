@@ -136,3 +136,90 @@ func TestBuild_AttachmentReadFails(t *testing.T) {
 		t.Errorf("expected read error, got: %v", err)
 	}
 }
+
+func TestPrepareEmails(t *testing.T) {
+	resources := []string{"song/trumpet1.pdf", "song/clarinet2.pdf", "song/trombone3.pdf", "song/bass.pdf"}
+	users := []UserInfo{
+		{
+			Email:  "georgine@example.com",
+			Groups: map[string][]string{"0000": {"Clarinet"}},
+		},
+		{
+			Email:  "john@example.com",
+			Groups: map[string][]string{"0000": {"Trumpet"}},
+		},
+		{
+			Email:  "peter@example.com",
+			Groups: map[string][]string{"0000": {"Trumpet", "Trombone"}},
+		},
+		{
+			Email:  "susan@example.com",
+			Groups: map[string][]string{"0000": {"Clarinet"}},
+		},
+		{
+			Email:  "hector@example.com",
+			Groups: map[string][]string{"0000": {"Trombone"}},
+		},
+	}
+
+	results := PrepareEmails(users, resources, "0000")
+	want := []int{0, 3, 1, 2, 4}
+
+	for i, result := range results.Emails {
+		testutils.AssertEqual(t, result.Addr, users[want[i]].Email)
+	}
+
+	wantLastRequire := map[string]int{
+		"song/clarinet2.pdf": 1,
+		"song/trumpet1.pdf":  3,
+		"song/trombone3.pdf": 4,
+	}
+
+	testutils.AssertEqual(t, len(results.LastUserRequireResource), len(wantLastRequire))
+
+	for k, v := range results.LastUserRequireResource {
+		testutils.AssertEqual(t, v, wantLastRequire[k])
+	}
+}
+
+func TestUsersWithNoGroupsNotIncluded(t *testing.T) {
+	resources := []string{"song/trumpet1.pdf"}
+	users := []UserInfo{
+		{
+			Email:  "georgine@example.com",
+			Groups: map[string][]string{"0000": {"Clarinet"}},
+		},
+	}
+
+	for _, orgId := range []string{"0000", "0001"} {
+		t.Run(orgId, func(t *testing.T) {
+			results := PrepareEmails(users, resources, orgId)
+			testutils.AssertEqual(t, len(results.Emails), 0)
+		})
+	}
+}
+
+func TestEmailOpts(t *testing.T) {
+	called := false
+	sendFn := func(addr string, auth smtp.Auth, sender string, recipent []string, msg []byte) error {
+		called = true
+		return nil
+	}
+
+	email := NewEmail(
+		WithHost("myhost"),
+		WithPort("2000"),
+		WithRecipents([]string{"rec"}),
+		WithSendFn(sendFn),
+		WithSender("me"),
+		WithAuth(smtp.PlainAuth("me", "myname", "password", "host")),
+	)
+
+	email.SendFn("hey", nil, "hey", []string{"df"}, []byte("kjd"))
+	testutils.AssertEqual(t, called, true)
+	testutils.AssertEqual(t, email.SmtpHost, "myhost")
+	testutils.AssertEqual(t, email.SmtpPort, "2000")
+	testutils.AssertEqual(t, len(email.Recipents), 1)
+	testutils.AssertEqual(t, email.Recipents[0], "rec")
+	testutils.AssertEqual(t, email.Sender, "me")
+}
