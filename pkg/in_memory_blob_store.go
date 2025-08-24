@@ -141,6 +141,11 @@ func (s *InMemoryStore) Clone() *InMemoryStore {
 	return dst
 }
 
+func (s *InMemoryStore) Item(path string) ([]byte, bool) {
+	data, found := s.Data[path]
+	return data, found
+}
+
 func NewInMemoryStore() *InMemoryStore {
 	return &InMemoryStore{
 		Data:     make(map[string][]byte),

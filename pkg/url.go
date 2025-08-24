@@ -16,7 +16,7 @@ var ErrCanNotInterpretUrl = errors.New("can not interpret url. Must have length 
 func ParseUrl(url string) (InterpretedUrl, error) {
 	tokens := strings.Split(url, "/")
 	if len(tokens) != 3 {
-		return InterpretedUrl{}, errors.Join(ErrCanNotInterpretUrl, fmt.Errorf("Got length %d", len(tokens)))
+		return InterpretedUrl{}, errors.Join(ErrCanNotInterpretUrl, fmt.Errorf("got length %d", len(tokens)))
 	}
 
 	return InterpretedUrl{
