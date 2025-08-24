@@ -43,6 +43,7 @@ type BlobStore interface {
 	ProjectMetaByIdGetter
 	ProjectResourceRemover
 	ResourceGetter
+	ItemGetter
 }
 
 type ProjectMetaByIdGetter interface {
