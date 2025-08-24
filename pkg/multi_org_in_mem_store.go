@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"iter"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/davidkleiven/caesura/utils"
@@ -287,6 +288,29 @@ func (m *MultiOrgInMemoryStore) RemoveGroup(ctx context.Context, userId, orgId, 
 		}
 	}
 	return nil
+}
+
+func (m *MultiOrgInMemoryStore) Item(ctx context.Context, path string) ([]byte, error) {
+	splitted := strings.Split(path, "/")
+	if len(splitted) < 3 {
+		return []byte{}, fmt.Errorf("path must be at least / sparated parts. got %d", len(splitted))
+	}
+	orgId := splitted[len(splitted)-3]
+
+	resourceName := splitted[len(splitted)-2]
+	itemName := splitted[len(splitted)-1]
+
+	fullName := resourceName + "/" + itemName
+	orgData, ok := m.Data[orgId]
+	if !ok {
+		return []byte{}, ErrOrganizationNotFound
+	}
+
+	data, ok := orgData.Item(fullName)
+	if !ok {
+		return data, fmt.Errorf("Resource not found %s", fullName)
+	}
+	return data, nil
 }
 
 func NewMultiOrgInMemoryStore() *MultiOrgInMemoryStore {

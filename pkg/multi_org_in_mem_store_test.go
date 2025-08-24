@@ -357,3 +357,53 @@ func TestRemoveGroup(t *testing.T) {
 	}
 
 }
+
+func TestItem(t *testing.T) {
+	store := NewDemoStore()
+	orgId := store.FirstOrganizationId()
+
+	var resourceName string
+	for k := range store.Data[orgId].Data {
+		resourceName = k
+		break
+	}
+
+	data, err := store.Item(context.Background(), orgId+"/"+resourceName)
+	testutils.AssertNil(t, err)
+	if len(data) == 0 {
+		t.Fatal("Expected data to have more than 0")
+	}
+}
+
+func TestItemNonExistingOrganization(t *testing.T) {
+	store := NewMultiOrgInMemoryStore()
+	data, err := store.Item(context.Background(), "orgId/resourceName/partname.pdf")
+	if data == nil {
+		t.Fatal("Data should not be nil even if error occured")
+	}
+	if !errors.Is(err, ErrOrganizationNotFound) {
+		t.Fatal("Wanted error to occur")
+	}
+}
+
+func TestErrOnValidOrgButMissingResource(t *testing.T) {
+	store := NewDemoStore()
+	orgId := store.FirstOrganizationId()
+	_, err := store.Item(context.Background(), orgId+"/resourceName/partname.pdf")
+	if err == nil {
+		t.Fatal("Error should not be nil")
+	}
+	testutils.AssertContains(t, err.Error(), "Resource not")
+}
+
+func TestErrorOnTooShortPath(t *testing.T) {
+	store := NewMultiOrgInMemoryStore()
+	data, err := store.Item(context.Background(), "too/short.pdf")
+	if data == nil {
+		t.Fatal("Data should not be nil")
+	}
+	if err == nil {
+		t.Fatal("Error should not be nil")
+	}
+	testutils.AssertContains(t, err.Error(), "path must be")
+}
