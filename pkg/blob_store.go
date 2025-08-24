@@ -31,6 +31,10 @@ type ResourceGetter interface {
 	Resource(ctx context.Context, orgId string, path string) iter.Seq2[string, []byte]
 }
 
+type ItemGetter interface {
+	Item(ctx context.Context, path string) ([]byte, error)
+}
+
 type BlobStore interface {
 	Submitter
 	MetaByPatternFetcher
