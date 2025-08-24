@@ -7,10 +7,13 @@ import (
 	"fmt"
 	"io"
 	"iter"
+	"log/slog"
+	"math"
 	"mime/multipart"
 	"mime/quotedprintable"
 	"net/smtp"
 	"net/textproto"
+	"slices"
 	"strings"
 )
 
@@ -150,4 +153,147 @@ func (e *Email) Send(ctx context.Context, msg []byte) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+}
+
+type PreparedEmail struct {
+	Addr          string
+	ResourceNames []string
+}
+
+type PreparedEmails struct {
+	Emails                  []PreparedEmail
+	LastUserRequireResource map[string]int
+}
+
+// PrepareEmails assigns resource names to each email address
+// The users are ordered such that users with similar attachments
+// are ordered next to each other
+func PrepareEmails(users []UserInfo, resourceNames []string, orgId string) *PreparedEmails {
+	desc := make([][]int, len(users))
+	prepEmail := make([]PreparedEmail, len(users))
+	lastUser := make(map[string]int)
+
+	// Create a descriptor describing which resource various users should have
+	for userNo, user := range users {
+		groups, ok := user.Groups[orgId]
+		if !ok {
+			continue
+		}
+		prepEmail[userNo].Addr = user.Email
+		for _, group := range groups {
+			for i, name := range resourceNames {
+				if strings.Contains(strings.ToLower(name), strings.ToLower(group)) {
+					desc[userNo] = append(desc[userNo], i)
+					lastUser[name] = userNo
+					prepEmail[userNo].ResourceNames = append(prepEmail[userNo].ResourceNames, name)
+				}
+			}
+		}
+	}
+
+	initLength := len(desc)
+	// Remove users with no overlap
+	desc = slices.DeleteFunc(desc, func(d []int) bool { return len(d) == 0 })
+	finalLength := len(desc)
+	if finalLength != initLength {
+		slog.Info("Removed users because no resource match found", "removed", initLength-finalLength, "orgId", orgId)
+	}
+
+	simMatrix := NewLowerTriangularMatrix(len(users))
+	for i := range len(users) {
+		for j := i + 1; j < len(users); j++ {
+			simMatrix.Set(i, j, similarity(desc[i], desc[j]))
+		}
+	}
+	ordered := greedyOrderBySimilarity(simMatrix)
+
+	orderedPreppedEmail := make([]PreparedEmail, len(users))
+	for i, newIdx := range ordered {
+		orderedPreppedEmail[i] = prepEmail[newIdx]
+	}
+
+	invMapping := make([]int, len(ordered))
+	for i, idx := range ordered {
+		invMapping[idx] = i
+	}
+
+	// Update last used
+	for k, v := range lastUser {
+		lastUser[k] = invMapping[v]
+	}
+
+	return &PreparedEmails{
+		Emails: slices.DeleteFunc(orderedPreppedEmail, func(p PreparedEmail) bool {
+			return len(p.ResourceNames) == 0
+		}),
+		LastUserRequireResource: lastUser,
+	}
+}
+
+func similarity(idx1, idx2 []int) float64 {
+	innerProd := 0.0
+	for _, i1 := range idx1 {
+		for _, i2 := range idx2 {
+			if i1 == i2 {
+				innerProd += 1.0
+			}
+		}
+	}
+
+	l1 := math.Sqrt(float64(len(idx1)))
+	l2 := math.Sqrt(float64(len(idx2)))
+	return innerProd / (l1 * l2)
+}
+
+type LowerTriangularMatrix struct {
+	data []float64
+	N    int
+}
+
+func (l *LowerTriangularMatrix) index(i, j int) int {
+	if i < j {
+		i, j = j, i
+	}
+	return i*(i+1)/2 + j
+}
+
+func (l *LowerTriangularMatrix) At(i, j int) float64 {
+	return l.data[l.index(i, j)]
+}
+
+func (l *LowerTriangularMatrix) Set(i, j int, v float64) {
+	l.data[l.index(i, j)] = v
+}
+
+func NewLowerTriangularMatrix(n int) *LowerTriangularMatrix {
+	return &LowerTriangularMatrix{
+		N:    n,
+		data: make([]float64, n*(n+1)/2),
+	}
+}
+
+// orders items by similarity
+func greedyOrderBySimilarity(sim *LowerTriangularMatrix) []int {
+	result := make([]int, sim.N)
+	result[0] = 0
+
+	visited := make(map[int]struct{})
+	visited[0] = struct{}{}
+	for i := 1; i < sim.N; i++ {
+		maxValue := math.Inf(-1)
+		closest := -1
+		for j := range sim.N {
+			_, seen := visited[j]
+			if !seen {
+				similarity := math.Abs(sim.At(result[i-1], j))
+				if similarity > maxValue {
+					closest = j
+					maxValue = similarity
+				}
+			}
+		}
+		result[i] = closest
+		visited[closest] = struct{}{}
+	}
+	return result
 }
