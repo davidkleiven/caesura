@@ -149,11 +149,13 @@ func TestOverrideFromEnv(t *testing.T) {
 
 func TestLoadConfigReturnDefaultConfigOnError(t *testing.T) {
 	config, err := LoadConfig("/some-random-config-file/")
+	config.SmtpConfig.SendFn = nil
 	if err == nil {
 		t.Fatalf("Expected error to occur")
 	}
 
 	defaultConfig := NewDefaultConfig()
+	defaultConfig.SmtpConfig.SendFn = nil
 	if !reflect.DeepEqual(config, defaultConfig) {
 		t.Fatalf("Expected config to be equal to\n%+v\ngot\n%+v\n", defaultConfig, config)
 	}

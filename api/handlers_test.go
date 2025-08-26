@@ -2409,3 +2409,119 @@ func TestLoggedIn(t *testing.T) {
 		testutils.AssertContains(t, rec.Body.String(), "Signed in")
 	})
 }
+
+func TestSendEmail(t *testing.T) {
+	config := pkg.NewDefaultConfig()
+	config.SmtpConfig.SendFn = pkg.NoOpSendFunc
+	store := pkg.NewDemoStore()
+	handler := SendEmail(store, config)
+	orgId := store.FirstOrganizationId()
+
+	// Add all users to the "part" group
+	for i := range store.Users {
+		store.Users[i].Groups[orgId] = []string{"part"}
+	}
+
+	seen := map[string]struct{}{}
+	form := url.Values{}
+	for r := range store.Data[orgId].Data {
+		splitted := strings.Split(r, "/")
+		path := orgId + "/" + strings.Join(splitted[:len(splitted)-1], "/")
+		if _, ok := seen[path]; !ok {
+			form.Add("resourceId", path)
+			seen[path] = struct{}{}
+		}
+	}
+
+	body := form.Encode()
+	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
+
+	validReq := httptest.NewRequest("GET", "/email", bytes.NewBufferString(body))
+	validReq.Header.Set("Content-Type", "application/json")
+
+	session, err := cookieStore.Get(validReq, AuthSession)
+	testutils.AssertNil(t, err)
+	session.Values["orgId"] = orgId
+	ctx := context.WithValue(validReq.Context(), sessionKey, session)
+
+	t.Run("valid email", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		handler(recorder, validReq.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+	})
+}
+
+func TestSendEmailGetUserFails(t *testing.T) {
+	collector := pkg.FailingEmailDataCollector{
+		ErrUsersInOrg: errors.New("could not call users"),
+	}
+
+	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
+	form := url.Values{}
+	form.Add("resourceId", "resource")
+
+	req := httptest.NewRequest("GET", "/email", bytes.NewBufferString(form.Encode()))
+	session, err := cookieStore.Get(req, AuthSession)
+	testutils.AssertNil(t, err)
+	session.Values["orgId"] = "some-org-id"
+	ctx := context.WithValue(req.Context(), sessionKey, session)
+
+	handler := SendEmail(&collector, pkg.NewDefaultConfig())
+
+	rec := httptest.NewRecorder()
+	handler(rec, req.WithContext(ctx))
+	testutils.AssertEqual(t, rec.Code, http.StatusInternalServerError)
+	testutils.AssertContains(t, rec.Body.String(), collector.ErrUsersInOrg.Error())
+}
+
+func TestEmailErrorOnTooLargeForm(t *testing.T) {
+	store := pkg.NewMultiOrgInMemoryStore()
+	content := bytes.Repeat([]byte("a"), 40000)
+	form := url.Values{}
+	form.Add("ids", string(content))
+
+	body := bytes.NewBufferString(form.Encode())
+	req := httptest.NewRequest("POST", "/email", body)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	session := sessions.Session{
+		Values: make(map[any]any),
+	}
+	session.Values["orgId"] = "orgId"
+
+	ctx := context.WithValue(req.Context(), sessionKey, &session)
+	handler := SendEmail(store, pkg.NewDefaultConfig())
+	handler(rec, req.WithContext(ctx))
+	testutils.AssertEqual(t, rec.Code, http.StatusRequestEntityTooLarge)
+}
+
+func TestEmailFetchError(t *testing.T) {
+	collector := pkg.FailingEmailDataCollector{
+		ErrItemGetter: errors.New("something went wrong"),
+		ResourceNames: []string{"part1"},
+		Users: []pkg.UserInfo{{Id: "userId", Groups: map[string][]string{
+			"some-org-id": {"part"},
+		}}},
+	}
+
+	form := url.Values{}
+	form.Add("resourceId", "resource1")
+	body := form.Encode()
+
+	session := sessions.Session{
+		Values: make(map[any]any),
+	}
+	session.Values["orgId"] = "some-org-id"
+
+	req := httptest.NewRequest("POST", "/email", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	ctx := context.WithValue(req.Context(), sessionKey, &session)
+
+	handler := SendEmail(&collector, pkg.NewDefaultConfig())
+	handler(rec, req.WithContext(ctx))
+
+	testutils.AssertEqual(t, rec.Code, http.StatusInternalServerError)
+}
