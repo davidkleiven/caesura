@@ -407,3 +407,30 @@ func TestErrorOnTooShortPath(t *testing.T) {
 	}
 	testutils.AssertContains(t, err.Error(), "path must be")
 }
+
+func TestResourceItemNames(t *testing.T) {
+	store := NewDemoStore()
+	orgId := store.FirstOrganizationId()
+	t.Run("bad path", func(t *testing.T) {
+		result, err := store.ResourceItemNames(context.Background(), "wrong")
+		testutils.AssertEqual(t, len(result), 0)
+		if err == nil {
+			t.Fatal("Expected error")
+		}
+	})
+
+	t.Run("non existing org", func(t *testing.T) {
+		result, err := store.ResourceItemNames(context.Background(), "non-exitisting/song/")
+		testutils.AssertEqual(t, len(result), 0)
+		if !errors.Is(err, ErrOrganizationNotFound) {
+			t.Fatalf("Organization not found got %s", err)
+		}
+	})
+
+	t.Run("valid request", func(t *testing.T) {
+		name := "demotitle1_composera_arrangerx"
+		result, err := store.ResourceItemNames(context.Background(), orgId+"/"+name)
+		testutils.AssertEqual(t, len(result), 5)
+		testutils.AssertNil(t, err)
+	})
+}
