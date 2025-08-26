@@ -169,6 +169,12 @@ type PreparedEmails struct {
 // The users are ordered such that users with similar attachments
 // are ordered next to each other
 func PrepareEmails(users []UserInfo, resourceNames []string, orgId string) *PreparedEmails {
+	if len(users) == 0 || len(resourceNames) == 0 {
+		return &PreparedEmails{
+			Emails:                  []PreparedEmail{},
+			LastUserRequireResource: make(map[string]int),
+		}
+	}
 	desc := make([][]int, len(users))
 	prepEmail := make([]PreparedEmail, len(users))
 	lastUser := make(map[string]int)
@@ -302,6 +308,7 @@ type EmailDataCollector interface {
 	UserInOrgGetter
 	ResourceGetter
 	ResourceItemNames(ctx context.Context, resourceId string) ([]string, error)
+	ItemGetter
 }
 
 func NoOpSendFunc(string, smtp.Auth, string, []string, []byte) error {

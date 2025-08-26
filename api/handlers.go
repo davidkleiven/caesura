@@ -1,18 +1,21 @@
 package api
 
 import (
+	"bytes"
 	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
@@ -20,6 +23,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
+	"golang.org/x/sync/errgroup"
 )
 
 type HandlerFunc func(http.ResponseWriter, *http.Request)
@@ -952,6 +956,135 @@ func LoggedIn(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(html))
 }
 
+func SendEmail(store pkg.EmailDataCollector, config *pkg.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s := MustGetSession(r)
+		orgId := MustGetOrgId(s)
+
+		r.Body = http.MaxBytesReader(w, r.Body, 32768)
+		code, err := parseForm(r)
+		if err != nil {
+			http.Error(w, "Failed to parse form: "+err.Error(), code)
+			slog.Error("Failed to parse form", "error", err, "host", r.Host)
+			return
+		}
+		ids := r.Form["resourceId"]
+
+		ctx, cancel := context.WithTimeout(r.Context(), config.Timeout)
+		defer cancel()
+
+		var (
+			users     []pkg.UserInfo
+			resources []string
+			mu        sync.Mutex
+		)
+
+		g, ctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			var err error
+			users, err = store.GetUsersInOrg(ctx, orgId)
+			return err
+		})
+
+		for _, resourceId := range ids {
+			g.Go(func() error {
+				names, err := store.ResourceItemNames(ctx, orgId+"/"+resourceId)
+				mu.Lock()
+				resources = append(resources, names...)
+				mu.Unlock()
+				return err
+			})
+		}
+
+		if err := g.Wait(); err != nil {
+			http.Error(w, "Failed to collect data: "+err.Error(), http.StatusInternalServerError)
+			slog.Error("Failed to get users", "error", err, "host", r.Host, "orgId", orgId)
+			return
+		}
+
+		preppedEmails := pkg.PrepareEmails(users, resources, orgId)
+		cachedGetter := pkg.NewCachedItemGetter(store)
+
+		var (
+			buildTime     time.Duration
+			cacheClearing time.Duration
+		)
+
+		for userNo, preppedEmail := range preppedEmails.Emails {
+			var emailFetch error
+			email := pkg.Email{
+				Sender:    config.EmailSender,
+				SmtpHost:  config.SmtpConfig.Host,
+				SmtpPort:  config.SmtpConfig.Port,
+				SmtpAuth:  config.SmtpConfig.Auth,
+				Recipents: []string{preppedEmail.Addr},
+				SendFn:    config.SmtpConfig.SendFn,
+			}
+
+			// Iterator over resource names
+			items := func(yield func(name string, content io.Reader) bool) {
+				for _, path := range preppedEmail.ResourceNames {
+					itemCtx, itemCancel := context.WithTimeout(r.Context(), config.Timeout)
+					content, err := cachedGetter.Getter.Item(itemCtx, path)
+					itemCancel()
+
+					if err != nil {
+						emailFetch = err
+						return
+					}
+					if !yield(path, bytes.NewReader(content)) {
+						return
+					}
+				}
+			}
+
+			var content *bytes.Buffer
+			overallErr := pkg.ReturnOnFirstError(
+				func() error { return emailFetch },
+				func() error {
+					var err error
+					start := time.Now()
+					content, err = email.Build("Music", "Please find attached music", items)
+					buildTime += time.Since(start)
+					return err
+				},
+				func() error {
+					emailCtx, emailCancel := context.WithTimeout(r.Context(), config.Timeout)
+					defer emailCancel()
+					return email.Send(emailCtx, content.Bytes())
+				},
+			)
+
+			if overallErr != nil {
+				http.Error(w, "Error during sending email: "+overallErr.Error(), http.StatusInternalServerError)
+				slog.Error("Could not send email", "error", overallErr)
+				return
+			}
+
+			// Clear check
+			startCacheClear := time.Now()
+			for name, lastRequired := range preppedEmails.LastUserRequireResource {
+				if userNo >= lastRequired {
+					cachedGetter.Clear(name)
+				}
+			}
+			cacheClearing += time.Since(startCacheClear)
+		}
+
+		slog.Info(
+			"Successfully sent emails",
+			"email-build-time-ms", buildTime.Milliseconds(),
+			"cache-clear-ms", cacheClearing.Milliseconds(),
+			"num-recipents", len(preppedEmails.Emails),
+			"max-cache-items", cachedGetter.Monitor.MaxSize,
+			"num-cache-hits", cachedGetter.Monitor.NumHits,
+			"num-cache-misses", cachedGetter.Monitor.NumMisses,
+		)
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "Successfully sent %d email(s)", len(preppedEmails.Emails))
+	}
+}
+
 func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
 	sessionOpt := config.SessionOpts()
 	readRoute := RequireRead(cookieStore, sessionOpt)
@@ -987,6 +1120,7 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("GET /resources/{id}/content", readRoute(ResourceContentByIdHandler(store, config.Timeout)))
 	mux.Handle("GET /resources/{id}/submit-form", readRoute(AddToResourceHandler(store, config.Timeout)))
 	mux.Handle("POST /resources", writeRoute(SubmitHandler(store, config.Timeout, int(config.MaxRequestSizeMb))))
+	mux.Handle("POST /resources/email", writeRoute(SendEmail(store, config)))
 
 	oauthCfg := config.OAuthConfig()
 	requireAuthSession := RequireSession(cookieStore, AuthSession, sessionOpt)

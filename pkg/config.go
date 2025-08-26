@@ -5,6 +5,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/smtp"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -23,6 +24,13 @@ type LocalFSStoreConfig struct {
 	Database  string `yaml:"database"`
 }
 
+type Smtp struct {
+	Auth   smtp.Auth
+	Host   string `yaml:"host"`
+	Port   string `yaml:"port"`
+	SendFn SendFunc
+}
+
 type Config struct {
 	StoreType                string             `yaml:"store_type" env:"CAESURA_STORE_TYPE"`
 	LocalFS                  LocalFSStoreConfig `yaml:"local_fs"`
@@ -36,6 +44,8 @@ type Config struct {
 	CookieSecretSignKey      string             `yaml:"cookie_secret_sign_key" env:"CAESURA_COOKIE_SECRET_SIGN_KEY"`
 	BaseURL                  string             `yaml:"base_url" env:"CAESURA_BASE_URL"`
 	SessionMaxAge            int                `yaml:"session_max_age" env:"CAESURA_SESSION_MAX_AGE"`
+	SmtpConfig               Smtp               `yaml:"smtp"`
+	EmailSender              string             `yaml:"email_sender" env:"CAESURA_EMAIL_SENDER"`
 	Transport                http.RoundTripper
 }
 
@@ -80,6 +90,9 @@ func NewDefaultConfig() *Config {
 		GoogleAuthRedirectURL: "http://localhost:8080/auth/callback",
 		BaseURL:               "http://localhost:8080",
 		SessionMaxAge:         3600,
+		SmtpConfig: Smtp{
+			SendFn: smtp.SendMail,
+		},
 	}
 }
 
