@@ -313,6 +313,26 @@ func (m *MultiOrgInMemoryStore) Item(ctx context.Context, path string) ([]byte, 
 	return data, nil
 }
 
+func (m *MultiOrgInMemoryStore) ResourceItemNames(ctx context.Context, resourcePath string) ([]string, error) {
+	splitted := strings.Split(resourcePath, "/")
+	if len(splitted) < 2 {
+		return []string{}, fmt.Errorf("path must contain at least two / got %d", len(splitted))
+	}
+	orgId := splitted[0]
+	resource := strings.Join(splitted[1:], "/")
+	orgData, ok := m.Data[orgId]
+	if !ok {
+		return []string{}, ErrOrganizationNotFound
+	}
+	var result []string
+	for k := range orgData.Data {
+		if strings.Contains(k, resource) {
+			result = append(result, orgId+"/"+k)
+		}
+	}
+	return result, nil
+}
+
 func NewMultiOrgInMemoryStore() *MultiOrgInMemoryStore {
 	return &MultiOrgInMemoryStore{
 		Data:          make(map[string]*InMemoryStore),

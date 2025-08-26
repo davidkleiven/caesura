@@ -297,3 +297,13 @@ func greedyOrderBySimilarity(sim *LowerTriangularMatrix) []int {
 	}
 	return result
 }
+
+type EmailDataCollector interface {
+	UserInOrgGetter
+	ResourceGetter
+	ResourceItemNames(ctx context.Context, resourceId string) ([]string, error)
+}
+
+func NoOpSendFunc(string, smtp.Auth, string, []string, []byte) error {
+	return nil
+}
