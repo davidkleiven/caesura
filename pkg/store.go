@@ -203,4 +203,5 @@ func NewFSStore(directory string) *FSStore {
 type Store interface {
 	BlobStore
 	IAMStore
+	EmailDataCollector
 }

@@ -2409,3 +2409,45 @@ func TestLoggedIn(t *testing.T) {
 		testutils.AssertContains(t, rec.Body.String(), "Signed in")
 	})
 }
+
+func TestSendEmail(t *testing.T) {
+	config := pkg.NewDefaultConfig()
+	config.SmtpConfig.SendFn = pkg.NoOpSendFunc
+	store := pkg.NewDemoStore()
+	handler := SendEmail(store, config)
+	orgId := store.FirstOrganizationId()
+
+	// Add all users to the "part" group
+	for i := range store.Users {
+		store.Users[i].Groups[orgId] = []string{"part"}
+	}
+
+	seen := map[string]struct{}{}
+	body := ResourceIdsPayload{}
+	for r := range store.Data[orgId].Data {
+		splitted := strings.Split(r, "/")
+		path := orgId + "/" + strings.Join(splitted[:len(splitted)-1], "/")
+		if _, ok := seen[path]; !ok {
+			body.Ids = append(body.Ids, path)
+			seen[path] = struct{}{}
+		}
+	}
+
+	bodyJson, err := json.Marshal(body)
+	testutils.AssertNil(t, err)
+	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
+	validReq := httptest.NewRequest("GET", "/email", bytes.NewReader(bodyJson))
+	validReq.Header.Set("Content-Type", "application/json")
+
+	session, err := cookieStore.Get(validReq, AuthSession)
+	testutils.AssertNil(t, err)
+	session.Values["orgId"] = orgId
+	ctx := context.WithValue(validReq.Context(), sessionKey, session)
+
+	t.Run("valid email", func(t *testing.T) {
+		recorder := httptest.NewRecorder()
+		handler(recorder, validReq.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+	})
+
+}

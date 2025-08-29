@@ -6,9 +6,9 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/gorilla/sessions v1.4.0
 	github.com/pdfcpu/pdfcpu v0.11.0
-	github.com/pkg/errors v0.9.1
 	github.com/playwright-community/playwright-go v0.5200.0
 	golang.org/x/oauth2 v0.30.0
+	golang.org/x/sync v0.16.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -23,6 +23,7 @@ require (
 	github.com/hhrutter/tiff v1.0.2 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	golang.org/x/crypto v0.40.0 // indirect
 	golang.org/x/image v0.29.0 // indirect
