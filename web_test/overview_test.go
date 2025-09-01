@@ -3,6 +3,7 @@ package web_test
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -435,6 +436,21 @@ func TestSendCheckedItemsAsEmail(t *testing.T) {
 		testutils.AssertNil(t, err)
 		testutils.AssertEqual(t, num, 1)
 
+		var resourceIds []string
+		requestInspector := func(request playwright.Request) {
+			if strings.Contains(request.URL(), "/resources/email") && request.Method() == "POST" {
+				body, err := request.PostData()
+				testutils.AssertNil(t, err)
+
+				values, err := url.ParseQuery(body)
+				testutils.AssertNil(t, err)
+
+				formRecourceIds := values["resourceId"]
+				resourceIds = append(resourceIds, formRecourceIds...)
+			}
+		}
+		page.On("request", requestInspector)
+
 		timeout := playwright.PageExpectResponseOptions{
 			Timeout: playwright.Float(1000),
 		}
@@ -443,9 +459,17 @@ func TestSendCheckedItemsAsEmail(t *testing.T) {
 		}, timeout)
 		testutils.AssertNil(t, err)
 
+		want := []string{"demotitle1_composera_arrangerx"}
+		testutils.AssertEqual(t, len(resourceIds), len(want))
+
+		for i, v := range resourceIds {
+			testutils.AssertEqual(t, v, want[i])
+		}
+
 		flashMsg := page.Locator("#flash-message")
 		text, err := flashMsg.TextContent()
 		testutils.AssertNil(t, err)
 		testutils.AssertContains(t, text, "Successfully sent")
+
 	}, overViewPage)(t)
 }
