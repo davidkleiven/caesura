@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"iter"
-	"log/slog"
 	"math"
 	"mime/multipart"
 	"mime/quotedprintable"
@@ -197,14 +196,6 @@ func PrepareEmails(users []UserInfo, resourceNames []string, orgId string) *Prep
 		}
 	}
 
-	initLength := len(desc)
-	// Remove users with no overlap
-	desc = slices.DeleteFunc(desc, func(d []int) bool { return len(d) == 0 })
-	finalLength := len(desc)
-	if finalLength != initLength {
-		slog.Info("Removed users because no resource match found", "removed", initLength-finalLength, "orgId", orgId)
-	}
-
 	simMatrix := NewLowerTriangularMatrix(len(users))
 	for i := range len(users) {
 		for j := i + 1; j < len(users); j++ {
@@ -237,6 +228,9 @@ func PrepareEmails(users []UserInfo, resourceNames []string, orgId string) *Prep
 }
 
 func similarity(idx1, idx2 []int) float64 {
+	if len(idx1) == 0 || len(idx2) == 0 {
+		return 0.0
+	}
 	innerProd := 0.0
 	for _, i1 := range idx1 {
 		for _, i2 := range idx2 {
