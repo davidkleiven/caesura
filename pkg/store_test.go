@@ -217,7 +217,7 @@ func TestMetaDataString(t *testing.T) {
 		{MetaData{Title: "", Composer: "", Arranger: "Arranger"}, "arranger"},
 	} {
 		m := test.metaData
-		result := m.ResourceName()
+		result := m.ResourceId()
 		if result != test.expected {
 			t.Errorf("Test %d failed. Expected '%s', got '%s'", i, test.expected, result)
 		}
@@ -240,8 +240,8 @@ func TestJsonMarshalingMetaData(t *testing.T) {
 	if !bytes.Contains(data, []byte(meta.ResourceId())) {
 		t.Errorf("Expected JSON to contain resource ID '%s', got %s", meta.ResourceId(), data)
 	}
-	if !bytes.Contains(data, []byte(meta.ResourceName())) {
-		t.Errorf("Expected JSON to contain resource name '%s', got %s", meta.ResourceName(), data)
+	if !bytes.Contains(data, []byte(meta.ResourceId())) {
+		t.Errorf("Expected JSON to contain resource name '%s', got %s", meta.ResourceId(), data)
 	}
 }
 
@@ -257,7 +257,7 @@ func TestJsonUnmarshalingErrorOnInconsistency(t *testing.T) {
 		t.Error(err)
 	}
 
-	for i, replace := range []string{meta.ResourceName(), meta.ResourceId()} {
+	for i, replace := range []string{meta.ResourceId(), meta.ResourceId()} {
 		// Modify the resource name in the JSON data
 		modifiedData := bytes.Replace(data, []byte(replace), []byte("some-modified-stuff"), 1)
 

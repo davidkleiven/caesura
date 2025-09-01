@@ -24,7 +24,7 @@ func (s *InMemoryStore) Submit(ctx context.Context, meta *MetaData, pdfIter iter
 		s.Metadata = append(s.Metadata, *meta)
 	}
 
-	resourceName := meta.ResourceName()
+	resourceName := meta.ResourceId()
 
 	for name, pdfContent := range pdfIter {
 		fullName := resourceName + "/" + name

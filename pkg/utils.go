@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"time"
 )
 
 var ErrFileNotInZipArchive = errors.New("file is not in zip archive")
@@ -135,13 +136,29 @@ func copyZipEntry(file *zip.File, zw *zip.Writer) error {
 	return err
 }
 
-func RandomInsecureID(n int) string {
-	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
+// 40 adjectives
+var adjectives = []string{
+	"brave", "calm", "eager", "fancy", "jolly", "kind", "lucky", "sunny", "witty", "clever",
+	"bright", "shy", "happy", "bold", "gentle", "proud", "quick", "quiet", "smart", "zany",
+	"curious", "serene", "cheerful", "mighty", "graceful", "playful", "silly", "loyal", "funny", "modest",
+	"neat", "polite", "quirky", "tidy", "vivid", "warm", "zesty", "crafty", "jumpy", "sincere",
+}
+
+// 40 nouns
+var nouns = []string{
+	"lion", "tiger", "eagle", "panda", "unicorn", "otter", "dragon", "fox", "whale", "falcon",
+	"wolf", "bear", "shark", "koala", "giraffe", "monkey", "sloth", "rabbit", "dolphin", "peacock",
+	"camel", "leopard", "swan", "owl", "beetle", "penguin", "seal", "raccoon", "antelope", "kangaroo",
+	"yak", "lizard", "rhino", "zebra", "turtle", "moose", "duck", "badger", "chimp", "crab",
+}
+
+var seededRand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+func RandomInsecureID() string {
+	adj := adjectives[seededRand.Intn(len(adjectives))]
+	noun := nouns[seededRand.Intn(len(nouns))]
+	now := time.Now().Unix()
+	return fmt.Sprintf("%s-%s-%d", adj, noun, now)
 }
 
 func ReturnOnFirstError(fns ...func() error) error {

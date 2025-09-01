@@ -32,7 +32,7 @@ func (r *ResourceDownloader) GetResource(ctx context.Context, store ResourceGett
 	if r.Error != nil {
 		return r
 	}
-	r.contentIter = store.Resource(ctx, orgId, r.meta.ResourceName())
+	r.contentIter = store.Resource(ctx, orgId, r.meta.ResourceId())
 	return r
 }
 
@@ -86,7 +86,7 @@ func (r *ResourceDownloader) Filenames() []string {
 }
 
 func (r *ResourceDownloader) ZipFilename() string {
-	return r.meta.ResourceName() + ".zip"
+	return r.meta.ResourceId() + ".zip"
 }
 
 func NewResourceDownloader() *ResourceDownloader {

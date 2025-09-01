@@ -25,7 +25,7 @@ func NewDemoStore() *MultiOrgInMemoryStore {
 	PanicOnErr(CreateNPagePdf(&pdfBuf, 2))
 	content := pdfBuf.Bytes()
 	for _, m := range store.Metadata {
-		name := m.ResourceName()
+		name := m.ResourceId()
 		for i := range 5 {
 			fname := fmt.Sprintf("%s/Part%d.pdf", name, i)
 			store.Data[fname] = content
