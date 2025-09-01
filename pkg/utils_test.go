@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"slices"
 	"testing"
 
@@ -175,8 +176,7 @@ func TestEmptyBytesOnErrorInZipAppender(t *testing.T) {
 }
 
 func TestRandomInsecureId(t *testing.T) {
-	for _, n := range []int{0, 10, 15, 32} {
-		id := RandomInsecureID(n)
-		testutils.AssertEqual(t, len(id), n)
-	}
+	id := RandomInsecureID()
+	pattern := regexp.MustCompile("^[a-z]+-[a-z]+-[0-9]+$")
+	testutils.AssertEqual(t, pattern.Match([]byte(id)), true)
 }

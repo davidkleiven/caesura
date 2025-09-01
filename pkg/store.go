@@ -3,8 +3,6 @@ package pkg
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -66,7 +64,7 @@ type MetaData struct {
 	Status          StoreStatus `json:"status"`
 }
 
-func (m *MetaData) ResourceName() string {
+func (m *MetaData) ResourceId() string {
 	result := make([]string, 0, 3)
 	if m.Title != "" {
 		result = append(result, m.Title)
@@ -84,12 +82,10 @@ func (m *MetaData) MarshalJSON() ([]byte, error) {
 	type Alias MetaData
 	return json.Marshal(&struct {
 		*Alias
-		Resource string `json:"resource"`
-		Id       string `json:"id"`
+		Id string `json:"id"`
 	}{
-		Alias:    (*Alias)(m),
-		Resource: m.ResourceName(),
-		Id:       m.ResourceId(),
+		Alias: (*Alias)(m),
+		Id:    m.ResourceId(),
 	})
 }
 
@@ -107,18 +103,10 @@ func (m *MetaData) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("error unmarshalling MetaData: %w", err)
 	}
 
-	if aux.Resource != "" && aux.Resource != m.ResourceName() {
-		return fmt.Errorf("resource name mismatch: expected %s, got %s", m.ResourceName(), aux.Resource)
-	}
 	if aux.Id != "" && aux.Id != m.ResourceId() {
 		return fmt.Errorf("resource ID mismatch: expected %s, got %s", m.ResourceId(), aux.Id)
 	}
 	return nil
-}
-
-func (m *MetaData) ResourceId() string {
-	hash := md5.Sum([]byte(m.ResourceName()))
-	return hex.EncodeToString(hash[:])
 }
 
 type Storer interface {
@@ -174,7 +162,7 @@ func (s *FSStore) RegisterSuccess(Id string) error {
 	}
 	meta.Status = StoreStatusFinished
 
-	metaDataFile := strings.TrimSuffix(meta.ResourceName(), filepath.Ext(meta.ResourceName())) + ".json"
+	metaDataFile := strings.TrimSuffix(meta.ResourceId(), filepath.Ext(meta.ResourceId())) + ".json"
 	metaDataPath := filepath.Join(s.directory, metaDataFile)
 	file, err := os.Create(metaDataPath)
 	if err != nil {

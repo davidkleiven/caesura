@@ -211,7 +211,7 @@ func TestDistributeProject(t *testing.T) {
 		}, timeout)
 		testutils.AssertNil(t, err)
 
-		want := []string{"6b557642560540a7938d94a1d7d32a42", "732baa5ad212d19ae61e62a1f06ef9df"}
+		want := []string{"demotitle1_composera_arrangerx", "demotitle2_composerb_arrangery"}
 		testutils.AssertEqual(t, len(resourceIds), len(want))
 
 		for i, v := range resourceIds {

@@ -143,8 +143,8 @@ func SubmitHandler(submitter pkg.Submitter, timeout time.Duration, maxSize int) 
 			return
 		}
 
-		resourceName := metaData.ResourceName()
-		if resourceName == "" {
+		resourceId := metaData.ResourceId()
+		if resourceId == "" {
 			http.Error(w, "Filename is empty. Note that only alphanumeric characters are allowed", http.StatusBadRequest)
 			slog.Error("Filename cannot be empty.", "title", metaData.Title, "composer", metaData.Composer, "arranger", metaData.Arranger)
 			return
@@ -160,7 +160,7 @@ func SubmitHandler(submitter pkg.Submitter, timeout time.Duration, maxSize int) 
 			slog.Error("Failed to store file", "error", err)
 			return
 		}
-		slog.Info("File stored successfully", "filename", resourceName, "resourceId", metaData.ResourceId(), "orgId", orgId)
+		slog.Info("File stored successfully", "filename", resourceId, "resourceId", resourceId, "orgId", orgId)
 		w.Write([]byte("File uploaded successfully!"))
 	}
 }
@@ -607,7 +607,7 @@ func OrganizationRegisterHandler(store pkg.IAMStore, timeout time.Duration) http
 		}
 
 		org := pkg.Organization{
-			Id:   pkg.RandomInsecureID(32),
+			Id:   pkg.RandomInsecureID(),
 			Name: name,
 		}
 
@@ -848,7 +848,7 @@ func RegisterRecipent(store pkg.UserRegisterer, timeout time.Duration) http.Hand
 		}
 
 		user := pkg.UserInfo{
-			Id:    pkg.RandomInsecureID(32),
+			Id:    pkg.RandomInsecureID(),
 			Name:  r.FormValue("name"),
 			Email: r.FormValue("email"),
 			Groups: map[string][]string{

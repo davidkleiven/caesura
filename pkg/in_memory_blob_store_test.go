@@ -85,8 +85,8 @@ func TestSubmit(t *testing.T) {
 		t.Errorf("Expected 1 resource, got %d", len(inMemStore.Data))
 	}
 
-	if string(inMemStore.Data[meta.ResourceName()+"/name"]) != string(content) {
-		t.Errorf("Expected content '%s', got '%s'", content, string(inMemStore.Data[meta.ResourceName()]))
+	if string(inMemStore.Data[meta.ResourceId()+"/name"]) != string(content) {
+		t.Errorf("Expected content '%s', got '%s'", content, string(inMemStore.Data[meta.ResourceId()]))
 	}
 }
 
@@ -116,7 +116,7 @@ func TestAppendWhenExist(t *testing.T) {
 	store.Submit(context.Background(), &meta, iter1)
 	store.Submit(context.Background(), &meta, iter2)
 
-	resourceName := meta.ResourceName()
+	resourceName := meta.ResourceId()
 
 	testutils.AssertEqual(t, len(store.Data), 2)
 	expectFilenames := []string{resourceName + "/" + "file1.txt", resourceName + "/" + "file2.txt"}
@@ -247,7 +247,7 @@ func TestMetaById(t *testing.T) {
 		metaId   string
 		expected string
 	}{
-		{"Existing Meta", "42d5a41d5487948b29d6aa433e3d2bfb", "Test Title"},
+		{"Existing Meta", "testtitle_testcomposer_testarranger", "Test Title"},
 		{"Non-existing Meta", "nonexisting", ""},
 	}
 
@@ -268,7 +268,7 @@ func TestMetaById(t *testing.T) {
 
 func TestResourceById(t *testing.T) {
 	store := NewDemoStore().FirstDataStore()
-	name := store.Metadata[0].ResourceName()
+	name := store.Metadata[0].ResourceId()
 
 	num := 0
 	for range store.Resource(context.Background(), name) {

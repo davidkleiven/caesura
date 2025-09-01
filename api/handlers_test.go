@@ -532,7 +532,7 @@ func TestEntityTooLargeWhenUploadIsTooLarge(t *testing.T) {
 	}
 }
 
-func TestBadRequestOnEmptyResourceName(t *testing.T) {
+func TestBadRequestOnEmptyResourceId(t *testing.T) {
 	inMemStore := pkg.NewMultiOrgInMemoryStore()
 	recorder := httptest.NewRecorder()
 
@@ -1072,7 +1072,7 @@ func TestResourceDownloaderFullZipDownload(t *testing.T) {
 		t.Fatalf("Expected content type'application/zip'  got %s", contentType)
 	}
 
-	resourceName := store.Data[orgId].Metadata[0].ResourceName()
+	resourceName := store.Data[orgId].Metadata[0].ResourceId()
 	if disp := recorder.Header().Get("Content-Disposition"); !strings.Contains(disp, resourceName) {
 		t.Fatalf("Expected Content-Disposition to contain %s got %s", resourceName, disp)
 	}
