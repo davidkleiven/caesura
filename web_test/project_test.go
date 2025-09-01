@@ -1,9 +1,12 @@
 package web_test
 
 import (
+	"net/url"
 	"regexp"
+	"strings"
 	"testing"
 
+	"github.com/davidkleiven/caesura/testutils"
 	"github.com/playwright-community/playwright-go"
 )
 
@@ -165,6 +168,54 @@ func TestRemoveFromProject(t *testing.T) {
 
 		if numClicked != 2 {
 			t.Fatalf("Expected 2 clicks got %d", numClicked)
+		}
+	}, projectPage)(t)
+}
+
+func TestDistributeProject(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		if err := waitForProjectPageLoad(page); err != nil {
+			t.Fatal(err)
+		}
+
+		project1 := page.Locator(`tr[hx-get^="/projects"]`).First()
+
+		timeout := playwright.PageExpectResponseOptions{
+			Timeout: playwright.Float(1000),
+		}
+		_, err := page.ExpectResponse("**/projects/**", func() error { return project1.Click() }, timeout)
+		testutils.AssertNil(t, err)
+
+		btn := page.Locator("#distribute-btn")
+		num, err := btn.Count()
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, num, 1)
+
+		var resourceIds []string
+		requestInspector := func(request playwright.Request) {
+			if strings.Contains(request.URL(), "/resources/email") && request.Method() == "POST" {
+				body, err := request.PostData()
+				testutils.AssertNil(t, err)
+
+				values, err := url.ParseQuery(body)
+				testutils.AssertNil(t, err)
+
+				formRecourceIds := values["resourceId"]
+				resourceIds = append(resourceIds, formRecourceIds...)
+			}
+		}
+		page.On("request", requestInspector)
+
+		_, err = page.ExpectResponse("**/resources/email", func() error {
+			return btn.Click()
+		}, timeout)
+		testutils.AssertNil(t, err)
+
+		want := []string{"6b557642560540a7938d94a1d7d32a42", "732baa5ad212d19ae61e62a1f06ef9df"}
+		testutils.AssertEqual(t, len(resourceIds), len(want))
+
+		for i, v := range resourceIds {
+			testutils.AssertEqual(t, v, want[i])
 		}
 	}, projectPage)(t)
 }

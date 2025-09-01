@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/davidkleiven/caesura/testutils"
 	"github.com/playwright-community/playwright-go"
 )
 
@@ -410,5 +411,41 @@ func TestAddToItemNotHidden(t *testing.T) {
 			}
 		}
 
+	}, overViewPage)(t)
+}
+
+func TestSendCheckedItemsAsEmail(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		if err := waitForInitialLoad(page); err != nil {
+			t.Fatal(err)
+		}
+
+		checkbox := page.Locator("input[type='checkbox']")
+		cnt, err := checkbox.Count()
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, cnt, 2)
+
+		// Check the first checkbox
+		err = checkbox.First().Check()
+		testutils.AssertNil(t, err)
+
+		btn := page.Locator("#distribute-btn")
+
+		num, err := btn.Count()
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, num, 1)
+
+		timeout := playwright.PageExpectResponseOptions{
+			Timeout: playwright.Float(1000),
+		}
+		_, err = page.ExpectResponse("**/resources/email", func() error {
+			return btn.Click()
+		}, timeout)
+		testutils.AssertNil(t, err)
+
+		flashMsg := page.Locator("#flash-message")
+		text, err := flashMsg.TextContent()
+		testutils.AssertNil(t, err)
+		testutils.AssertContains(t, text, "Successfully sent")
 	}, overViewPage)(t)
 }
