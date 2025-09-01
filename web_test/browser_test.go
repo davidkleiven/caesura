@@ -81,6 +81,7 @@ func TestMain(m *testing.M) {
 	fmt.Printf("Browser launched: version=%s name=%s connected=%v\n", browser.Version(), browser.BrowserType().Name(), browser.IsConnected())
 
 	config := pkg.NewDefaultConfig()
+	config.SmtpConfig.SendFn = pkg.NoOpSendFunc
 
 	// The key must match the store used to get the cookie value
 	mux := api.Setup(store, config, cookieStore)
