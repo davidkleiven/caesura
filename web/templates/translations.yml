@@ -1,0 +1,110 @@
+en:
+  assign: Assign
+  arranger: Arranger
+  assignments: Assignments
+  composer: Composer
+  confirm: Confirm
+  distribute: Distribute
+  duration: Duration
+  email: Email
+  genre: Genre
+  groups: Groups
+  index.all-in-one: all in one place
+  index.bullet.distribute: Distribute parts instantly — send to members by email
+  index.bullet.effortless: Effortless score management
+  index.bullet.organize: Organize pieces into projects — perfect for concerts, rehearsals, or tours
+  index.bullet.rbac: Role-based access for conductors and musicians
+  index.bullet.rehersal: Rehearsal-ready from any device
+  index.bullet.scan-split: Scan splitting — upload a full score and assign parts
+  index.bullet.secure: Secure cloud storage
+  index.desc-footer: Say goodbye to scattered PDFs, last-minute emails, and missing parts.
+  index.description: is the modern solution for orchestras, bands, and choirs to
+  index.distribute: distribute music
+  index.harmony: Harmony begins with structure
+  index.let: Let
+  index.logistics: handle the logistics — so you can focus on the music
+  index.manage: manage
+  index.post-caesura: your ensemble always has the
+  index.purpose: Organize, share, and perform with confidence
+  index.right-music: right music
+  index.right-time: right time
+  index.sign-up: Sign up
+  index.slogan: Where Music Meets Precision
+  index.store: store
+  index.wherever: wherever they are
+  index.with-pre-caesura: With
+  loading: Loading
+  nav.contact: Contact
+  nav.home: Home
+  nav.organizations: Organizations
+  nav.overview: Overview
+  nav.people: People
+  nav.pricing: Pricing
+  nav.projects: Projects
+  nav.upload: Upload
+  next: Next
+  org.accidental-delete: >
+    If you accidentally delete an organization, please <strong>contact us</strong> and we will help you
+    restore it.
+  org.create: Create
+  org.create-new: Create new
+  org.create-new-desc: >
+    Write the name and hit the <i>Create</i> button. You will automatically be assigned as the administrator
+    of the new organization.
+  org.delete: Delete
+  org.delete-heading: Deletion
+  org.delete-desc: >
+    Deleting an organization does not remove any data immediately. The organization is simply flagged as
+    inactive
+  org.delete.confirm: Are you sure you want to delete the organization
+  org.expired-subscription: Expired subscriptions
+  org.expired-subscription-desc: >
+    Data is not deleted immediately when a subscription expires. However, if the organization does not renew
+    its subscription, the data may eventually be permanently deleted. In any case, we will make attempts
+    to notify administrators via their registered email addresses before performing irreversible actions
+  org.help: Need help
+  org.invite: Invite
+  org.invite-explination: >
+    As an administrator, you can invite others to your organization by clicking the invite button.
+    This generates a shareable link that grants read-only access to your organization's
+    content.
+  org.invite-link-copied: Invite link copied to clipboard
+  org.invite-others: Invite others
+  org.join: Join an existing organization
+  org.join-desc: >
+    To join, please contact an administrator of that organization and ask them to invite you using the
+    invite link.
+  org.link-validity: The link is valid for 48 hours from the time of creation
+  org.name: Name
+  org.new-org: New Organization
+  org.new-org.placeholder: Enter organization name
+  org.note: Note
+  org.permanent-delete: >
+    If an organization remains in the deleted state for a long time, your data may
+    eventually be permanently deleted
+  org.select: Select Existing Organization
+  org.select-existing: >
+    Select an existing organization you want to work on, or create a new one below. After making your
+    selection, you can navigate to other pages,
+    and any actions you perform will be associated with the chosen organization.
+  overview.add-to-project: Add to project
+  overview.init-flash-msg: Explore your archive and add items to your next project
+  page: Page
+  people.nn-recipent: >
+    A recipient is not a regular user and cannot log in or use Caesura. However, they will still receive emails
+    from Caesura like regular users.
+  project: Project
+  project-modal.select: Select Project
+  project-modal.select-placeholder: Search or create project...
+  previous: Previous
+  register: Register
+  role: Role
+  search: Search
+  search-placholder: Type to search
+  tags: Tags
+  title: Title
+  upload.click-to-jump: Click to jump
+  upload.delete-mode: Delete mode
+  upload.filter-groups: Filter groups
+  upload.filter-groups-placeholder: Type to filter
+  upload.init-flash-msg: Ready to upload new files
