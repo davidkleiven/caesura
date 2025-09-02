@@ -1,3 +1,4 @@
+{{define "people"}}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -26,8 +27,7 @@
 
           <span
             class="absolute z-10 bottom-full mb-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-            A recipient is not a regular user and cannot log in or use Caesura. However, they will still receive emails
-            from Caesura like regular users.
+           {{ T "people.nn-recipent" }}
           </span>
         </span>
       </label>
@@ -49,7 +49,7 @@
           hx-post="/organizations/recipent" hx-swap="none"
           hx-on::after-request="htmx.ajax('GET', '/organizations/users', {target: '#people-list', swap: 'innerHTML'})"
           hx-on::401="Unauthorized: only admins can register a new recipent">
-          Register
+          {{T "register" }}
         </button>
       </div>
     </form>
@@ -58,10 +58,10 @@
       <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
         <thead class="bg-gray-100 text-gray-700">
           <tr>
-            <th class="px-4 py-3">Name</th>
-            <th class="px-4 py-3">Email</th>
-            <th class="px-4 py-3">Role</th>
-            <th class="px-4 py-3 w-1/5">Groups</th>
+            <th class="px-4 py-3">{{ T "org.name" }}</th>
+            <th class="px-4 py-3">{{ T "email" }}</th>
+            <th class="px-4 py-3">{{ T "role" }}</th>
+            <th class="px-4 py-3 w-1/5">{{ T "Groups" }}</th>
             <th class="px-4 py-3"></th>
           </tr>
         </thead>
@@ -77,3 +77,4 @@
     </symbol>
   </svg>
 </body>
+{{end}}

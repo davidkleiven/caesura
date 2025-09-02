@@ -1,5 +1,6 @@
+{{ define "project-content" }}
 <div class="flex p-4">
-    <p class="font-bold pr-2">Project:</p>
+    <p class="font-bold pr-2">{{T "project"}}:</p>
     <p class="italic">{{ .Name }}</p>
 </div>
 {{template "resource_table" . }}
@@ -8,3 +9,4 @@
     class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">
     Distribute
 </button>
+{{end}}

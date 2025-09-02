@@ -11,7 +11,7 @@ import (
 )
 
 func TestUpload(t *testing.T) {
-	index := Upload(&ScoreMetaData{})
+	index := Upload(&ScoreMetaData{}, "en")
 
 	if !bytes.Contains(index, []byte("Caesura</div>")) {
 		t.Error("Expected index to contain 'Caesura</div>'")
@@ -27,7 +27,7 @@ func TestList(t *testing.T) {
 }
 
 func TestOverview(t *testing.T) {
-	overview := Overview()
+	overview := Overview("en")
 
 	if !bytes.Contains(overview, []byte("Title")) {
 		t.Error("Expected overview to contain 'Title")
@@ -46,7 +46,7 @@ func TestResourceList(t *testing.T) {
 }
 
 func TestProjectSelectorModal(t *testing.T) {
-	projectSelector := ProjectSelectorModal()
+	projectSelector := ProjectSelectorModal("en")
 
 	if !bytes.Contains(projectSelector, []byte("Confirm")) {
 		t.Error("Expected project selector modal to contain 'Confirm'")
@@ -55,7 +55,7 @@ func TestProjectSelectorModal(t *testing.T) {
 
 func TestProjectQueryInput(t *testing.T) {
 	var buf bytes.Buffer
-	ProjectQueryInput(&buf, "Test Query")
+	ProjectQueryInput(&buf, "en", "Test Query")
 
 	if !bytes.Contains(buf.Bytes(), []byte("Test Query")) {
 		t.Error("Expected project query input to contain 'Test Query'")
@@ -63,7 +63,7 @@ func TestProjectQueryInput(t *testing.T) {
 }
 
 func TestProjects(t *testing.T) {
-	projects := Projects()
+	projects := Projects("en")
 
 	if !bytes.Contains(projects, []byte("# pieces")) {
 		t.Error("Expected projects to contain '# pieces'")
@@ -109,7 +109,7 @@ func TestProjectContent(t *testing.T) {
 		ResourceIds: []string{resources[0].ResourceId()},
 	}
 
-	ProjectContent(&buf, project, resources)
+	ProjectContent(&buf, project, resources, "en")
 
 	content := buf.String()
 
@@ -141,7 +141,7 @@ func TestResourceContent(t *testing.T) {
 }
 
 func TestOrganizations(t *testing.T) {
-	content := Organizations()
+	content := Organizations("en")
 	testutils.AssertContains(t, string(content), "</body>")
 }
 
@@ -156,13 +156,13 @@ func TestOrganizationsList(t *testing.T) {
 }
 
 func TestIndex(t *testing.T) {
-	index := string(Index())
+	index := string(Index("en"))
 	testutils.AssertContains(t, index, "</body>")
 }
 
 func TestPeopleHtml(t *testing.T) {
 	var buf bytes.Buffer
-	WritePeopleHTML(&buf)
+	WritePeopleHTML(&buf, "en")
 	testutils.AssertContains(t, buf.String(), "</body>")
 }
 
