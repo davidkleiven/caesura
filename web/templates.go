@@ -20,8 +20,16 @@ type ScoreMetaData struct {
 	Title    string
 }
 
-func Upload(data *ScoreMetaData) []byte {
-	tmpl := template.Must(template.ParseFS(templatesFS, "templates/upload.html", "templates/header.html"))
+func translateFunc(language string) func(string) string {
+	return func(f string) string { return translator.MustGet(language, f) }
+}
+
+func Upload(data *ScoreMetaData, language string) []byte {
+	tmpl := template.Must(
+		template.New("upload").
+			Funcs(template.FuncMap{"T": translateFunc(language)}).
+			ParseFS(templatesFS, "templates/upload.html", "templates/header.html"),
+	)
 	var buf bytes.Buffer
 
 	deps := LoadDependencies().Dependencies
@@ -33,7 +41,7 @@ func Upload(data *ScoreMetaData) []byte {
 		Dependencies:  &deps,
 	}
 
-	pkg.PanicOnErr(tmpl.Execute(&buf, templateData))
+	pkg.PanicOnErr(tmpl.ExecuteTemplate(&buf, "upload", templateData))
 	return buf.Bytes()
 }
 
@@ -41,18 +49,27 @@ func List() []byte {
 	return utils.Must(templatesFS.ReadFile("templates/list.html"))
 }
 
-func Index() []byte {
-	tmpl := template.Must(template.ParseFS(templatesFS, "templates/index.html", "templates/header.html"))
+func Index(language string) []byte {
+	tmpl := template.Must(
+		template.New("index-template").
+			Funcs(template.FuncMap{"T": translateFunc(language)}).
+			ParseFS(templatesFS, "templates/index.html", "templates/header.html"),
+	)
+
 	var buf bytes.Buffer
 
-	pkg.PanicOnErr(tmpl.Execute(&buf, LoadDependencies().Dependencies))
+	pkg.PanicOnErr(tmpl.ExecuteTemplate(&buf, "index-template", LoadDependencies().Dependencies))
 	return buf.Bytes()
 }
 
-func Overview() []byte {
-	tmpl := template.Must(template.ParseFS(templatesFS, "templates/overview.html", "templates/header.html", "templates/resource_table.html"))
+func Overview(language string) []byte {
+	tmpl := template.Must(
+		template.New("overview").
+			Funcs(template.FuncMap{"T": translateFunc(language)}).
+			ParseFS(templatesFS, "templates/overview.html", "templates/header.html", "templates/resource_table.html"),
+	)
 	var buf bytes.Buffer
-	pkg.PanicOnErr(tmpl.Execute(&buf, LoadDependencies().Dependencies))
+	pkg.PanicOnErr(tmpl.ExecuteTemplate(&buf, "overview", LoadDependencies().Dependencies))
 	return buf.Bytes()
 }
 
@@ -67,19 +84,34 @@ func ResourceList(w io.Writer, metaData []pkg.MetaData) {
 	pkg.PanicOnErr(tmpl.Execute(w, data))
 }
 
-func ProjectSelectorModal() []byte {
-	return utils.Must(templatesFS.ReadFile("templates/project_selection_modal.html"))
-}
-
-func ProjectQueryInput(w io.Writer, queryContent string) {
-	tmpl := template.Must(template.ParseFS(templatesFS, "templates/project_query_input.html"))
-	pkg.PanicOnErr(tmpl.Execute(w, queryContent))
-}
-
-func Projects() []byte {
-	tmpl := template.Must(template.ParseFS(templatesFS, "templates/projects.html", "templates/header.html"))
+func ProjectSelectorModal(language string) []byte {
+	tmpl := template.Must(
+		template.New("project-modal").
+			Funcs(template.FuncMap{"T": translateFunc(language)}).
+			ParseFS(templatesFS, "templates/project_selection_modal.html"),
+	)
 	var buf bytes.Buffer
-	pkg.PanicOnErr(tmpl.Execute(&buf, LoadDependencies().Dependencies))
+	pkg.PanicOnErr(tmpl.ExecuteTemplate(&buf, "project-modal", LoadDependencies().Dependencies))
+	return buf.Bytes()
+}
+
+func ProjectQueryInput(w io.Writer, language, queryContent string) {
+	tmpl := template.Must(
+		template.New("project-query-input").
+			Funcs(template.FuncMap{"T": translateFunc(language)}).
+			ParseFS(templatesFS, "templates/project_query_input.html"),
+	)
+	pkg.PanicOnErr(tmpl.ExecuteTemplate(w, "project-query-input", queryContent))
+}
+
+func Projects(language string) []byte {
+	tmpl := template.Must(
+		template.New("projects").
+			Funcs(template.FuncMap{"T": translateFunc(language)}).
+			ParseFS(templatesFS, "templates/projects.html", "templates/header.html"),
+	)
+	var buf bytes.Buffer
+	pkg.PanicOnErr(tmpl.ExecuteTemplate(&buf, "projects", LoadDependencies().Dependencies))
 	return buf.Bytes()
 }
 
@@ -104,11 +136,15 @@ func ProjectList(w io.Writer, projects []pkg.Project) {
 	pkg.PanicOnErr(tmpl.Execute(w, data))
 }
 
-func ProjectContent(w io.Writer, project *pkg.Project, resources []pkg.MetaData) {
-	resourceTable := template.Must(template.ParseFS(templatesFS, "templates/project_content.html", "templates/resource_table.html"))
+func ProjectContent(w io.Writer, project *pkg.Project, resources []pkg.MetaData, language string) {
+	resourceTable := template.Must(
+		template.New("project-content").
+			Funcs(template.FuncMap{"T": translateFunc(language)}).
+			ParseFS(templatesFS, "templates/project_content.html", "templates/resource_table.html"),
+	)
 
 	var resourceTableBuffer bytes.Buffer
-	pkg.PanicOnErr(resourceTable.Execute(&resourceTableBuffer, project))
+	pkg.PanicOnErr(resourceTable.ExecuteTemplate(&resourceTableBuffer, "project-content", project))
 
 	var buffer bytes.Buffer
 	rows := template.Must(template.ParseFS(templatesFS, "templates/resource_list.html"))
@@ -145,11 +181,15 @@ func ResourceContent(w io.Writer, data *ResourceContentData) {
 	pkg.PanicOnErr(template.Execute(w, data))
 }
 
-func Organizations() []byte {
-	tmpl := template.Must(template.ParseFS(templatesFS, "templates/organizations.html", "templates/header.html", "templates/organization_list.html"))
+func Organizations(language string) []byte {
+	tmpl := template.Must(
+		template.New("organizations").
+			Funcs(template.FuncMap{"T": translateFunc(language)}).
+			ParseFS(templatesFS, "templates/organizations.html", "templates/header.html", "templates/organization_list.html"),
+	)
 	var buf bytes.Buffer
 
-	pkg.PanicOnErr(tmpl.Execute(&buf, LoadDependencies()))
+	pkg.PanicOnErr(tmpl.ExecuteTemplate(&buf, "organizations", LoadDependencies()))
 	return buf.Bytes()
 }
 
@@ -163,9 +203,13 @@ func WriteOrganizationHTML(w io.Writer, organizations []pkg.Organization) {
 	pkg.PanicOnErr(tmpl.ExecuteTemplate(w, "orgList", data))
 }
 
-func WritePeopleHTML(w io.Writer) {
-	tmpl := template.Must(template.ParseFS(templatesFS, "templates/people.html", "templates/header.html"))
-	pkg.PanicOnErr(tmpl.Execute(w, LoadDependencies()))
+func WritePeopleHTML(w io.Writer, language string) {
+	tmpl := template.Must(
+		template.New("people").
+			Funcs(template.FuncMap{"T": translateFunc(language)}).
+			ParseFS(templatesFS, "templates/people.html", "templates/header.html"),
+	)
+	pkg.PanicOnErr(tmpl.ExecuteTemplate(w, "people", LoadDependencies()))
 }
 
 type userListViewObj struct {

@@ -1,3 +1,4 @@
+{{ define "overview" }}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -14,23 +15,22 @@
   {{ template "header" . }}
   <!-- Page Content Placeholder -->
   <div id="page-content" class="flex-col pt-16">
-    <div id="flash-message" class="mb-4 text-gray-500 italic p-4">Explore your archive and add items to your next
-      project!</div>
+    <div id="flash-message" class="mb-4 text-gray-500 italic p-4">{{T "overview.init-flash-msg" }}!</div>
     <div class="flex items-center justify-center">
-      <p class="mr-2 font-semibold">Search:</p>
+      <p class="mr-2 font-semibold">{{T "search"}}:</p>
       <input type="text" name="resource-filter" hx-get="/overview/search" hx-trigger="load, keyup changed delay:500ms"
-        hx-target="#piece-list" placeholder="Type to search" />
+        hx-target="#piece-list" placeholder="{{T "search-placholder"}}" />
     </div>
     {{ template "resource_table" . }}
     <button type="button" hx-get="/overview/project-selector" hx-trigger="click" hx-target="#project-selection-modal"
       class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">
-      Add to project
+      {{T "overview.add-to-project" }}
     </button>
     <button type="button" id="distribute-btn" hx-post="/resources/email" hx-trigger="click"
       hx-target="#flash-message" hx-swap="innerHTML"
       hx-vals='js:{ resourceId: getCheckedIds() }'
       class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">
-      Distribute
+      {{ T "distribute"}}
     </button>
   </div>
   <div id="project-selection-modal"></div>
@@ -51,3 +51,4 @@
     }
   </script>
 </body>
+{{end}}

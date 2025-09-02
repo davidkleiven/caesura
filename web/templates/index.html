@@ -1,3 +1,4 @@
+{{ define "index-template" }}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -14,48 +15,49 @@
         <div class="w-full px-6 py-12 bg-white bg-opacity-90 rounded-2xl shadow-lg space-y-6">
             <p class="text-4xl font-extrabold text-gray-900 leading-snug">
               <strong>Caesura</strong>
-              <span class="italic text-indigo-600">— Where Music Meets Precision</span>
+              <span class="italic text-indigo-600">— {{ T "index.slogan" }}</span>
             </p>
 
             <p class="text-lg text-gray-700 leading-relaxed">
-              Organize, share, and perform with confidence.<br />
-              <span class="text-gray-900 font-medium">Caesura</span> is the modern solution for orchestras, bands, and choirs to
-              <span class="font-semibold text-indigo-700">store</span>,
-              <span class="font-semibold text-indigo-700">manage</span>, and
-              <span class="font-semibold text-indigo-700">distribute music</span> — all in one place.
-              Say goodbye to scattered PDFs, last-minute emails, and missing parts.
+              {{ T "index.purpose" }}.<br />
+              <span class="text-gray-900 font-medium">Caesura</span> {{ T "index.description" }}
+              <span class="font-semibold text-indigo-700">{{ T "index.store" }}</span>,
+              <span class="font-semibold text-indigo-700">{{ T "index.manage" }}</span>, and
+              <span class="font-semibold text-indigo-700">{{ T "index.distribute" }}</span> — {{ T "index.all-in-one" }}.
+              {{ T "index.desc-footer" }}
             </p>
 
             <p class="text-lg text-gray-700 leading-relaxed">
-              With <span class="text-gray-900 font-medium">Caesura</span>, your ensemble always has the
-              <span class="text-indigo-600 font-semibold">right music</span>,
-              at the <span class="text-indigo-600 font-semibold">right time</span>, wherever they are.
+              {{ T "index.with-pre-caesura"}} <span class="text-gray-900 font-medium">Caesura</span>, {{ T "index.post-caesura" }}
+              <span class="text-indigo-600 font-semibold">{{ T "index.right-music" }}</span>,
+              at the <span class="text-indigo-600 font-semibold">{{ T "index.right-time" }}</span>, {{T "index.wherever" }}.
             </p>
 
             <ul class="list-disc list-inside text-gray-800 space-y-1 pl-4">
-              <li>🎼 Effortless score management</li>
-              <li>👤 Role-based access for conductors and musicians</li>
-              <li>🔒 Secure cloud storage</li>
-              <li>📱 Rehearsal-ready from any device</li>
-              <li>✂️ Scan splitting — upload a full score and assign parts</li>
-              <li>📬 Distribute parts instantly — send to members by email</li>
-              <li>🗂️ Organize pieces into projects — perfect for concerts, rehearsals, or tours</li>
+              <li>🎼 {{T "index.bullet.effortless" }}</li>
+              <li>👤 {{T "index.bullet.rbac" }}</li>
+              <li>🔒 {{T "index.bullet.secure" }}</li>
+              <li>📱 {{T "index.bullet.rehersal"}}</li>
+              <li>✂️ {{T "index.bullet.scan-split"}}</li>
+              <li>📬 {{T "index.bullet.distribute" }}</li>
+              <li>🗂️ {{T "index.bullet.organize" }}</li>
             </ul>
 
             <p class="text-xl font-semibold text-indigo-700 italic mt-4">
-              Harmony begins with structure.
+              {{T "index.harmony" }}.
             </p>
 
             <p class="text-lg text-gray-700">
-              Let <span class="font-medium text-gray-900">Caesura</span> handle the logistics — so you can focus on the music.
+              {{T "index.let" }} <span class="font-medium text-gray-900">Caesura</span> {{ T "index.logistics" }}.
             </p>
 
             <div class="pt-6">
               <a href="/login" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-semibold py-3 px-6 rounded-full shadow-md transition duration-300">
-                🎶 Sign up
+                🎶 {{ T "index.sign-up" }}
               </a>
             </div>
           </div>
 
     </div>
 </body>
+{{end}}

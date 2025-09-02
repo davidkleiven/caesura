@@ -1,6 +1,7 @@
+{{define "project-modal"}}
 <div id="modal" class="fixed inset-0 bg-gray-800/70 flex items-center justify-center">
     <div class="bg-white p-6 rounded-xl shadow w-[30rem] max-h-[90vh] overflow-y-auto">
-      <h2 class="text-lg font-semibold mb-4">Select Project</h2>
+      <h2 class="text-lg font-semibold mb-4">{{ T "project-modal.select"}}</h2>
 
       <!-- Autocomplete input -->
     <div id="project-query-input" hx-get="/project-query-input" hx-trigger="load" hx-once></div>
@@ -14,6 +15,7 @@
     hx-swap="innerHTML"
     class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition"
     >
-    Confirm
+    {{T "confirm"}}
     </button>
   </div>
+{{end}}

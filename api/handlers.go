@@ -42,7 +42,7 @@ const googleToken = "https://oauth2.googleapis.com/token"
 func UploadHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(web.Upload(&web.ScoreMetaData{}))
+	w.Write(web.Upload(&web.ScoreMetaData{}, "en"))
 }
 
 func InstrumentSearchHandler(w http.ResponseWriter, r *http.Request) {
@@ -190,7 +190,7 @@ func OverviewSearchHandler(fetcher pkg.MetaByPatternFetcher, timeout time.Durati
 }
 
 func OverviewHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write(web.Overview())
+	w.Write(web.Overview("en"))
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 }
 
@@ -227,13 +227,13 @@ func SearchProjectHandler(store pkg.ProjectByNameGetter, timeout time.Duration) 
 }
 
 func ProjectSelectorModalHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write(web.ProjectSelectorModal())
+	w.Write(web.ProjectSelectorModal("en"))
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 }
 
 func ProjectQueryInputHandler(w http.ResponseWriter, r *http.Request) {
 	value := r.URL.Query().Get("item")
-	web.ProjectQueryInput(w, value)
+	web.ProjectQueryInput(w, "en", value)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 }
 
@@ -298,7 +298,7 @@ func RemoveFromProject(remover pkg.ProjectResourceRemover, timeout time.Duration
 }
 
 func ProjectHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write(web.Projects())
+	w.Write(web.Projects("en"))
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 }
 
@@ -345,7 +345,7 @@ func ProjectByIdHandler(store pkg.ProjectMetaByIdGetter, timeout time.Duration) 
 			}
 		}
 
-		web.ProjectContent(w, project, metaData)
+		web.ProjectContent(w, project, metaData, "en")
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	}
 }
@@ -438,7 +438,7 @@ func AddToResourceHandler(metaGetter pkg.MetaByIdGetter, timeout time.Duration) 
 		}
 
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write(web.Upload(&web.ScoreMetaData{Composer: meta.Composer, Arranger: meta.Arranger, Title: meta.Title}))
+		w.Write(web.Upload(&web.ScoreMetaData{Composer: meta.Composer, Arranger: meta.Arranger, Title: meta.Title}, "en"))
 	}
 }
 
@@ -547,13 +547,13 @@ func HandleGoogleCallback(roleStore pkg.RoleStore, oauthConfig *oauth2.Config, t
 func RootHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(web.Index())
+	w.Write(web.Index("en"))
 }
 
 func OrganizationsHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(web.Organizations())
+	w.Write(web.Organizations("en"))
 }
 
 func InviteLink(baseURL, signSecret string) http.HandlerFunc {
@@ -787,7 +787,7 @@ func AllUsers(store pkg.UserGetter, timeout time.Duration) http.HandlerFunc {
 
 func PeoplePage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	web.WritePeopleHTML(w)
+	web.WritePeopleHTML(w, "en")
 }
 
 func AssignRoleHandler(store pkg.RoleRegisterer, timeout time.Duration) http.HandlerFunc {
