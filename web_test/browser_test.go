@@ -11,6 +11,7 @@ import (
 
 	"github.com/davidkleiven/caesura/api"
 	"github.com/davidkleiven/caesura/pkg"
+	"github.com/davidkleiven/caesura/testutils"
 	"github.com/gorilla/sessions"
 	"github.com/playwright-community/playwright-go"
 )
@@ -522,6 +523,15 @@ func TestSubmit(t *testing.T) {
 			t.Errorf("Expected response to be OK, but got status: %d", resp.Status())
 			return
 		}
+
+		flashMsg := page.Locator("#flash-message")
+		num, err := flashMsg.Count()
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, num, 1)
+
+		text, err := flashMsg.TextContent()
+		testutils.AssertNil(t, err)
+		testutils.AssertContains(t, text, "File uploaded")
 
 	}, uploadPage)(t)
 }

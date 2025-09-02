@@ -210,6 +210,12 @@ async function submitPartitions() {
     if (!response.ok) {
         const errorText = await response.text();
         alert(`Error submitting partition: ${errorText}`);
+    } else {
+        response.text().then(
+            html => {
+                document.getElementById("flash-message").innerHTML = html;
+            }
+        )
     }
 }
 
