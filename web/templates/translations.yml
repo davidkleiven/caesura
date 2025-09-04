@@ -43,6 +43,7 @@ en:
   nav.projects: Projects
   nav.upload: Upload
   next: Next
+  no-org: No organization
   org.accidental-delete: >
     If you accidentally delete an organization, please <strong>contact us</strong> and we will help you
     restore it.

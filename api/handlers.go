@@ -720,8 +720,11 @@ func ActiveOrganization(getter pkg.OrganizationGetter, timeout time.Duration) ht
 	return func(w http.ResponseWriter, r *http.Request) {
 		session := MustGetSession(r)
 		orgId, ok := session.Values["orgId"].(string)
+
+		language := pkg.LanguageFromReq(r)
+		noOrg := web.NoOrganization(language)
 		if !ok || orgId == "" {
-			w.Write([]byte("No organization"))
+			w.Write([]byte(noOrg))
 			return
 		}
 
@@ -731,7 +734,7 @@ func ActiveOrganization(getter pkg.OrganizationGetter, timeout time.Duration) ht
 		org, err := getter.GetOrganization(ctx, orgId)
 		if err != nil {
 			slog.Error("Could not get organization", "error", err, "host", r.Host)
-			w.Write([]byte("No organization"))
+			w.Write([]byte(noOrg))
 			return
 		}
 		w.Write([]byte(org.Name))

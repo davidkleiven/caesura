@@ -203,3 +203,7 @@ func TestSignIn(t *testing.T) {
 func TestSignedIn(t *testing.T) {
 	testutils.AssertEqual(t, SignedIn("en"), "Signed in")
 }
+
+func TestNoOrganization(t *testing.T) {
+	testutils.AssertEqual(t, NoOrganization("en"), "No organization")
+}
