@@ -6,8 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"math/rand"
+	"net/http"
 	"time"
+
+	"golang.org/x/text/language"
 )
 
 var ErrFileNotInZipArchive = errors.New("file is not in zip archive")
@@ -168,4 +172,28 @@ func ReturnOnFirstError(fns ...func() error) error {
 		}
 	}
 	return nil
+}
+
+func LanguageFromReq(r *http.Request) string {
+	fallback := "en"
+	accept := r.Header.Get("Accept-Language")
+	if accept == "" {
+		return fallback
+	}
+
+	supported := []language.Tag{
+		language.English,
+	}
+	matcher := language.NewMatcher(supported)
+
+	// Parse the Accept-Language header into a list of Tags
+	tags, _, err := language.ParseAcceptLanguage(accept)
+	if err != nil {
+		slog.Error("Invalid accept header", "error", err)
+		return fallback
+	}
+
+	// Match the best language
+	bestMatch, _, _ := matcher.Match(tags...)
+	return bestMatch.String()
 }
