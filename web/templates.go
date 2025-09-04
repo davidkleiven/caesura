@@ -291,3 +291,7 @@ func SignIn(lang string) string {
 func SignedIn(lang string) string {
 	return translator.MustGet(lang, "signed-in")
 }
+
+func NoOrganization(lang string) string {
+	return translator.MustGet(lang, "no-org")
+}
