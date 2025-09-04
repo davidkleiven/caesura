@@ -950,10 +950,11 @@ func GroupHandler(store pkg.GroupStore, timeout time.Duration) http.HandlerFunc 
 
 func LoggedIn(w http.ResponseWriter, r *http.Request) {
 	s := MustGetSession(r)
+	language := pkg.LanguageFromReq(r)
 	_, loggedIn := s.Values["userId"].(string)
-	html := `<a href="/login">Sign in</a>`
+	html := web.SignIn(language)
 	if loggedIn {
-		html = "Signed in"
+		html = web.SignedIn(language)
 	}
 
 	w.WriteHeader(http.StatusOK)

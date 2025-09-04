@@ -194,3 +194,12 @@ func TestWriteStringAsOptions(t *testing.T) {
 	WriteStringAsOptions(&buf, opts)
 	testutils.AssertContains(t, buf.String(), "opt A", "opt B")
 }
+
+func TestSignIn(t *testing.T) {
+	html := SignIn("en")
+	testutils.AssertContains(t, html, "Sign in")
+}
+
+func TestSignedIn(t *testing.T) {
+	testutils.AssertEqual(t, SignedIn("en"), "Signed in")
+}
