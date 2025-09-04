@@ -282,3 +282,12 @@ func WriteStringAsOptions(w io.Writer, items []string) {
 	tmpl := template.Must(template.ParseFS(templatesFS, "templates/options.html"))
 	pkg.PanicOnErr(tmpl.ExecuteTemplate(w, "option-list", options))
 }
+
+func SignIn(lang string) string {
+	signIn := translator.MustGet(lang, "sign-in")
+	return `<a href="/login">` + signIn + "</a>"
+}
+
+func SignedIn(lang string) string {
+	return translator.MustGet(lang, "signed-in")
+}

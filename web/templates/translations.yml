@@ -101,6 +101,8 @@ en:
   role: Role
   search: Search
   search-placholder: Type to search
+  sign-in: Sign in
+  signed-in: Signed in
   tags: Tags
   title: Title
   upload.click-to-jump: Click to jump
