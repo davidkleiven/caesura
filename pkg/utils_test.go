@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http/httptest"
 	"regexp"
 	"slices"
 	"testing"
@@ -179,4 +180,21 @@ func TestRandomInsecureId(t *testing.T) {
 	id := RandomInsecureID()
 	pattern := regexp.MustCompile("^[a-z]+-[a-z]+-[0-9]+$")
 	testutils.AssertEqual(t, pattern.Match([]byte(id)), true)
+}
+
+func TestLanguageFromReqNoAcceptLang(t *testing.T) {
+	r := httptest.NewRequest("GET", "/endpoint", nil)
+	testutils.AssertEqual(t, LanguageFromReq(r), "en")
+}
+
+func TestLanguageFromReqNorwegian(t *testing.T) {
+	r := httptest.NewRequest("GET", "/endpoint", nil)
+	r.Header.Set("Accept-Language", "nb, nn;q=0.9, en;q=0.8")
+	testutils.AssertEqual(t, LanguageFromReq(r), "en")
+}
+
+func TestEnglishOnInvalidHeader(t *testing.T) {
+	r := httptest.NewRequest("GET", "/endpoint", nil)
+	r.Header.Set("Accept-Language", "some-random-content")
+	testutils.AssertEqual(t, LanguageFromReq(r), "en")
 }
