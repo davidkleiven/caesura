@@ -190,7 +190,8 @@ func OverviewSearchHandler(fetcher pkg.MetaByPatternFetcher, timeout time.Durati
 }
 
 func OverviewHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write(web.Overview("en"))
+	language := pkg.LanguageFromReq(r)
+	w.Write(web.Overview(language))
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 }
 
@@ -227,7 +228,8 @@ func SearchProjectHandler(store pkg.ProjectByNameGetter, timeout time.Duration) 
 }
 
 func ProjectSelectorModalHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write(web.ProjectSelectorModal("en"))
+	language := pkg.LanguageFromReq(r)
+	w.Write(web.ProjectSelectorModal(language))
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 }
 
@@ -298,7 +300,8 @@ func RemoveFromProject(remover pkg.ProjectResourceRemover, timeout time.Duration
 }
 
 func ProjectHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write(web.Projects("en"))
+	language := pkg.LanguageFromReq(r)
+	w.Write(web.Projects(language))
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 }
 
@@ -547,13 +550,15 @@ func HandleGoogleCallback(roleStore pkg.RoleStore, oauthConfig *oauth2.Config, t
 func RootHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(web.Index("en"))
+	language := pkg.LanguageFromReq(r)
+	w.Write(web.Index(language))
 }
 
 func OrganizationsHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(web.Organizations("en"))
+	language := pkg.LanguageFromReq(r)
+	w.Write(web.Organizations(language))
 }
 
 func InviteLink(baseURL, signSecret string) http.HandlerFunc {
