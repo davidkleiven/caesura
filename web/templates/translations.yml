@@ -111,3 +111,113 @@ en:
   upload.filter-groups: Filter groups
   upload.filter-groups-placeholder: Type to filter
   upload.init-flash-msg: Ready to upload new files
+
+nb:
+  assign: Tildel
+  arranger: Arrangør
+  assignments: Oppgaver
+  composer: Komponist
+  confirm: Bekreft
+  distribute: Distribuer
+  duration: Varighet
+  email: E-post
+  genre: Sjanger
+  groups: Grupper
+  index.all-in-one: alt på ett sted
+  index.bullet.distribute: Distribuer stemmer umiddelbart — send til medlemmer via e-post
+  index.bullet.effortless: Enkel partiturhåndtering
+  index.bullet.organize: Organiser stykker i prosjekter — perfekt for konserter, øvelser eller turnéer
+  index.bullet.rbac: Rollebasert tilgang for dirigenter og musikere
+  index.bullet.rehersal: Øvelsesklar fra hvilken som helst enhet
+  index.bullet.scan-split: Skann splitting — last opp et komplett partitur og tildel stemmer
+  index.bullet.secure: Sikker skylagring
+  index.desc-footer: Si farvel til spredte PDF-filer, siste liten e-poster og manglende stemmer.
+  index.description: er den moderne løsningen for orkestre, band og kor for å
+  index.distribute: distribuere musikk
+  index.harmony: Harmoni begynner med struktur
+  index.let: La
+  index.logistics: håndtere logistikk — så du kan fokusere på musikken
+  index.manage: administrer
+  index.post-caesura: ditt ensemble har alltid
+  index.purpose: Organiser, del og fremfør med selvtillit
+  index.right-music: riktig musikk
+  index.right-time: riktig tid
+  index.sign-up: Registrer deg
+  index.slogan: Hvor musikk møter presisjon
+  index.store: lagre
+  index.wherever: hvor enn de er
+  index.with-pre-caesura: Med
+  loading: Laster
+  nav.contact: Kontakt
+  nav.home: Hjem
+  nav.organizations: Organisasjoner
+  nav.overview: Oversikt
+  nav.people: Personer
+  nav.pricing: Priser
+  nav.projects: Prosjekter
+  nav.upload: Last opp
+  next: Neste
+  no-org: Ingen organisasjon
+  org.accidental-delete: >
+    Hvis du ved et uhell sletter en organisasjon, vennligst <strong>kontakt oss</strong> så hjelper vi deg
+    med å gjenopprette den.
+  org.create: Opprett
+  org.create-new: Opprett ny
+  org.create-new-desc: >
+    Skriv inn navnet og trykk på <i>Opprett</i>-knappen. Du blir automatisk tildelt som administrator
+    for den nye organisasjonen.
+  org.delete: Slett
+  org.delete-heading: Sletting
+  org.delete-desc: >
+    Sletting av en organisasjon fjerner ikke data umiddelbart. Organisasjonen markeres som
+    inaktiv.
+  org.delete.confirm: Er du sikker på at du vil slette organisasjonen?
+  org.expired-subscription: Utløpt abonnement
+  org.expired-subscription-desc: >
+    Data slettes ikke umiddelbart når et abonnement utløper. Hvis organisasjonen ikke fornyer
+    abonnementet, kan data etter hvert slettes permanent. Vi vil forsøke å varsle administratorer via registrerte e-poster før irreversible handlinger.
+  org.help: Trenger du hjelp?
+  org.invite: Inviter
+  org.invite-explination: >
+    Som administrator kan du invitere andre til organisasjonen ved å klikke på invitasjonsknappen.
+    Dette genererer en delbar lenke som gir leseadgang til organisasjonens
+    innhold.
+  org.invite-link-copied: Invitasjonslenke kopiert til utklippstavlen
+  org.invite-others: Inviter andre
+  org.join: Bli med i en eksisterende organisasjon
+  org.join-desc: >
+    For å bli med, vennligst kontakt en administrator i organisasjonen og be om invitasjonslenke.
+  org.link-validity: Lenken er gyldig i 48 timer fra opprettelsestidspunktet
+  org.name: Navn
+  org.new-org: Ny organisasjon
+  org.new-org.placeholder: Skriv inn organisasjonsnavn
+  org.note: Notat
+  org.permanent-delete: >
+    Hvis en organisasjon forblir slettet over lengre tid, kan data til slutt slettes permanent.
+  org.select: Velg eksisterende organisasjon
+  org.select-existing: >
+    Velg en eksisterende organisasjon du vil jobbe med, eller opprett en ny nedenfor. Etter valg kan du navigere til andre sider,
+    og handlinger knyttes til valgt organisasjon.
+  overview.add-to-project: Legg til i prosjekt
+  overview.init-flash-msg: Utforsk arkivet ditt og legg til elementer i ditt neste prosjekt
+  page: Side
+  people.nn-recipent: >
+    En mottaker er ikke en vanlig bruker og kan ikke logge inn eller bruke Caesura. De vil likevel
+    motta e-poster fra Caesura som vanlige brukere.
+  project: Prosjekt
+  project-modal.select: Velg prosjekt
+  project-modal.select-placeholder: Søk eller opprett prosjekt...
+  previous: Forrige
+  register: Registrer
+  role: Rolle
+  search: Søk
+  search-placholder: Skriv for å søke
+  sign-in: Logg inn
+  signed-in: Logget inn
+  tags: Tagger
+  title: Tittel
+  upload.click-to-jump: Klikk for å hoppe
+  upload.delete-mode: Slettemodus
+  upload.filter-groups: Filtrer grupper
+  upload.filter-groups-placeholder: Skriv for å filtrere
+  upload.init-flash-msg: Klar til å laste opp nye filer
