@@ -183,6 +183,7 @@ func LanguageFromReq(r *http.Request) string {
 
 	supported := []language.Tag{
 		language.English,
+		language.Make("nb"),
 	}
 	matcher := language.NewMatcher(supported)
 
@@ -195,5 +196,6 @@ func LanguageFromReq(r *http.Request) string {
 
 	// Match the best language
 	bestMatch, _, _ := matcher.Match(tags...)
-	return bestMatch.String()
+	baseLang, _ := bestMatch.Base()
+	return baseLang.String()
 }

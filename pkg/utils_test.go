@@ -190,7 +190,7 @@ func TestLanguageFromReqNoAcceptLang(t *testing.T) {
 func TestLanguageFromReqNorwegian(t *testing.T) {
 	r := httptest.NewRequest("GET", "/endpoint", nil)
 	r.Header.Set("Accept-Language", "nb, nn;q=0.9, en;q=0.8")
-	testutils.AssertEqual(t, LanguageFromReq(r), "en")
+	testutils.AssertEqual(t, LanguageFromReq(r), "nb")
 }
 
 func TestEnglishOnInvalidHeader(t *testing.T) {

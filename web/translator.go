@@ -1,6 +1,8 @@
 package web
 
 import (
+	"log/slog"
+
 	"github.com/davidkleiven/caesura/pkg"
 	"github.com/davidkleiven/caesura/utils"
 	"gopkg.in/yaml.v2"
@@ -14,6 +16,7 @@ func (t *Translator) MustGet(lang, field string) string {
 	fallback := "en"
 	languageMap, ok := t.mapping[lang]
 	if !ok {
+		slog.Info("Unknown language. Falling back to english", "language", lang)
 		languageMap, ok = t.mapping[fallback]
 		if !ok {
 			panic("Fallback language must exist")
