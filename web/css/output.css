@@ -378,6 +378,9 @@
   .min-w-\[200px\] {
     min-width: 200px;
   }
+  .min-w-fit {
+    min-width: fit-content;
+  }
   .min-w-full {
     min-width: 100%;
   }
@@ -467,6 +470,9 @@
   }
   .overflow-auto {
     overflow: auto;
+  }
+  .overflow-x-auto {
+    overflow-x: auto;
   }
   .overflow-y-auto {
     overflow-y: auto;
@@ -740,10 +746,6 @@
   .duration-300 {
     --tw-duration: 300ms;
     transition-duration: 300ms;
-  }
-  .select-all {
-    -webkit-user-select: all;
-    user-select: all;
   }
   .group-hover\:block {
     &:is(:where(.group):hover *) {
