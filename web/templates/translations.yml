@@ -45,12 +45,12 @@ en:
   next: Next
   no-org: No organization
   org.accidental-delete: >
-    If you accidentally delete an organization, please <strong>contact us</strong> and we will help you
+    If you accidentally delete an organization, please contact us and we will help you
     restore it.
   org.create: Create
   org.create-new: Create new
   org.create-new-desc: >
-    Write the name and hit the <i>Create</i> button. You will automatically be assigned as the administrator
+    Write the name and hit the create button. You will automatically be assigned as the administrator
     of the new organization.
   org.delete: Delete
   org.delete-heading: Deletion
@@ -159,12 +159,12 @@ nb:
   next: Neste
   no-org: Ingen organisasjon
   org.accidental-delete: >
-    Hvis du ved et uhell sletter en organisasjon, vennligst <strong>kontakt oss</strong> så hjelper vi deg
+    Hvis du ved et uhell sletter en organisasjon, vennligst kontakt oss så hjelper vi deg
     med å gjenopprette den.
   org.create: Opprett
   org.create-new: Opprett ny
   org.create-new-desc: >
-    Skriv inn navnet og trykk på <i>Opprett</i>-knappen. Du blir automatisk tildelt som administrator
+    Skriv inn navnet og trykk på Opprett-knappen. Du blir automatisk tildelt som administrator
     for den nye organisasjonen.
   org.delete: Slett
   org.delete-heading: Sletting
