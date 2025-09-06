@@ -1,4 +1,5 @@
 en:
+  annual: Annual
   assign: Assign
   arranger: Arranger
   assignments: Assignments
@@ -7,6 +8,7 @@ en:
   distribute: Distribute
   duration: Duration
   email: Email
+  free: Free
   genre: Genre
   groups: Groups
   index.all-in-one: all in one place
@@ -34,6 +36,7 @@ en:
   index.wherever: wherever they are
   index.with-pre-caesura: With
   loading: Loading
+  monthly: Monthly
   nav.contact: Contact
   nav.home: Home
   nav.organizations: Organizations
@@ -47,6 +50,7 @@ en:
   org.accidental-delete: >
     If you accidentally delete an organization, please contact us and we will help you
     restore it.
+  org.choose-plan: Choose plan
   org.create: Create
   org.create-new: Create new
   org.create-new-desc: >
@@ -88,6 +92,7 @@ en:
     Select an existing organization you want to work on, or create a new one below. After making your
     selection, you can navigate to other pages,
     and any actions you perform will be associated with the chosen organization.
+  org.subscripe: Subscribe
   overview.add-to-project: Add to project
   overview.init-flash-msg: Explore your archive and add items to your next project
   page: Page
@@ -113,6 +118,7 @@ en:
   upload.init-flash-msg: Ready to upload new files
 
 nb:
+  annual: Årlig
   assign: Tildel
   arranger: Arrangør
   assignments: Oppgaver
@@ -121,6 +127,7 @@ nb:
   distribute: Distribuer
   duration: Varighet
   email: E-post
+  free: Gratis
   genre: Sjanger
   groups: Grupper
   index.all-in-one: alt på ett sted
@@ -148,6 +155,7 @@ nb:
   index.wherever: hvor enn de er
   index.with-pre-caesura: Med
   loading: Laster
+  monthly: Månedlig
   nav.contact: Kontakt
   nav.home: Hjem
   nav.organizations: Organisasjoner
@@ -161,6 +169,7 @@ nb:
   org.accidental-delete: >
     Hvis du ved et uhell sletter en organisasjon, vennligst kontakt oss så hjelper vi deg
     med å gjenopprette den.
+  org.choose-plan: Velg abonnement
   org.create: Opprett
   org.create-new: Opprett ny
   org.create-new-desc: >
@@ -198,6 +207,7 @@ nb:
   org.select-existing: >
     Velg en eksisterende organisasjon du vil jobbe med, eller opprett en ny nedenfor. Etter valg kan du navigere til andre sider,
     og handlinger knyttes til valgt organisasjon.
+  org.subscripe: Legg til abonnement
   overview.add-to-project: Legg til i prosjekt
   overview.init-flash-msg: Utforsk arkivet ditt og legg til elementer i ditt neste prosjekt
   page: Side

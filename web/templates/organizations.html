@@ -22,21 +22,30 @@
                 <select id="existing-orgs" name="existing_org"
                     class="w-full px-4 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     hx-get="/organizations/active/session" hx-trigger="change" hx-swap="none"
-                    hx-on::after-request="htmx.ajax('GET', '/session/active-organization/name', {target: '#active-organization', swap: 'innerHTML'})"
-                    >
+                    hx-on::after-request="htmx.ajax('GET', '/session/active-organization/name', {target: '#active-organization', swap: 'innerHTML'})">
                 </select>
-                <button id="invite-button" type="button" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md"
-                    hx-on::401="alert('Unauthorized')"
-                    onclick="generateInvite()">
+                <form class="flex items-center space-x-4" hx-post="/subscription-page" hx-swap="none">
+                    <label for="subscription-plan">{{T "org.choose-plan"}}:</label>
+                    <select id="subscription-plan" name="subscription-plan">
+                        <option value="free">{{T "free"}}</option>
+                        <option value="monthly">{{T "monthly"}}</option>
+                        <option value="annual">{{T "annual"}}</option>
+                    </select>
+                    <button id="subscribe-btn" type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md ml-2">
+                        {{T "org.subscripe"}}
+                    </button>
+                </form>
+                <button id="invite-button" type="button"
+                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md"
+                    hx-on::401="alert('Unauthorized')" onclick="generateInvite()">
                     {{ T "org.invite" }}
                 </button>
                 <button id="delete-btn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md ml-2"
                     hx-delete="/organizations" hx-swap="none"
                     hx-on::after-request="htmx.ajax('GET', '/organizations/options', {target: '#existing-orgs', swap: 'innerHTML'});
                         htmx.ajax('GET', '/session/active-organization/name', {target: '#active-organization', swap: 'innerHTML'})"
-                    hx-on::401="alert('Unauthorized')"
-                    hx-confirm='{{T "org.delete.confirm" }}?'
-                    >
+                    hx-on::401="alert('Unauthorized')" hx-confirm='{{T "org.delete.confirm" }}?'>
                     {{T "org.delete" }}
                 </button>
                 <!-- Hidden element just to fasilitate load organization -->
@@ -50,7 +59,7 @@
                     <h2 class="text-2xl font-semibold mb-6 text-gray-800">{{ T "org.new-org" }}</h2>
 
                     <label for="name" class="block mb-2 text-sm font-medium text-gray-700">{{T "org.name" }}:</label>
-                    <input type="text" id="name" name="name" placeholder="{{T "org.new-org.placeholder" }}"
+                    <input type="text" id="name" name="name" placeholder='{{T "org.new-org.placeholder" }}'
                         class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         required />
 
@@ -79,7 +88,7 @@
                 {{ T "org.delete-desc" }}.
             </p>
             <p class="mb-2">
-               {{ T "org.accidental-delete" }}
+                {{ T "org.accidental-delete" }}
             </p>
             <p class="mb-4">
                 <strong>{{ T "org.note" }}:</strong> {{ T "org.permanent-delete" }}.

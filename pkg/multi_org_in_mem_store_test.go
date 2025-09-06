@@ -434,3 +434,25 @@ func TestResourceItemNames(t *testing.T) {
 		testutils.AssertNil(t, err)
 	})
 }
+
+func TestGetSubscription(t *testing.T) {
+	store := NewMultiOrgInMemoryStore()
+
+	t.Run("not existing", func(t *testing.T) {
+		s, err := store.GetSubscription(context.Background(), "orgId")
+		if s == nil {
+			t.Fatal("Subscription should not be nil")
+		}
+		if !errors.Is(err, ErrSubscriptionNotFound) {
+			t.Fatalf("Wanted %s got %s", ErrSubscriptionNotFound, err)
+		}
+	})
+
+	target := Subscription{}
+	store.Subscriptions["my-organization"] = target
+	t.Run("existing", func(t *testing.T) {
+		s, err := store.GetSubscription(context.Background(), "my-organization")
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, *s, target)
+	})
+}
