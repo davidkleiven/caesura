@@ -86,6 +86,7 @@ type MultiOrgInMemoryStore struct {
 	Data          map[string]*InMemoryStore
 	Users         []UserInfo
 	Organizations []Organization
+	Subscriptions map[string]Subscription
 }
 
 func (m *MultiOrgInMemoryStore) Submit(ctx context.Context, orgId string, meta *MetaData, pdfIter iter.Seq2[string, []byte]) error {
@@ -333,10 +334,27 @@ func (m *MultiOrgInMemoryStore) ResourceItemNames(ctx context.Context, resourceP
 	return result, nil
 }
 
+func (m *MultiOrgInMemoryStore) GetSubscription(ctx context.Context, orgId string) (*Subscription, error) {
+	subs, ok := m.Subscriptions[orgId]
+	if !ok {
+		return &Subscription{}, fmt.Errorf("orgId: %s %w", orgId, ErrSubscriptionNotFound)
+	}
+	return &subs, nil
+}
+
+func (m *MultiOrgInMemoryStore) StoreSubscription(ctx context.Context, orgId string, subscription *Subscription) error {
+	if orgId == "" {
+		return errors.New("organization id can not be an empty string")
+	}
+	m.Subscriptions[orgId] = *subscription
+	return nil
+}
+
 func NewMultiOrgInMemoryStore() *MultiOrgInMemoryStore {
 	return &MultiOrgInMemoryStore{
 		Data:          make(map[string]*InMemoryStore),
 		Users:         []UserInfo{},
 		Organizations: []Organization{},
+		Subscriptions: make(map[string]Subscription),
 	}
 }

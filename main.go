@@ -13,6 +13,7 @@ import (
 	"github.com/davidkleiven/caesura/api"
 	"github.com/davidkleiven/caesura/pkg"
 	"github.com/gorilla/sessions"
+	"github.com/stripe/stripe-go/v82"
 )
 
 func main() {
@@ -30,6 +31,7 @@ func main() {
 
 	cookieStore := sessions.NewCookieStore([]byte(config.CookieSecretSignKey))
 	mux := api.Setup(pkg.NewDemoStore(), config, cookieStore)
+	stripe.Key = config.StripeSecretKey
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Port),

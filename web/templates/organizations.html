@@ -1,116 +1,190 @@
 {{ define "organizations" }}
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/css/output.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/css/output.css" />
     <title>Caesura</title>
     <script src="https://unpkg.com/htmx.org@{{ .Dependencies.HtmxVersion }}/dist/htmx.min.js"></script>
-</head>
+  </head>
 
-<body class="bg-gray-100">
+  <body class="bg-gray-100">
     {{ template "header" . }}
     <!-- Page Content Placeholder -->
     <div id="page-content" class="flex pt-16">
-        <div class="flex-col w-2/3">
-            <div class="max-w-md mx-auto mt-8 mb-6 p-4 bg-gray-50 rounded-md shadow-sm">
-                <label for="existing-orgs" class="block mb-2 text-sm font-medium text-gray-700">
-                    {{T "org.select" }}:
-                </label>
-                <select id="existing-orgs" name="existing_org"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    hx-get="/organizations/active/session" hx-trigger="change" hx-swap="none"
-                    hx-on::after-request="htmx.ajax('GET', '/session/active-organization/name', {target: '#active-organization', swap: 'innerHTML'})"
-                    >
-                </select>
-                <button id="invite-button" type="button" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md"
-                    hx-on::401="alert('Unauthorized')"
-                    onclick="generateInvite()">
-                    {{ T "org.invite" }}
-                </button>
-                <button id="delete-btn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md ml-2"
-                    hx-delete="/organizations" hx-swap="none"
-                    hx-on::after-request="htmx.ajax('GET', '/organizations/options', {target: '#existing-orgs', swap: 'innerHTML'});
+      <div class="flex-col w-2/3">
+        <div
+          class="max-w-md mx-auto mt-8 mb-6 p-4 bg-gray-50 rounded-md shadow-sm"
+        >
+          <label
+            for="existing-orgs"
+            class="block mb-2 text-sm font-medium text-gray-700"
+          >
+            {{T "org.select" }}:
+          </label>
+          <select
+            id="existing-orgs"
+            name="existing_org"
+            class="w-full px-4 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            hx-get="/organizations/active/session"
+            hx-trigger="change"
+            hx-swap="none"
+            hx-on::after-request="htmx.ajax('GET', '/session/active-organization/name', {target: '#active-organization', swap: 'innerHTML'})"
+          ></select>
+          <form
+            class="flex items-center space-x-4"
+            hx-post="/subscription-page"
+            hx-swap="none"
+          >
+            <label for="subscription-plan">{{T "org.choose-plan"}}:</label>
+            <select id="subscription-plan" name="subscription-plan">
+              <option value="free">{{T "free"}}</option>
+              <option value="monthly">{{T "monthly"}}</option>
+              <option value="annual">{{T "annual"}}</option>
+            </select>
+            <button
+              id="subscribe-btn"
+              type="submit"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md ml-2"
+            >
+              {{T "org.subscripe"}}
+            </button>
+          </form>
+          <button
+            id="invite-button"
+            type="button"
+            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md"
+            hx-on::401="alert('Unauthorized')"
+            onclick="generateInvite()"
+          >
+            {{ T "org.invite" }}
+          </button>
+          <button
+            id="delete-btn"
+            class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md ml-2"
+            hx-delete="/organizations"
+            hx-swap="none"
+            hx-on::after-request="htmx.ajax('GET', '/organizations/options', {target: '#existing-orgs', swap: 'innerHTML'});
                         htmx.ajax('GET', '/session/active-organization/name', {target: '#active-organization', swap: 'innerHTML'})"
-                    hx-on::401="alert('Unauthorized')"
-                    hx-confirm='{{T "org.delete.confirm" }}?'
-                    >
-                    {{T "org.delete" }}
-                </button>
-                <!-- Hidden element just to fasilitate load organization -->
-                <div hx-get="/organizations/options" hx-trigger="load" hx-target="#existing-orgs" hx-swap="innerHTML"
-                    class="hidden"></div>
-            </div>
-            <div id="new-org" class="flex pt-16">
-                <form class="max-w-md mx-auto p-6 bg-white rounded-md shadow-md" hx-post="/organizations" hx-swap="none"
-                    hx-on::after-request="htmx.ajax('GET', '/organizations/options', {target: '#existing-orgs', swap: 'innerHTML'});
-                        htmx.ajax('GET', '/session/active-organization/name', {target: '#active-organization', swap: 'innerHTML'})">
-                    <h2 class="text-2xl font-semibold mb-6 text-gray-800">{{ T "org.new-org" }}</h2>
+            hx-on::401="alert('Unauthorized')"
+            hx-confirm='{{T "org.delete.confirm" }}?'
+          >
+            {{T "org.delete" }}
+          </button>
+          <div id="subscription" class="flex">
+            <div
+              id="expiry-date"
+              class="italic text-gray-500"
+              hx-get="/subscription"
+              hx-target="this"
+              hx-swap="innerHTML"
+              hx-trigger="load"
+            ></div>
+          </div>
 
-                    <label for="name" class="block mb-2 text-sm font-medium text-gray-700">{{T "org.name" }}:</label>
-                    <input type="text" id="name" name="name" placeholder="{{T "org.new-org.placeholder" }}"
-                        class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        required />
-
-                    <button type="submit" id="create-btn"
-                        class="mt-6 w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700 transition-colors">
-                        {{T "org.create" }}
-                    </button>
-                </form>
-            </div>
+          <!-- Hidden element just to fasilitate load organization -->
+          <div
+            hx-get="/organizations/options"
+            hx-trigger="load"
+            hx-target="#existing-orgs"
+            hx-swap="innerHTML"
+            class="hidden"
+          ></div>
         </div>
-        <div class="bg-white text-gray-600 text-sm rounded-lg p-4 shadow-md w-1/3">
-            <p class="font-semibold text-gray-700">💡 {{T "org.help"}}?</p>
-            <p class="mb-4">{{ T "org.select-existing" }}</p>
-            <p class="font-semibold text-gray-700">👥 {{ T "org.invite-others" }}?</p>
-            <p>{{ T "org.invite-explination" }}</p>
-            <p class="mb-4">{{ T "org.link-validity" }}.</p>
+        <div id="new-org" class="flex pt-16">
+          <form
+            class="max-w-md mx-auto p-6 bg-white rounded-md shadow-md"
+            hx-post="/organizations"
+            hx-swap="none"
+            hx-on::after-request="htmx.ajax('GET', '/organizations/options', {target: '#existing-orgs', swap: 'innerHTML'});
+                        htmx.ajax('GET', '/session/active-organization/name', {target: '#active-organization', swap: 'innerHTML'})"
+          >
+            <h2 class="text-2xl font-semibold mb-6 text-gray-800">
+              {{ T "org.new-org" }}
+            </h2>
 
-            <p class="font-semibold text-gray-700">🔗 {{ T "org.join" }} ?</p>
-            <p class="mb-4">{{ T "org.join-desc" }}</p>
+            <label
+              for="name"
+              class="block mb-2 text-sm font-medium text-gray-700"
+              >{{T "org.name" }}:</label
+            >
+            <input
+              type="text"
+              id="name"
+              name="name"
+              placeholder='{{T "org.new-org.placeholder" }}'
+              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+            />
 
-            <p class="font-semibold text-gray-700 mb-2">✨ {{ T "org.create-new" }}?</p>
-            <p class="mb-4">{{ T "org.create-new-desc" }}</p>
-
-            <p class="font-semibold text-gray-700">🗑️ {{ T "org.delete-heading" }}</p>
-            <p>
-                {{ T "org.delete-desc" }}.
-            </p>
-            <p class="mb-2">
-               {{ T "org.accidental-delete" }}
-            </p>
-            <p class="mb-4">
-                <strong>{{ T "org.note" }}:</strong> {{ T "org.permanent-delete" }}.
-            </p>
-
-            <p class="font-semibold text-gray-700">⏳ {{ T "org.expired-subscription" }}</p>
-            <p>{{ T "org.expired-subscription-desc" }}.</p>
+            <button
+              type="submit"
+              id="create-btn"
+              class="mt-6 w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700 transition-colors"
+            >
+              {{T "org.create" }}
+            </button>
+          </form>
         </div>
+      </div>
+      <div
+        class="bg-white text-gray-600 text-sm rounded-lg p-4 shadow-md w-1/3"
+      >
+        <p class="font-semibold text-gray-700">💡 {{T "org.help"}}?</p>
+        <p class="mb-4">{{ T "org.select-existing" }}</p>
+        <p class="font-semibold text-gray-700">
+          👥 {{ T "org.invite-others" }}?
+        </p>
+        <p>{{ T "org.invite-explination" }}</p>
+        <p class="mb-4">{{ T "org.link-validity" }}.</p>
+
+        <p class="font-semibold text-gray-700">🔗 {{ T "org.join" }} ?</p>
+        <p class="mb-4">{{ T "org.join-desc" }}</p>
+
+        <p class="font-semibold text-gray-700 mb-2">
+          ✨ {{ T "org.create-new" }}?
+        </p>
+        <p class="mb-4">{{ T "org.create-new-desc" }}</p>
+
+        <p class="font-semibold text-gray-700">
+          🗑️ {{ T "org.delete-heading" }}
+        </p>
+        <p>{{ T "org.delete-desc" }}.</p>
+        <p class="mb-2">{{ T "org.accidental-delete" }}</p>
+        <p class="mb-4">
+          <strong>{{ T "org.note" }}:</strong> {{ T "org.permanent-delete" }}.
+        </p>
+
+        <p class="font-semibold text-gray-700">
+          ⏳ {{ T "org.expired-subscription" }}
+        </p>
+        <p>{{ T "org.expired-subscription-desc" }}.</p>
+      </div>
     </div>
     <script>
-        function generateInvite() {
-            const select = document.getElementById("existing-orgs")
-            if (select.options.length === 0) {
-                alert("No available organizations")
-                return
-            }
-
-            const id = select.options[0].value
-            fetch(`/organizations/${id}/invite`)
-                .then(res => res.json())
-                .then(data => {
-                    const link = data.invite_link;
-                    if (!link) {
-                        alert("No invite_link in response")
-                    }
-                    navigator.clipboard.writeText(link).then(() => {
-                        console.log("Clipboard write succeeded");
-                        alert("Invite link copied to clipboard!");
-                    });
-                })
+      function generateInvite() {
+        const select = document.getElementById("existing-orgs");
+        if (select.options.length === 0) {
+          alert("No available organizations");
+          return;
         }
+
+        const id = select.options[0].value;
+        fetch(`/organizations/${id}/invite`)
+          .then((res) => res.json())
+          .then((data) => {
+            const link = data.invite_link;
+            if (!link) {
+              alert("No invite_link in response");
+            }
+            navigator.clipboard.writeText(link).then(() => {
+              console.log("Clipboard write succeeded");
+              alert("Invite link copied to clipboard!");
+            });
+          });
+      }
     </script>
-</body>
-{{end}}
+  </body>
+  {{end}}
+</html>

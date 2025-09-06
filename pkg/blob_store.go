@@ -44,6 +44,7 @@ type BlobStore interface {
 	ProjectResourceRemover
 	ResourceGetter
 	ItemGetter
+	SubscriptionStorer
 }
 
 type ProjectMetaByIdGetter interface {
