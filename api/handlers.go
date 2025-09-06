@@ -1146,5 +1146,7 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("GET /session/logged-in", requireAuthSession(http.HandlerFunc(LoggedIn)))
 
 	mux.HandleFunc("GET /people", PeoplePage)
+	mux.Handle("POST /subscription-page", adminRoute(checkoutSessionHandler(config)))
+	mux.Handle("POST /payment", stripeWebhookHandler(store, config))
 	return mux
 }

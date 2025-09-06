@@ -26,6 +26,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/stripe/stripe-go/v82 v82.5.0 // indirect
 	golang.org/x/crypto v0.40.0 // indirect
 	golang.org/x/image v0.29.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect

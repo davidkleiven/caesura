@@ -82,7 +82,7 @@ func TestOrganizationPage(t *testing.T) {
 			t.Fatalf("Wanted (1, nil) got (%d, %s)", c, err)
 		}
 
-		options := page.Locator("option")
+		options := page.Locator("#existing-orgs option")
 		if c, err := options.Count(); c != 2 || err != nil {
 			t.Fatalf("Wanted (2, nil) got (%d, %s)", c, err)
 		}

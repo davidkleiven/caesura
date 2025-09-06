@@ -8,6 +8,8 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      CAESURA_STRIPE_SECRET_KEY: ${{ secrets.CAESURA_STRIPE_SECRET_TEST_KEY }}
     services:
       mailpit:
         image: axllent/mailpit:v1.27.5
