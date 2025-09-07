@@ -46,9 +46,10 @@ func NewUserInfo() *UserInfo {
 }
 
 type Organization struct {
-	Id      string `json:"id"`
-	Name    string `json:"name"`
-	Deleted bool   `json:"deleted"`
+	Id        string `json:"id"`
+	Name      string `json:"name"`
+	Deleted   bool   `json:"deleted"`
+	NumScores int    `json:"numScores"`
 }
 
 type RoleKind int
