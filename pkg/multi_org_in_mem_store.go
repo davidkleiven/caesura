@@ -94,6 +94,12 @@ func (m *MultiOrgInMemoryStore) Submit(ctx context.Context, orgId string, meta *
 	if !ok {
 		return ErrOrganizationNotFound
 	}
+
+	for i, org := range m.Organizations {
+		if org.Id == orgId {
+			m.Organizations[i].NumScores += 1
+		}
+	}
 	return store.Submit(ctx, meta, pdfIter)
 }
 
