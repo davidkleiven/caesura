@@ -295,3 +295,15 @@ func SignedIn(lang string) string {
 func NoOrganization(lang string) string {
 	return translator.MustGet(lang, "no-org")
 }
+
+func SubscriptionExpired(lang string) string {
+	return translator.MustGet(lang, "org.subscription-expired")
+}
+
+func SubscriptionExpires(lang string) string {
+	return translator.MustGet(lang, "org.subscription-expires")
+}
+
+func MaxNumScoresReached(lang string) string {
+	return translator.MustGet(lang, "org.max-num-scores-reached")
+}

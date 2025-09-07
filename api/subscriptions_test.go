@@ -249,3 +249,111 @@ func TestServiceUnavailableOnUnavailableStore(t *testing.T) {
 	handler(rec, req)
 	testutils.AssertEqual(t, rec.Code, http.StatusServiceUnavailable)
 }
+
+type brokenSessionStore struct{}
+
+func (b *brokenSessionStore) Save(r *http.Request, w http.ResponseWriter, s *sessions.Session) error {
+	return errors.New("broken session store called")
+}
+
+func (b *brokenSessionStore) Get(r *http.Request, key string) (*sessions.Session, error) {
+	return sessions.NewSession(b, key), nil
+}
+
+func (b *brokenSessionStore) New(r *http.Request, name string) (*sessions.Session, error) {
+	return b.Get(r, name)
+}
+
+func TestSubscriptions(t *testing.T) {
+	sessionCookie := sessions.Session{
+		Values: make(map[any]any),
+	}
+
+	store := pkg.NewMultiOrgInMemoryStore()
+	store.Subscriptions = map[string]pkg.Subscription{
+		"org1": {
+			Expires:   time.Now().Add(-time.Hour),
+			MaxScores: 1000,
+		},
+		"org2": {
+			Expires:   time.Now().Add(time.Hour),
+			MaxScores: 9,
+		},
+		"org3": {
+			Expires:   time.Now().Add(time.Hour),
+			MaxScores: 9,
+		},
+	}
+
+	store.Organizations = []pkg.Organization{
+		{Id: "org1"},
+		{Id: "org2", NumScores: 10},
+		{Id: "org3", NumScores: 5},
+	}
+
+	ctx := context.WithValue(context.Background(), sessionKey, &sessionCookie)
+
+	handler := Subscription(store, 1*time.Second)
+
+	t.Run("non existing org", func(t *testing.T) {
+		sessionCookie.Values["orgId"] = "unknown-org"
+		recorder := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/subscription", nil)
+		handler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusInternalServerError)
+	})
+
+	t.Run("expired-supscription", func(t *testing.T) {
+		sessionCookie.Values["orgId"] = "org1"
+		recorder := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/subscription", nil)
+		handler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+		testutils.AssertContains(t, recorder.Body.String(), "expired")
+	})
+
+	t.Run("too-many-scores", func(t *testing.T) {
+		sessionCookie.Values["orgId"] = "org2"
+		recorder := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/subscription", nil)
+		handler(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+		testutils.AssertContains(t, recorder.Body.String(), "Subscription", "permit")
+	})
+
+	t.Run("valid-subscription", func(t *testing.T) {
+		cookieStore := sessions.NewCookieStore([]byte("top-secret"))
+		recorder := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/subscription", nil)
+		sCookie, err := cookieStore.Get(req, AuthSession)
+		sCookie.Values["orgId"] = "org3"
+
+		testutils.AssertNil(t, err)
+		handler(recorder, req.WithContext(context.WithValue(req.Context(), sessionKey, sCookie)))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+
+		resp := recorder.Result()
+		cookies := resp.Cookies()
+		testutils.AssertEqual(t, len(cookies), 1)
+
+		// Because of the signature, create a new dummy request with the signed cookie and
+		// extract the session from there
+		req2 := httptest.NewRequest("GET", "/whatever", nil)
+		req2.AddCookie(cookies[0])
+		sessionFromResp, err := cookieStore.Get(req2, AuthSession)
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, sessionFromResp.Values["subscriptionWriteAllowed"], true)
+	})
+
+	t.Run("session-save-fails", func(t *testing.T) {
+		cookieStore := brokenSessionStore{}
+
+		recorder := httptest.NewRecorder()
+		req := httptest.NewRequest("GET", "/subscription", nil)
+		sCookie, err := cookieStore.Get(req, AuthSession)
+		sCookie.Values["orgId"] = "org3"
+		testutils.AssertNil(t, err)
+		handler(recorder, req.WithContext(context.WithValue(req.Context(), sessionKey, sCookie)))
+		testutils.AssertEqual(t, recorder.Code, http.StatusInternalServerError)
+	})
+}
