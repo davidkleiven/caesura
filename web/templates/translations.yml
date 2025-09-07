@@ -93,6 +93,9 @@ en:
     selection, you can navigate to other pages,
     and any actions you perform will be associated with the chosen organization.
   org.subscripe: Subscribe
+  org.subscription-expired: Subscription expired
+  org.subscription-expires: Subscription expires
+  org.subscription-renewed: Subscription renewed at
   overview.add-to-project: Add to project
   overview.init-flash-msg: Explore your archive and add items to your next project
   page: Page
@@ -208,6 +211,9 @@ nb:
     Velg en eksisterende organisasjon du vil jobbe med, eller opprett en ny nedenfor. Etter valg kan du navigere til andre sider,
     og handlinger knyttes til valgt organisasjon.
   org.subscripe: Legg til abonnement
+  org.subscription-expired: Abonnementet utløp
+  org.subscription-expires: Abonnementet er gyldig til
+  org.subscription-renewed: Abonnemented fornyes
   overview.add-to-project: Legg til i prosjekt
   overview.init-flash-msg: Utforsk arkivet ditt og legg til elementer i ditt neste prosjekt
   page: Side

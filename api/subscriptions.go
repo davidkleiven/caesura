@@ -3,15 +3,18 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
+	"github.com/davidkleiven/caesura/web"
 	"github.com/stripe/stripe-go/v82"
 	"github.com/stripe/stripe-go/v82/checkout/session"
 	"github.com/stripe/stripe-go/v82/webhook"
+	"golang.org/x/sync/errgroup"
 )
 
 type StripePriceId string
@@ -154,5 +157,63 @@ func stripeWebhookHandler(store pkg.SubscriptionStorer, config *pkg.Config) http
 			slog.Info("Unhandled event type", "eventType", event.Type)
 		}
 		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func Subscription(store pkg.SubscriptionValidator, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s := MustGetSession(r)
+		orgId := MustGetOrgId(s)
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		var (
+			subscription *pkg.Subscription
+			organization pkg.Organization
+		)
+
+		g, ctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			var subsErr error
+			subscription, subsErr = store.GetSubscription(ctx, orgId)
+			return subsErr
+		})
+
+		g.Go(func() error {
+			var orgErr error
+			organization, orgErr = store.GetOrganization(ctx, orgId)
+			return orgErr
+		})
+
+		if err := g.Wait(); err != nil {
+			slog.Error("Could not get subscription", "error", err, "orgId", orgId, "host", r.Host)
+			http.Error(w, "Could not get subscription: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		lang := pkg.LanguageFromReq(r)
+		if subscription.Expires.Before(time.Now()) {
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, "%s %s", web.SubscriptionExpired(lang), subscription.Expires.Format(time.RFC3339))
+			return
+		}
+
+		if organization.NumScores > subscription.MaxScores {
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, "%s (%d)", web.MaxNumScoresReached(lang), subscription.MaxScores)
+			return
+		}
+
+		s.Values["subscriptionWriteAllowed"] = true
+		s.Values["subscriptionExpires"] = subscription.Expires.Format(time.RFC3339)
+		if err := s.Save(r, w); err != nil {
+			slog.Error("Failed to save session", "error", err, "orgId", orgId, "host", r.Host)
+			http.Error(w, "Failed to save session", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "%s %s", web.SubscriptionExpires(lang), subscription.Expires.Format(time.RFC3339))
 	}
 }

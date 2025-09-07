@@ -45,6 +45,12 @@ type BlobStore interface {
 	ResourceGetter
 	ItemGetter
 	SubscriptionStorer
+	SubscriptionGetter
+}
+
+type SubscriptionValidator interface {
+	SubscriptionGetter
+	OrganizationGetter
 }
 
 type ProjectMetaByIdGetter interface {
