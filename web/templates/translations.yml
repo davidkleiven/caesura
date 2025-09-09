@@ -80,6 +80,7 @@ en:
     To join, please contact an administrator of that organization and ask them to invite you using the
     invite link.
   org.link-validity: The link is valid for 48 hours from the time of creation
+  org.max-num-scores-reached: "Subscription does not permit more pieces"
   org.name: Name
   org.new-org: New Organization
   org.new-org.placeholder: Enter organization name
@@ -201,6 +202,7 @@ nb:
     For å bli med, vennligst kontakt en administrator i organisasjonen og be om invitasjonslenke.
   org.link-validity: Lenken er gyldig i 48 timer fra opprettelsestidspunktet
   org.name: Navn
+  org.max-num-scores-reached: "Abonnementet tillater ikke flere stykker"
   org.new-org: Ny organisasjon
   org.new-org.placeholder: Skriv inn organisasjonsnavn
   org.note: Notat
