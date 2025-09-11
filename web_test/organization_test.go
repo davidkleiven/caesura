@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
 	"testing"
@@ -171,5 +172,29 @@ func TestOrganizationPage(t *testing.T) {
 
 			testutils.AssertEqual(t, numDeleted, 1)
 		})
+	}, organizationPage)(t)
+}
+
+func TestSubscribe(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		subscribeBtn := page.Locator("#subscribe-btn")
+		cnt, err := subscribeBtn.Count()
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, cnt, 1)
+
+		timeout := playwright.PageExpectResponseOptions{
+			Timeout: playwright.Float(1000.0),
+		}
+		_, err = page.ExpectResponse("**/subscription-page", func() error { return subscribeBtn.Click() }, timeout)
+		testutils.AssertNil(t, err)
+
+		expiryField := page.Locator("#expiry-date")
+		content, err := expiryField.TextContent()
+		testutils.AssertNil(t, err)
+
+		pattern := regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})$`)
+		matches := pattern.MatchString(content)
+		t.Logf("Expiry date %s", content)
+		testutils.AssertEqual(t, matches, true)
 	}, organizationPage)(t)
 }

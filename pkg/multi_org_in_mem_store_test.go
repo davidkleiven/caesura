@@ -106,6 +106,16 @@ func TestMultiOrgClone(t *testing.T) {
 		},
 		{
 			modifier: func(s *MultiOrgInMemoryStore) {
+				orgId := s.FirstOrganizationId()
+				sub := s.Subscriptions[orgId]
+				sub.Id = "new-id"
+				s.Subscriptions[orgId] = sub
+			},
+			desc:      "Edit subsciption id",
+			wantEqual: false,
+		},
+		{
+			modifier: func(s *MultiOrgInMemoryStore) {
 				var orgId string
 				for k := range s.Users[0].Roles {
 					orgId = k

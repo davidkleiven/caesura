@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"iter"
+	"maps"
 	"slices"
 	"strings"
 	"time"
@@ -78,6 +79,16 @@ func NewDemoStore() *MultiOrgInMemoryStore {
 			Id:   "cccc13f9-ddd5-489e-bd77-3b935b457f71",
 			Name: "My organization 2",
 		},
+	}
+
+	validSubscription := Subscription{
+		Id:        "sub1",
+		Expires:   time.Now().Add(time.Hour),
+		MaxScores: 1000,
+	}
+	multiOrgStore.Subscriptions = map[string]Subscription{
+		"9eab9a97-06a3-42a7-ae1e-7c67df5cbec7": validSubscription,
+		"cccc13f9-ddd5-489e-bd77-3b935b457f71": validSubscription,
 	}
 	return multiOrgStore
 }
@@ -174,7 +185,7 @@ func (m *MultiOrgInMemoryStore) Clone() *MultiOrgInMemoryStore {
 
 	dst.Organizations = make([]Organization, len(m.Organizations))
 	copy(dst.Organizations, m.Organizations)
-
+	maps.Copy(dst.Subscriptions, m.Subscriptions)
 	return dst
 }
 
