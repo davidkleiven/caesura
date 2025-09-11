@@ -535,13 +535,7 @@ func HandleGoogleCallback(roleStore pkg.RoleStore, oauthConfig *oauth2.Config, t
 			return
 		}
 
-		redirect := "/"
-		if len(userInfoWithRoles.Roles) != 1 {
-			// Either multiple roles -> user would have to select organization
-			// or no roles -> user would probably create an organization
-			redirect = "/organizations"
-		}
-
+		redirect := "/organizations"
 		slog.Info("Successfully logged in user")
 		http.Redirect(w, r, redirect, http.StatusSeeOther)
 	}
