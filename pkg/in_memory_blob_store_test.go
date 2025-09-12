@@ -49,7 +49,7 @@ func TestFetchMeta(t *testing.T) {
 				t.Fatalf("Unexpected error: %v", err)
 			}
 			if len(results) != test.expected {
-				t.Errorf("Expected %d results, got %d", test.expected, len(results))
+				t.Fatalf("Expected %d results, got %d", test.expected, len(results))
 			}
 		})
 	}
@@ -82,11 +82,11 @@ func TestSubmit(t *testing.T) {
 	}
 
 	if len(inMemStore.Data) != 1 {
-		t.Errorf("Expected 1 resource, got %d", len(inMemStore.Data))
+		t.Fatalf("Expected 1 resource, got %d", len(inMemStore.Data))
 	}
 
 	if string(inMemStore.Data[meta.ResourceId()+"/name"]) != string(content) {
-		t.Errorf("Expected content '%s', got '%s'", content, string(inMemStore.Data[meta.ResourceId()]))
+		t.Fatalf("Expected content '%s', got '%s'", content, string(inMemStore.Data[meta.ResourceId()]))
 	}
 }
 
@@ -151,7 +151,7 @@ func TestProjectByName(t *testing.T) {
 				t.Fatalf("Unexpected error: %v", err)
 			}
 			if len(results) != test.expected {
-				t.Errorf("Expected %d projects, got %d", test.expected, len(results))
+				t.Fatalf("Expected %d projects, got %d", test.expected, len(results))
 			}
 		})
 	}
@@ -160,13 +160,13 @@ func TestProjectByName(t *testing.T) {
 func TestNewDemoStore(t *testing.T) {
 	store := NewDemoStore().FirstDataStore()
 	if len(store.Data) == 0 {
-		t.Error("Expected demo store to have some data, but it is empty")
+		t.Fatal("Expected demo store to have some data, but it is empty")
 	}
 	if len(store.Metadata) == 0 {
-		t.Error("Expected demo store to have some metadata, but it is empty")
+		t.Fatal("Expected demo store to have some metadata, but it is empty")
 	}
 	if len(store.Projects) == 0 {
-		t.Error("Expected demo store to have some projects, but it is empty")
+		t.Fatal("Expected demo store to have some projects, but it is empty")
 	}
 }
 
@@ -186,11 +186,11 @@ func TestSubmitProject(t *testing.T) {
 	}
 
 	if len(inMemStore.Projects) != 1 {
-		t.Errorf("Expected 1 project, got %d", len(inMemStore.Projects))
+		t.Fatalf("Expected 1 project, got %d", len(inMemStore.Projects))
 	}
 
 	if inMemStore.Projects[project.Id()].Name != project.Name {
-		t.Errorf("Expected project name '%s', got '%s'", project.Name, inMemStore.Projects[project.Id()].Name)
+		t.Fatalf("Expected project name '%s', got '%s'", project.Name, inMemStore.Projects[project.Id()].Name)
 	}
 
 	project.ResourceIds = append(project.ResourceIds, "res3")
@@ -199,7 +199,7 @@ func TestSubmitProject(t *testing.T) {
 		t.Fatalf("Expected no error on updating project, got %v", err)
 	}
 	if len(inMemStore.Projects[project.Id()].ResourceIds) != 3 {
-		t.Errorf("Expected 3 resource IDs in project, got %d", len(inMemStore.Projects[project.Id()].ResourceIds))
+		t.Fatalf("Expected 3 resource IDs in project, got %d", len(inMemStore.Projects[project.Id()].ResourceIds))
 	}
 }
 
@@ -226,9 +226,9 @@ func TestProjectById(t *testing.T) {
 				t.Fatalf("Unexpected error: %v", err)
 			}
 			if project != nil && project.Name != test.expected {
-				t.Errorf("Expected project name '%s', got '%s'", test.expected, project.Name)
+				t.Fatalf("Expected project name '%s', got '%s'", test.expected, project.Name)
 			} else if project == nil && test.expected != "" {
-				t.Error("Expected a project but got nil")
+				t.Fatal("Expected a project but got nil")
 			}
 		})
 	}
@@ -258,9 +258,9 @@ func TestMetaById(t *testing.T) {
 				t.Fatalf("Unexpected error: %v", err)
 			}
 			if meta != nil && meta.Title != test.expected {
-				t.Errorf("Expected meta title '%s', got '%s'", test.expected, meta.Title)
+				t.Fatalf("Expected meta title '%s', got '%s'", test.expected, meta.Title)
 			} else if meta == nil && test.expected != "" {
-				t.Error("Expected metadata but got nil")
+				t.Fatal("Expected metadata but got nil")
 			}
 		})
 	}

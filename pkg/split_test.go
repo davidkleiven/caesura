@@ -28,13 +28,13 @@ func TestSplitPdf(t *testing.T) {
 	var buffer bytes.Buffer
 
 	if err := CreateNPagePdf(&buffer, 10); err != nil {
-		t.Errorf("failed to create pdf: %s", err)
-		return
+		t.Fatalf("failed to create pdf: %s", err)
+
 	}
 
 	if pageCout, err := api.PageCount(bytes.NewReader(buffer.Bytes()), nil); pageCout != 10 || err != nil {
-		t.Errorf("Expected 10 pages, got %d with error %v", pageCout, err)
-		return
+		t.Fatalf("Expected 10 pages, got %d with error %v", pageCout, err)
+
 	}
 
 	assignements := []Assignment{
@@ -45,8 +45,8 @@ func TestSplitPdf(t *testing.T) {
 	writeFile := false
 	if writeFile {
 		if err := WriteToFile("test_split.pdf", &buffer); err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 	}
 
@@ -56,13 +56,13 @@ func TestSplitPdf(t *testing.T) {
 	count := 0
 	for name, content := range pdfIter {
 		if name != expectNames[count] {
-			t.Errorf("Expected file name %s, got %s", expectNames[count], name)
-			return
+			t.Fatalf("Expected file name %s, got %s", expectNames[count], name)
+
 		}
 
 		if pageCount, err := api.PageCount(bytes.NewReader(content), nil); pageCount != 5 || err != nil {
-			t.Errorf("Expected 5 pages in %s, got %d with error %v", name, pageCount, err)
-			return
+			t.Fatalf("Expected 5 pages in %s, got %d with error %v", name, pageCount, err)
+
 		}
 		count++
 	}
@@ -78,13 +78,13 @@ func TestProcessingPipelineAbortOnError(t *testing.T) {
 		func() *PDFPipeline { pipeline.WriteContext(); return pipeline },
 	} {
 		if step().Error() == nil {
-			t.Error("Expected error to propagate through the pipeline")
-			return
+			t.Fatal("Expected error to propagate through the pipeline")
+
 		}
 	}
 	if pipeline.Error() == nil {
-		t.Error("Expected pipeline to have an error after aborting on the first step")
-		return
+		t.Fatal("Expected pipeline to have an error after aborting on the first step")
+
 	}
 }
 
@@ -101,7 +101,7 @@ func TestEmptyBufferReturnedOnInvalidPdf(t *testing.T) {
 
 	// Ensure empty buffer is returned on error
 	if num != 0 {
-		t.Errorf("Expected empty buffer on error, got %d bytes", num)
+		t.Fatalf("Expected empty buffer on error, got %d bytes", num)
 	}
 }
 
@@ -109,8 +109,8 @@ func TestProcessingAbortOnError(t *testing.T) {
 	var buffer bytes.Buffer
 
 	if err := CreateNPagePdf(&buffer, 10); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
+
 	}
 
 	assignments := []Assignment{
@@ -124,8 +124,8 @@ func TestProcessingAbortOnError(t *testing.T) {
 	}
 
 	if num != 0 {
-		t.Errorf("Expected 0 files got %d", num)
-		return
+		t.Fatalf("Expected 0 files got %d", num)
+
 	}
 
 }

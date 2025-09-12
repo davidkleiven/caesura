@@ -35,13 +35,13 @@ func TestLogHandler(t *testing.T) {
 	logHandler.ServeHTTP(writer, request)
 
 	if writer.Code != http.StatusOK {
-		t.Errorf("Expected status code 200, got %d", writer.Code)
-		return
+		t.Fatalf("Expected status code 200, got %d", writer.Code)
+
 	}
 
 	if !strings.Contains(buffer.String(), "GET") {
-		t.Error("Expected log to contain 'Received request'")
-		return
+		t.Fatal("Expected log to contain 'Received request'")
+
 	}
 }
 

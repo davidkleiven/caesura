@@ -18,7 +18,7 @@ func TestSanitizeString(t *testing.T) {
 	for _, test := range tests {
 		result := SanitizeString(test.input)
 		if result != test.expected {
-			t.Errorf("SanitizeString(%q) = %q; want %q", test.input, result, test.expected)
+			t.Fatalf("SanitizeString(%q) = %q; want %q", test.input, result, test.expected)
 		}
 	}
 }

@@ -18,7 +18,7 @@ func TestPanicOnErr(t *testing.T) {
 	err := errors.New("test error")
 	defer func() {
 		if r := recover(); r == nil {
-			t.Errorf("PanicOnErr did not panic on error: %v", err)
+			t.Fatalf("PanicOnErr did not panic on error: %v", err)
 		}
 	}()
 
@@ -37,10 +37,10 @@ func TestRemoveDuplicates(t *testing.T) {
 		t.Run(fmt.Sprintf("Test #%d", i), func(t *testing.T) {
 			result := RemoveDuplicates(test.input)
 			if len(result) != len(test.expected) {
-				t.Errorf("Expected length %d, got %d", len(test.expected), len(result))
+				t.Fatalf("Expected length %d, got %d", len(test.expected), len(result))
 			}
 			if slices.Compare(result, test.expected) != 0 {
-				t.Errorf("Expected %v, got %v", test.expected, result)
+				t.Fatalf("Expected %v, got %v", test.expected, result)
 			}
 		})
 	}
@@ -80,7 +80,7 @@ func TestFileFromZipperUnknownFile(t *testing.T) {
 
 	_, err := NewFileFromZipper().ReadBytes(&buffer).AsZip().GetFile("file2.pdf")
 	if !errors.Is(err, ErrFileNotInZipArchive) {
-		t.Errorf("Expected error to be of type 'ErrFileNotInZipArchive' got %s", err)
+		t.Fatalf("Expected error to be of type 'ErrFileNotInZipArchive' got %s", err)
 	}
 }
 

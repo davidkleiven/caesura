@@ -23,11 +23,11 @@ func TestUrl(t *testing.T) {
 		t.Run(test.Url, func(t *testing.T) {
 			result, err := ParseUrl(test.Url)
 			if test.ShouldFail && !errors.Is(err, ErrCanNotInterpretUrl) {
-				t.Errorf("Expected %s got %s", ErrCanNotInterpretUrl, err)
+				t.Fatalf("Expected %s got %s", ErrCanNotInterpretUrl, err)
 			}
 
 			if !test.ShouldFail && result != test.Expect {
-				t.Errorf("Expected %+v got %+v\n", test.Expect, result)
+				t.Fatalf("Expected %+v got %+v\n", test.Expect, result)
 			}
 		})
 	}

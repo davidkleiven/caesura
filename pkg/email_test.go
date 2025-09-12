@@ -48,11 +48,11 @@ func TestEmailBuild_MultipartBoundary(t *testing.T) {
 	testutils.AssertNil(t, err)
 
 	if !strings.HasPrefix(mediaType, "multipart/") {
-		t.Errorf("Expected multipart/*, got %s", mediaType)
+		t.Fatalf("Expected multipart/*, got %s", mediaType)
 	}
 
 	if _, ok := params["boundary"]; !ok {
-		t.Error("Missing boundary parameter in Content-Type")
+		t.Fatal("Missing boundary parameter in Content-Type")
 	}
 }
 
@@ -133,7 +133,7 @@ func TestBuild_AttachmentReadFails(t *testing.T) {
 
 	_, err := email.Build("Subject", body, attachments)
 	if err == nil {
-		t.Errorf("expected read error, got: %v", err)
+		t.Fatalf("expected read error, got: %v", err)
 	}
 }
 

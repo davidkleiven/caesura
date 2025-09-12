@@ -11,7 +11,6 @@ func TestPdfJs(t *testing.T) {
 	re := regexp.MustCompile("https://unpkg.com/pdfjs-dist@[0-9]+.[0-9]+.[0-9]+/build/pdf.min.mjs")
 	PdfJs(&buffer)
 	if !re.MatchString(buffer.String()) {
-		t.Error("Expected response to have a version put into the URL for pdfjs-dist")
-		return
+		t.Fatal("Expected response to have a version put into the URL for pdfjs-dist")
 	}
 }
