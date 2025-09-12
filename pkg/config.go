@@ -48,6 +48,7 @@ type Config struct {
 	EmailSender              string             `yaml:"email_sender" env:"CAESURA_EMAIL_SENDER"`
 	StripeSecretKey          string             `yaml:"stripe_secret_key" env:"CAESURA_STRIPE_SECRET_KEY"`
 	StripeWebhookSignSecret  string             `yaml:"stripe_webhook_sign_secret" env:"CAESURA_STRIPE_WEBHOOK_SIGN_SECRET"`
+	RequireSubscription      bool               `yaml:"require_subscription" env:"CAUSURA_REQUIRE_SUBSCRIPTION"`
 	Transport                http.RoundTripper
 }
 

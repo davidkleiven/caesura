@@ -31,6 +31,8 @@ var MaxNumScores = map[StripePriceId]int{
 	AnnualPriceId:  500,
 }
 
+const SubscriptionWriteAllowed = "subscriptionWriteAllowed"
+
 func createCheckoutSessionParams(domain string, orgId string, priceId StripePriceId) *stripe.CheckoutSessionParams {
 	return &stripe.CheckoutSessionParams{
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
@@ -205,7 +207,7 @@ func Subscription(store pkg.SubscriptionValidator, timeout time.Duration) http.H
 			return
 		}
 
-		s.Values["subscriptionWriteAllowed"] = true
+		s.Values[SubscriptionWriteAllowed] = true
 		s.Values["subscriptionExpires"] = subscription.Expires.Format(time.RFC3339)
 		if err := s.Save(r, w); err != nil {
 			slog.Error("Failed to save session", "error", err, "orgId", orgId, "host", r.Host)
