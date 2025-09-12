@@ -152,26 +152,37 @@ func TestRequireminimumRoleNoBytes(t *testing.T) {
 
 func TestAccessMiddleware(t *testing.T) {
 	opt := sessions.Options{}
+
+	readWithConfig := func(config *pkg.Config, cookie *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
+		_ = config
+		return RequireRead(cookie, opts)
+	}
+
+	adminWithoutSub := func(config *pkg.Config, cookie *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
+		_ = config
+		return RequireAdminWithoutSubscription(cookie, opts)
+	}
+
 	for _, test := range []struct {
-		middleware func(cookie *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler
+		middleware func(config *pkg.Config, cookie *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler
 		role       pkg.RoleKind
 		code       int
 		desc       string
 	}{
 		{
-			middleware: RequireRead,
+			middleware: readWithConfig,
 			role:       pkg.RoleViewer,
 			code:       http.StatusOK,
 			desc:       "Require read, have read",
 		},
 		{
-			middleware: RequireRead,
+			middleware: readWithConfig,
 			role:       pkg.RoleEditor,
 			code:       http.StatusOK,
 			desc:       "Reader read, have write",
 		},
 		{
-			middleware: RequireRead,
+			middleware: readWithConfig,
 			role:       pkg.RoleAdmin,
 			code:       http.StatusOK,
 			desc:       "Reader read, have admin",
@@ -212,6 +223,24 @@ func TestAccessMiddleware(t *testing.T) {
 			code:       http.StatusOK,
 			desc:       "Reader admin, have admin",
 		},
+		{
+			middleware: adminWithoutSub,
+			role:       pkg.RoleViewer,
+			code:       http.StatusUnauthorized,
+			desc:       "Require admin without sub, have read",
+		},
+		{
+			middleware: adminWithoutSub,
+			role:       pkg.RoleEditor,
+			code:       http.StatusUnauthorized,
+			desc:       "Reader admin without sub, have write",
+		},
+		{
+			middleware: adminWithoutSub,
+			role:       pkg.RoleAdmin,
+			code:       http.StatusOK,
+			desc:       "Reader admin without sub, have admin",
+		},
 	} {
 		t.Run(test.desc, func(t *testing.T) {
 			cookie := sessions.NewCookieStore([]byte("key"))
@@ -243,7 +272,8 @@ func TestAccessMiddleware(t *testing.T) {
 			session.Values["role"] = data
 			session.Values["orgId"] = ordId
 
-			middleware := test.middleware(cookie, &opt)
+			config := pkg.NewDefaultConfig()
+			middleware := test.middleware(config, cookie, &opt)
 
 			ctx := context.WithValue(request.Context(), sessionKey, session)
 			middleware(handler).ServeHTTP(recorder, request.WithContext(ctx))
@@ -261,10 +291,11 @@ func TestAccessMiddlewareBadRequestOnMissingSession(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
+	config := pkg.NewDefaultConfig()
 	for i, middleware := range []func(http.Handler) http.Handler{
 		RequireRead(cookie, &opt),
-		RequireWrite(cookie, &opt),
-		RequireAdmin(cookie, &opt),
+		RequireWrite(config, cookie, &opt),
+		RequireAdmin(config, cookie, &opt),
 	} {
 		t.Run(fmt.Sprintf("Test: #%d", i), func(t *testing.T) {
 			recorder := httptest.NewRecorder()
@@ -354,5 +385,45 @@ func TestValidateUserInfo(t *testing.T) {
 		session.Values["role"] = []byte("{}")
 		withMiddleware.ServeHTTP(recorder, req.WithContext(ctx))
 		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
+	})
+}
+
+func TestRequireWriteSubscription(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	configNotRequire := pkg.NewDefaultConfig()
+	configRequire := pkg.NewDefaultConfig()
+	configRequire.RequireSubscription = true
+
+	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
+
+	req := httptest.NewRequest("GET", "/what", nil)
+	session, err := cookieStore.Get(req, AuthSession)
+	testutils.AssertNil(t, err)
+
+	ctx := context.WithValue(context.Background(), sessionKey, session)
+
+	t.Run("config-not-require", func(t *testing.T) {
+		h := RequireWriteSubscription(configNotRequire)(handler)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req.WithContext(ctx))
+		testutils.AssertEqual(t, rec.Code, http.StatusOK)
+	})
+
+	t.Run("config-require-missing-value", func(t *testing.T) {
+		h := RequireWriteSubscription(configRequire)(handler)
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req.WithContext(ctx))
+		testutils.AssertEqual(t, rec.Code, http.StatusForbidden)
+	})
+
+	t.Run("config-require-valid", func(t *testing.T) {
+		h := RequireWriteSubscription(configRequire)(handler)
+		session.Values[SubscriptionWriteAllowed] = true
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req.WithContext(ctx))
+		testutils.AssertEqual(t, rec.Code, http.StatusOK)
 	})
 }

@@ -1091,8 +1091,10 @@ func SendEmail(store pkg.EmailDataCollector, config *pkg.Config) http.HandlerFun
 func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
 	sessionOpt := config.SessionOpts()
 	readRoute := RequireRead(cookieStore, sessionOpt)
-	writeRoute := RequireWrite(cookieStore, sessionOpt)
-	adminRoute := RequireAdmin(cookieStore, sessionOpt)
+	writeRoute := RequireWrite(config, cookieStore, sessionOpt)
+	adminRoute := RequireAdmin(config, cookieStore, sessionOpt)
+	adminWithoutSubscription := RequireAdminWithoutSubscription(cookieStore, sessionOpt)
+
 	signedInRoute := RequireSignedIn(cookieStore, sessionOpt) // Require user to be signed in, but not to have a role
 	userInfoRoute := RequireUserInfo(cookieStore, sessionOpt) // Require the info about user, but nessecarily a active orgId
 
@@ -1146,7 +1148,7 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("GET /session/logged-in", requireAuthSession(http.HandlerFunc(LoggedIn)))
 
 	mux.HandleFunc("GET /people", PeoplePage)
-	mux.Handle("POST /subscription-page", adminRoute(checkoutSessionHandler(config)))
+	mux.Handle("POST /subscription-page", adminWithoutSubscription(checkoutSessionHandler(config)))
 	mux.Handle("GET /subscription", readRoute(Subscription(store, config.Timeout)))
 	mux.Handle("POST /payment", stripeWebhookHandler(store, config))
 	return mux

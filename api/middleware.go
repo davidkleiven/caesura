@@ -115,6 +115,22 @@ func ValidateUserInfo(cookieStore *sessions.CookieStore) func(http.Handler) http
 	}
 }
 
+func RequireWriteSubscription(config *pkg.Config) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if config.RequireSubscription {
+				session := MustGetSession(r)
+				canWrite, ok := session.Values[SubscriptionWriteAllowed].(bool)
+				if !canWrite || !ok {
+					http.Error(w, "Subscription expired", http.StatusForbidden)
+					return
+				}
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 func RequireRead(cookieStore *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
 	return Chain(
 		RequireSession(cookieStore, AuthSession, opts),
@@ -122,14 +138,23 @@ func RequireRead(cookieStore *sessions.CookieStore, opts *sessions.Options) func
 	)
 }
 
-func RequireWrite(cookieStore *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
+func RequireWrite(config *pkg.Config, cookieStore *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
 	return Chain(
 		RequireSession(cookieStore, AuthSession, opts),
+		RequireWriteSubscription(config),
 		RequireMinimumRole(cookieStore, pkg.RoleEditor),
 	)
 }
 
-func RequireAdmin(cookieStore *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
+func RequireAdmin(config *pkg.Config, cookieStore *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
+	return Chain(
+		RequireSession(cookieStore, AuthSession, opts),
+		RequireWriteSubscription(config),
+		RequireMinimumRole(cookieStore, pkg.RoleAdmin),
+	)
+}
+
+func RequireAdminWithoutSubscription(cookieStore *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
 	return Chain(
 		RequireSession(cookieStore, AuthSession, opts),
 		RequireMinimumRole(cookieStore, pkg.RoleAdmin),
