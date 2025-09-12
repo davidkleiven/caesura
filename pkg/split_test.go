@@ -95,7 +95,7 @@ func TestEmptyBufferReturnedOnInvalidPdf(t *testing.T) {
 	pdfIter := SplitPdf(bytes.NewReader(invalidPDF.Bytes()), assignments)
 
 	num := 0
-	for _, _ = range pdfIter {
+	for range pdfIter {
 		num++
 	}
 
@@ -119,7 +119,7 @@ func TestProcessingAbortOnError(t *testing.T) {
 	pdfIter := SplitPdf(bytes.NewReader(buffer.Bytes()), assignments)
 
 	num := 0
-	for _, _ = range pdfIter {
+	for range pdfIter {
 		num++
 	}
 

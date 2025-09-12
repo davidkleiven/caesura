@@ -24,7 +24,7 @@ func TestFailingEmailDataCollector(t *testing.T) {
 		func() error {
 			iter := collector.Resource(ctx, "org", "path")
 			num := 0
-			for _ = range iter {
+			for range iter {
 				num++
 			}
 			if num != 0 {
