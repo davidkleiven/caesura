@@ -9,7 +9,7 @@ func TestProjectId(t *testing.T) {
 
 	expectedId := "testproject"
 	if project.Id() != expectedId {
-		t.Errorf("Expected project ID '%s', got '%s'", expectedId, project.Id())
+		t.Fatalf("Expected project ID '%s', got '%s'", expectedId, project.Id())
 	}
 }
 
@@ -27,6 +27,6 @@ func TestMergeProjects(t *testing.T) {
 
 	expectedResourceIds := []string{"res1", "res2", "res3"}
 	if len(project1.ResourceIds) != len(expectedResourceIds) {
-		t.Errorf("Expected %d resource IDs, got %d", len(expectedResourceIds), len(project1.ResourceIds))
+		t.Fatalf("Expected %d resource IDs, got %d", len(expectedResourceIds), len(project1.ResourceIds))
 	}
 }

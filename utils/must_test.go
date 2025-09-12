@@ -8,14 +8,14 @@ import (
 func TestMustNoError(t *testing.T) {
 	value := Must("test", nil)
 	if value != "test" {
-		t.Errorf("Expected value 'test', got %v", value)
+		t.Fatalf("Expected value 'test', got %v", value)
 	}
 }
 
 func TestMustWithError(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
-			t.Errorf("Expected panic, but did not occur")
+			t.Fatalf("Expected panic, but did not occur")
 		}
 	}()
 

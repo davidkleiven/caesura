@@ -24,8 +24,8 @@ func waitForProjectPageLoad(page playwright.Page) error {
 func TestProjectClick(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
 		if err := waitForProjectPageLoad(page); err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		clickableRow := page.Locator("#demoproject1")
@@ -35,19 +35,19 @@ func TestProjectClick(t *testing.T) {
 		}
 		resp, err := page.ExpectResponse("**/projects/demoproject1**", func() error { return clickableRow.Click() }, timeout)
 		if err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 		if resp.Status() != 200 {
-			t.Errorf("Expected status code 200, got %d", resp.Status())
-			return
+			t.Fatalf("Expected status code 200, got %d", resp.Status())
+
 		}
 
 		// Expect songs of demoproject1 to be present
 		songLocator := page.Locator("#piece-list td:has-text('Composer A')")
 		if err := songLocator.WaitFor(playwright.LocatorWaitForOptions{Timeout: playwright.Float(1000)}); err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 	}, projectPage)(t)
 }
@@ -65,8 +65,8 @@ func fillProjectQueryInput(page playwright.Page, query string) func() error {
 func TestProjectSearch(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
 		if err := waitForProjectPageLoad(page); err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		timeout := playwright.PageExpectResponseOptions{Timeout: playwright.Float(1000)}
@@ -87,23 +87,23 @@ func TestProjectSearch(t *testing.T) {
 			resp, err := page.ExpectResponse("**/projects/info**", fillProjectQueryInput(page, check.query), timeout)
 
 			if err != nil {
-				t.Error(err)
-				return
+				t.Fatal(err)
+
 			}
 
 			if !resp.Ok() {
-				t.Errorf("Expected response to be OK, got %d", resp.Status())
-				return
+				t.Fatalf("Expected response to be OK, got %d", resp.Status())
+
 			}
 
 			projectLocator, err := page.Locator("#project-list td:has-text('Demo Project 1')").Count()
 			if err != nil {
-				t.Error(err)
-				return
+				t.Fatal(err)
+
 			}
 			if projectLocator != check.expectedCount {
-				t.Errorf("Expected %d project with 'Demo Project 1', found %d", check.expectedCount, projectLocator)
-				return
+				t.Fatalf("Expected %d project with 'Demo Project 1', found %d", check.expectedCount, projectLocator)
+
 			}
 		}
 

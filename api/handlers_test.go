@@ -35,15 +35,15 @@ func TestUploadHandler(t *testing.T) {
 	UploadHandler(recorder, request)
 
 	if recorder.Code != 200 {
-		t.Errorf("Expected status code 200, got %d", recorder.Code)
+		t.Fatalf("Expected status code 200, got %d", recorder.Code)
 	}
 
 	if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
-		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+		t.Fatalf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
 	}
 
 	if !strings.Contains(recorder.Body.String(), "Caesura") {
-		t.Error("Expected response body to contain 'Caesura'")
+		t.Fatal("Expected response body to contain 'Caesura'")
 	}
 
 }
@@ -54,23 +54,23 @@ func TestInstrumentSearchHandler(t *testing.T) {
 	InstrumentSearchHandler(recorder, request)
 
 	if recorder.Code != 200 {
-		t.Errorf("Expected status code 200, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 200, got %d", recorder.Code)
+
 	}
 
 	if recorder.Header().Get("Content-Type") != "text/plain; charset=utf-8" {
-		t.Errorf("Expected Content-Type 'text/plain; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
-		return
+		t.Fatalf("Expected Content-Type 'text/plain; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+
 	}
 
 	if !strings.Contains(recorder.Body.String(), "Flute") {
-		t.Error("Expected response body to contain 'Flute'")
-		return
+		t.Fatal("Expected response body to contain 'Flute'")
+
 	}
 
 	if strings.Contains(recorder.Body.String(), "Trumpet") {
-		t.Error("Expected response body to not contain 'Trumpet'")
-		return
+		t.Fatal("Expected response body to not contain 'Trumpet'")
+
 	}
 }
 
@@ -88,13 +88,13 @@ func TestChoiceHandler(t *testing.T) {
 	ChoiceHandler(recorder, request)
 
 	if recorder.Code != 200 {
-		t.Errorf("Expected status code 200, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 200, got %d", recorder.Code)
+
 	}
 
 	expectedResponse := "flute<input type=\"text\" placeholder=\"Enter part number\" id=\"part-number\"/>"
 	if recorder.Body.String() != expectedResponse {
-		t.Errorf("Expected response body to be '%s', got '%s'", expectedResponse, recorder.Body.String())
+		t.Fatalf("Expected response body to be '%s', got '%s'", expectedResponse, recorder.Body.String())
 	}
 }
 
@@ -115,13 +115,13 @@ func TestDeleteMode(t *testing.T) {
 		DeleteMode(recorder, request)
 
 		if recorder.Code != 200 {
-			t.Errorf("Expected status code 200, got %d", recorder.Code)
-			return
+			t.Fatalf("Expected status code 200, got %d", recorder.Code)
+
 		}
 
 		if recorder.Body.String() != test.expected {
-			t.Errorf("Expected response body to be '%s', got '%s'", test.expected, recorder.Body.String())
-			return
+			t.Fatalf("Expected response body to be '%s', got '%s'", test.expected, recorder.Body.String())
+
 		}
 	}
 }
@@ -133,13 +133,13 @@ func TestDeleteModeWhenFormNotPopulated(t *testing.T) {
 	DeleteMode(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
-		t.Errorf("Expected status code 400, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 400, got %d", recorder.Code)
+
 	}
 
 	expectedError := "invalid URL"
 	if !strings.Contains(recorder.Body.String(), expectedError) {
-		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
+		t.Fatalf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
 	}
 }
 
@@ -168,13 +168,13 @@ func TestSubmitBadRequestHandler(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
-		t.Errorf("Expected status code 400, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 400, got %d", recorder.Code)
+
 	}
 
 	expectedError := "Failed to parse form"
 	if !strings.Contains(recorder.Body.String(), expectedError) {
-		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
+		t.Fatalf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
 	}
 }
 
@@ -310,18 +310,18 @@ func TestSubmitHandlerValidRequest(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusOK {
-		t.Errorf("Expected status code 200, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 200, got %d", recorder.Code)
+
 	}
 
 	expectedResponse := "File uploaded successfully"
 	if !strings.Contains(recorder.Body.String(), expectedResponse) {
-		t.Errorf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
+		t.Fatalf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
 	}
 
 	if len(inMemStore.Data) != 1 {
-		t.Errorf("Expected 1 file in store, got %d", len(inMemStore.Data))
-		return
+		t.Fatalf("Expected 1 file in store, got %d", len(inMemStore.Data))
+
 	}
 
 	// Check content in the store
@@ -338,8 +338,8 @@ func TestSubmitHandlerInvalidJson(t *testing.T) {
 	multipartWriter.CreateFormField("filename.pdf")
 	contentWriter, err := multipartWriter.CreateFormFile("document", "filename.pdf")
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
+
 	}
 	pkg.CreateNPagePdf(contentWriter, 10)
 
@@ -347,13 +347,13 @@ func TestSubmitHandlerInvalidJson(t *testing.T) {
 	assignments := "invalid json"
 	assignmentWriter, err := multipartWriter.CreateFormField("assignments")
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
+
 	}
 	assignmentWriter.Write([]byte(assignments))
 	if err := multipartWriter.Close(); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
+
 	}
 
 	request := httptest.NewRequest("POST", "/resources", &multipartBuffer)
@@ -363,13 +363,13 @@ func TestSubmitHandlerInvalidJson(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
-		t.Errorf("Expected status code 400, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 400, got %d", recorder.Code)
+
 	}
 
 	expectedError := "Failed to parse assignments"
 	if !strings.Contains(recorder.Body.String(), expectedError) {
-		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
+		t.Fatalf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
 	}
 }
 
@@ -380,8 +380,8 @@ func TestSubmitFormWithoutDocument(t *testing.T) {
 	var multipartBuffer bytes.Buffer
 	multipartWriter := multipart.NewWriter(&multipartBuffer)
 	if err := multipartWriter.Close(); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
+
 	}
 
 	request := httptest.NewRequest("POST", "/resources", &multipartBuffer)
@@ -391,13 +391,13 @@ func TestSubmitFormWithoutDocument(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
-		t.Errorf("Expected status code 400, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 400, got %d", recorder.Code)
+
 	}
 
 	expectedError := "Failed to retrieve file from form"
 	if !strings.Contains(recorder.Body.String(), expectedError) {
-		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
+		t.Fatalf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
 	}
 }
 
@@ -415,13 +415,13 @@ func TestSubmitNonPdfFileAsDocument(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status code 500, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 500, got %d", recorder.Code)
+
 	}
 
 	expectedError := "Failed to store"
 	if !strings.Contains(recorder.Body.String(), expectedError) {
-		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
+		t.Fatalf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
 	}
 }
 
@@ -437,13 +437,13 @@ func TestSubmitHandlerNoAssignments(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
-		t.Errorf("Expected status code 400, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 400, got %d", recorder.Code)
+
 	}
 
 	expectedError := "No assignments provided"
 	if !strings.Contains(recorder.Body.String(), expectedError) {
-		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
+		t.Fatalf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
 	}
 }
 
@@ -459,13 +459,13 @@ func TestSubmitHandlerNoMetaData(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
-		t.Errorf("Expected status code 400, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 400, got %d", recorder.Code)
+
 	}
 
 	expectedError := "No metadata provided"
 	if !strings.Contains(recorder.Body.String(), expectedError) {
-		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
+		t.Fatalf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
 	}
 }
 
@@ -481,13 +481,13 @@ func TestSubmitHandlerInvalidMetaData(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
-		t.Errorf("Expected status code 400, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 400, got %d", recorder.Code)
+
 	}
 
 	expectedError := "Failed to parse metadata"
 	if !strings.Contains(recorder.Body.String(), expectedError) {
-		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
+		t.Fatalf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
 	}
 }
 
@@ -511,8 +511,8 @@ func TestSubmitHandlerStoreErrors(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status code 500, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 500, got %d", recorder.Code)
+
 	}
 }
 
@@ -555,18 +555,18 @@ func TestOverHandler(t *testing.T) {
 	OverviewHandler(recorder, request)
 
 	if recorder.Code != http.StatusOK {
-		t.Errorf("Expected status code 200, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 200, got %d", recorder.Code)
+
 	}
 
 	if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
-		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
-		return
+		t.Fatalf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+
 	}
 
 	if !strings.Contains(recorder.Body.String(), "Title") {
-		t.Error("Expected response body to contain 'Title'")
-		return
+		t.Fatal("Expected response body to contain 'Title'")
+
 	}
 }
 
@@ -590,19 +590,19 @@ func TestOverviewSearchHandler(t *testing.T) {
 		handler(recorder, request)
 
 		if recorder.Code != http.StatusOK {
-			t.Errorf("Expected status code 200, got %d", recorder.Code)
-			return
+			t.Fatalf("Expected status code 200, got %d", recorder.Code)
+
 		}
 
 		if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
-			t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
-			return
+			t.Fatalf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+
 		}
 
 		numRows := strings.Count(recorder.Body.String(), "<tr id=\"row")
 		if numRows != test.expectedCount {
-			t.Errorf("Expected %d rows in response, got %d", test.expectedCount, numRows)
-			return
+			t.Fatalf("Expected %d rows in response, got %d", test.expectedCount, numRows)
+
 		}
 	}
 }
@@ -625,8 +625,8 @@ func TestInternalServerErrorOnFailure(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status code 500, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 500, got %d", recorder.Code)
+
 	}
 }
 
@@ -650,18 +650,18 @@ func TestSearchProjectHandler(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusOK {
-		t.Errorf("Expected status code 200, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 200, got %d", recorder.Code)
+
 	}
 
 	if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
-		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
-		return
+		t.Fatalf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+
 	}
 
 	if !strings.Contains(recorder.Body.String(), "Test Project") {
-		t.Error("Expected response body to contain 'Test Project'")
-		return
+		t.Fatal("Expected response body to contain 'Test Project'")
+
 	}
 }
 
@@ -683,13 +683,13 @@ func TestSearchProjectHandlerInternelServerErrorOnFailure(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status code 500, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 500, got %d", recorder.Code)
+
 	}
 
 	expectedResponse := "Failed to fetch project"
 	if !strings.Contains(recorder.Body.String(), expectedResponse) {
-		t.Errorf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
+		t.Fatalf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
 	}
 }
 
@@ -700,18 +700,18 @@ func TestProjectSelectorModalHandler(t *testing.T) {
 	ProjectSelectorModalHandler(recorder, request)
 
 	if recorder.Code != http.StatusOK {
-		t.Errorf("Expected status code 200, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 200, got %d", recorder.Code)
+
 	}
 
 	if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
-		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
-		return
+		t.Fatalf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+
 	}
 
 	if !strings.Contains(recorder.Body.String(), "Confirm") {
-		t.Error("Expected response body to contain 'Confirm'")
-		return
+		t.Fatal("Expected response body to contain 'Confirm'")
+
 	}
 }
 
@@ -731,17 +731,17 @@ func TestProjectSubmitHandler(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusOK {
-		t.Errorf("Expected status code 200, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 200, got %d", recorder.Code)
+
 	}
 
 	if len(inMemStore.Data[orgId].Projects) != 1 {
-		t.Errorf("Expected 1 project in store, got %d", len(inMemStore.Data[orgId].Projects))
-		return
+		t.Fatalf("Expected 1 project in store, got %d", len(inMemStore.Data[orgId].Projects))
+
 	}
 
 	if inMemStore.Data[orgId].Projects["testproject"].Name != "Test Project" {
-		t.Errorf("Expected project name 'Test Project', got '%s'", inMemStore.Data[orgId].Projects["test_project"].Name)
+		t.Fatalf("Expected project name 'Test Project', got '%s'", inMemStore.Data[orgId].Projects["test_project"].Name)
 	}
 }
 
@@ -757,8 +757,8 @@ func TestBadRequestOnMissingName(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
-		t.Errorf("Expected status code 400, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 400, got %d", recorder.Code)
+
 	}
 }
 
@@ -785,13 +785,13 @@ func TestInternaltServerErrorOnProjectSubmitFailure(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status code 500, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 500, got %d", recorder.Code)
+
 	}
 
 	expectedResponse := "Failed to submit project"
 	if !strings.Contains(recorder.Body.String(), expectedResponse) {
-		t.Errorf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
+		t.Fatalf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
 	}
 }
 
@@ -804,13 +804,13 @@ func TestBadRequestWhenWrongApplicationType(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusBadRequest {
-		t.Errorf("Expected status code 400, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 400, got %d", recorder.Code)
+
 	}
 
 	expectedError := "Failed to parse form"
 	if !strings.Contains(recorder.Body.String(), expectedError) {
-		t.Errorf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
+		t.Fatalf("Expected response body to contain '%s', got '%s'", expectedError, recorder.Body.String())
 	}
 }
 
@@ -821,18 +821,18 @@ func TestProjectQueryInputHandler(t *testing.T) {
 	ProjectQueryInputHandler(recorder, request)
 
 	if recorder.Code != http.StatusOK {
-		t.Errorf("Expected status code 200, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 200, got %d", recorder.Code)
+
 	}
 
 	if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
-		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
-		return
+		t.Fatalf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+
 	}
 
 	if !strings.Contains(recorder.Body.String(), "Test Project") {
-		t.Error("Expected response body to contain 'Test Project'")
-		return
+		t.Fatal("Expected response body to contain 'Test Project'")
+
 	}
 }
 
@@ -843,13 +843,13 @@ func TestJsHandler(t *testing.T) {
 	JsHandler(recorder, request)
 
 	if recorder.Code != http.StatusOK {
-		t.Errorf("Expected status code 200, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 200, got %d", recorder.Code)
+
 	}
 
 	if recorder.Header().Get("Content-Type") != "application/javascript; charset=utf-8" {
-		t.Errorf("Expected Content-Type 'application/javascript; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
-		return
+		t.Fatalf("Expected Content-Type 'application/javascript; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+
 	}
 }
 
@@ -860,13 +860,13 @@ func TestProjectHandler(t *testing.T) {
 	ProjectHandler(recorder, request)
 
 	if recorder.Code != http.StatusOK {
-		t.Errorf("Expected status code 200, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 200, got %d", recorder.Code)
+
 	}
 
 	if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
-		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
-		return
+		t.Fatalf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+
 	}
 }
 
@@ -890,18 +890,18 @@ func TestSearchProjectListHandler(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusOK {
-		t.Errorf("Expected status code 200, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 200, got %d", recorder.Code)
+
 	}
 
 	if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
-		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
-		return
+		t.Fatalf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+
 	}
 
 	if !strings.Contains(recorder.Body.String(), "Test Project") {
-		t.Error("Expected response body to contain 'Test Project'")
-		return
+		t.Fatal("Expected response body to contain 'Test Project'")
+
 	}
 }
 
@@ -916,13 +916,13 @@ func TestSearchProjectListInternalServerError(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status code 500, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 500, got %d", recorder.Code)
+
 	}
 
 	expectedResponse := "Failed to fetch projects"
 	if !strings.Contains(recorder.Body.String(), expectedResponse) {
-		t.Errorf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
+		t.Fatalf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
 	}
 }
 
@@ -938,18 +938,18 @@ func TestProjectByIdHandler(t *testing.T) {
 	mux.ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusOK {
-		t.Errorf("Expected status code 200, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 200, got %d", recorder.Code)
+
 	}
 
 	if recorder.Header().Get("Content-Type") != "text/html; charset=utf-8" {
-		t.Errorf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
-		return
+		t.Fatalf("Expected Content-Type 'text/html; charset=utf-8', got '%s'", recorder.Header().Get("Content-Type"))
+
 	}
 
 	if !strings.Contains(recorder.Body.String(), "Demo Project 1") {
-		t.Error("Expected response body to contain 'Demo Project 1'")
-		return
+		t.Fatal("Expected response body to contain 'Demo Project 1'")
+
 	}
 }
 
@@ -976,13 +976,13 @@ func TestProjectByIdInternalServerError(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status code 500, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 500, got %d", recorder.Code)
+
 	}
 
 	expectedResponse := "Failed to fetch project"
 	if !strings.Contains(recorder.Body.String(), expectedResponse) {
-		t.Errorf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
+		t.Fatalf("Expected response body to contain '%s', got '%s'", expectedResponse, recorder.Body.String())
 	}
 }
 
@@ -997,13 +997,13 @@ func TestProjectByIdMetaDataError(t *testing.T) {
 	handler(recorder, request)
 
 	if recorder.Code != http.StatusOK {
-		t.Errorf("Expected status code 200, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 200, got %d", recorder.Code)
+
 	}
 
 	if !strings.Contains(recorder.Body.String(), "Concert No. 1") {
-		t.Error("Expected response body to contain 'Concert No. 1'")
-		return
+		t.Fatal("Expected response body to contain 'Concert No. 1'")
+
 	}
 }
 
@@ -1017,8 +1017,8 @@ func TestSetup(t *testing.T) {
 	mux.ServeHTTP(recorder, req)
 
 	if recorder.Code != http.StatusOK {
-		t.Errorf("Expected status code 200, got %d", recorder.Code)
-		return
+		t.Fatalf("Expected status code 200, got %d", recorder.Code)
+
 	}
 }
 
@@ -1038,7 +1038,7 @@ func TestResourceContentByIdHandler(t *testing.T) {
 	mux.ServeHTTP(recorder, request)
 
 	if recorder.Code != http.StatusOK {
-		t.Errorf("Expected return code '200' got %d", recorder.Code)
+		t.Fatalf("Expected return code '200' got %d", recorder.Code)
 	}
 
 	tokens := []string{"Part0", "Part2", "Part3", "Part4"}

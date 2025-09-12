@@ -12,7 +12,7 @@ import (
 func TestDefaultConfigIsValid(t *testing.T) {
 	config := NewDefaultConfig()
 	if err := config.Validate(); err != nil {
-		t.Errorf("default config should be valid, got error: %v", err)
+		t.Fatalf("default config should be valid, got error: %v", err)
 	}
 }
 
@@ -24,8 +24,8 @@ local_fs:
 
 	f, err := os.CreateTemp("", "config_test*.yaml")
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
+
 	}
 	defer os.Remove(f.Name())
 
@@ -33,8 +33,8 @@ local_fs:
 	f.Close()
 
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
+
 	}
 
 	// Load the config from the file
@@ -45,15 +45,15 @@ local_fs:
 
 	// Validate the overwritten config
 	if err := config.Validate(); err != nil {
-		t.Errorf("overwritten config should be valid, got error: %v", err)
-		return
+		t.Fatalf("overwritten config should be valid, got error: %v", err)
+
 	}
 
 	if loadedConfig.StoreType != "local-fs" {
-		t.Errorf("expected store_type to be 'local-fs', got '%s'", loadedConfig.StoreType)
+		t.Fatalf("expected store_type to be 'local-fs', got '%s'", loadedConfig.StoreType)
 	}
 	if loadedConfig.LocalFS.Directory != "/tmp/caesura" {
-		t.Errorf("expected local_fs.directory to be '/tmp/caesura', got '%s'", loadedConfig.LocalFS.Directory)
+		t.Fatalf("expected local_fs.directory to be '/tmp/caesura', got '%s'", loadedConfig.LocalFS.Directory)
 	}
 
 	// Just confirm that load configuration works
@@ -65,14 +65,14 @@ func TestInvalidConfig(t *testing.T) {
 	config.StoreType = "invalid-store-type"
 
 	if err := config.Validate(); err == nil {
-		t.Error("expected validation to fail for invalid store_type, but it succeeded")
+		t.Fatal("expected validation to fail for invalid store_type, but it succeeded")
 	}
 
 	config.StoreType = "local-fs"
 	config.LocalFS.Directory = ""
 
 	if err := config.Validate(); err == nil {
-		t.Error("expected validation to fail for missing local_fs.directory, but it succeeded")
+		t.Fatal("expected validation to fail for missing local_fs.directory, but it succeeded")
 	}
 }
 
@@ -80,11 +80,11 @@ func TestDefaultConfigAndErrorForNonExistingFile(t *testing.T) {
 	config := NewDefaultConfig()
 	_, err := OverrideFromFile("non_existing_file.yaml", config)
 	if err == nil {
-		t.Error("expected error when loading from non-existing file, but got none")
+		t.Fatal("expected error when loading from non-existing file, but got none")
 	}
 
 	if err := config.Validate(); err != nil {
-		t.Errorf("default config should be valid, got error: %v", err)
+		t.Fatalf("default config should be valid, got error: %v", err)
 	}
 }
 
@@ -92,26 +92,26 @@ func TestDefaultConfigWhenInvalidYamlContent(t *testing.T) {
 	content := "invalid_yaml_content"
 	f, err := os.CreateTemp("", "config_test*.yaml")
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
+
 	}
 	defer os.Remove(f.Name())
 	_, err = io.Copy(f, bytes.NewBufferString(content))
 	f.Close()
 	if err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
+
 	}
 	// Load the config from the file
 	config, err := OverrideFromFile(f.Name(), NewDefaultConfig())
 	if err == nil {
-		t.Error("expected error when loading invalid YAML content, but got none")
-		return
+		t.Fatal("expected error when loading invalid YAML content, but got none")
+
 	}
 
 	if err := config.Validate(); err != nil {
-		t.Errorf("expected validation to fail for invalid YAML content, but it succeeded: %v", err)
-		return
+		t.Fatalf("expected validation to fail for invalid YAML content, but it succeeded: %v", err)
+
 	}
 }
 
@@ -120,7 +120,7 @@ func TestGetStore(t *testing.T) {
 	config.StoreType = "in-memory"
 	store := GetStore(config)
 	if _, ok := store.(*MultiOrgInMemoryStore); !ok {
-		t.Errorf("expected store to be of type InMemoryStore, got %T", store)
+		t.Fatalf("expected store to be of type InMemoryStore, got %T", store)
 	}
 }
 

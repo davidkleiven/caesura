@@ -27,19 +27,19 @@ func waitForInitialLoad(page playwright.Page) error {
 func TestInitialLoadHasTwoItems(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
 		if err := waitForInitialLoad(page); err != nil {
-			t.Errorf("Error waiting for initial load: %v", err)
-			return
+			t.Fatalf("Error waiting for initial load: %v", err)
+
 		}
 
 		rowCount, err := page.Locator("table tbody tr[id^='row']").Count()
 		if err != nil {
-			t.Errorf("Error counting rows: %v", err)
-			return
+			t.Fatalf("Error counting rows: %v", err)
+
 		}
 
 		if rowCount != 2 {
-			t.Errorf("Expected 2 rows, got %d", rowCount)
-			return
+			t.Fatalf("Expected 2 rows, got %d", rowCount)
+
 		}
 	}, overViewPage)(t)
 }
@@ -47,38 +47,38 @@ func TestInitialLoadHasTwoItems(t *testing.T) {
 func TestSearchForTitle(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
 		if err := waitForInitialLoad(page); err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		searchInput := page.Locator("input[name=resource-filter]")
 		if err := searchInput.Fill("arranger x"); err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		resp, err := page.ExpectResponse("**/overview/search**", func() error {
 			return searchInput.Press("Enter")
 		}, playwright.PageExpectResponseOptions{Timeout: playwright.Float(1000)})
 		if err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		if resp.Status() != http.StatusOK {
-			t.Errorf("Expected OK response, but got %d", resp.Status())
-			return
+			t.Fatalf("Expected OK response, but got %d", resp.Status())
+
 		}
 
 		rowCount, err := page.Locator("table tbody tr[id^='row']").Count()
 		if err != nil {
-			t.Errorf("Error counting rows: %v", err)
-			return
+			t.Fatalf("Error counting rows: %v", err)
+
 		}
 
 		if rowCount != 1 {
-			t.Errorf("Expected 1 row, got %d", rowCount)
-			return
+			t.Fatalf("Expected 1 row, got %d", rowCount)
+
 		}
 
 	}, overViewPage)(t)
@@ -128,31 +128,31 @@ func openProjectSelectorPage(page playwright.Page, preClick func(playwright.Page
 func TestAddToProjectNoProjectName(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
 		if err := openProjectSelectorPage(page, nil); err != nil {
-			t.Errorf("Error opening project selector: %v", err)
-			return
+			t.Fatalf("Error opening project selector: %v", err)
+
 		}
 
 		confirmButton := page.Locator("button:has-text('Confirm')")
 		resp, err := page.ExpectResponse("**/projects**", func() error { return confirmButton.Click() }, playwright.PageExpectResponseOptions{Timeout: playwright.Float(1000)})
 		if err != nil {
-			t.Errorf("Error clicking confirm button: %v", err)
-			return
+			t.Fatalf("Error clicking confirm button: %v", err)
+
 		}
 
 		if resp.Status() != http.StatusBadRequest {
-			t.Errorf("Expected error response, but got OK")
-			return
+			t.Fatalf("Expected error response, but got OK")
+
 		}
 
 		// Confirm modal disappears on click
 		modalContent, err := page.Locator("#project-selection-modal").TextContent()
 		if err != nil {
-			t.Errorf("Error getting modal content: %v", err)
-			return
+			t.Fatalf("Error getting modal content: %v", err)
+
 		}
 		if modalContent != "" {
-			t.Errorf("Expected modal to be closed, but it still has content: %s", modalContent)
-			return
+			t.Fatalf("Expected modal to be closed, but it still has content: %s", modalContent)
+
 		}
 	}, overViewPage)(t)
 }
@@ -168,44 +168,44 @@ func selectFirstPiece(page playwright.Page) error {
 func TestAddToExistingProject(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
 		if err := openProjectSelectorPage(page, selectFirstPiece); err != nil {
-			t.Errorf("Error opening project selector: %v", err)
-			return
+			t.Fatalf("Error opening project selector: %v", err)
+
 		}
 
 		timeout := playwright.PageExpectResponseOptions{Timeout: playwright.Float(1000)}
 		existing := page.Locator("#project-selection-modal li").First()
 		resp, err := page.ExpectResponse("**/project-query-input**", func() error { return existing.Click() }, timeout)
 		if err != nil {
-			t.Errorf("Error clicking existing project: %v", err)
-			return
+			t.Fatalf("Error clicking existing project: %v", err)
+
 		}
 		if resp.Status() != http.StatusOK {
-			t.Errorf("Expected OK response, but got %d", resp.Status())
-			return
+			t.Fatalf("Expected OK response, but got %d", resp.Status())
+
 		}
 
 		confirmButton := page.Locator("button:has-text('Confirm')")
 		resp, err = page.ExpectResponse("**/projects**", func() error { return confirmButton.Click() }, timeout)
 		if err != nil {
-			t.Errorf("Error clicking confirm button: %v", err)
-			return
+			t.Fatalf("Error clicking confirm button: %v", err)
+
 		}
 
 		if resp.Status() != http.StatusOK {
-			t.Errorf("Expected OK response, but got %d", resp.Status())
-			return
+			t.Fatalf("Expected OK response, but got %d", resp.Status())
+
 		}
 
 		flashMsg, err := page.Locator("#flash-message").TextContent()
 		if err != nil {
-			t.Errorf("Error getting flash message: %v", err)
-			return
+			t.Fatalf("Error getting flash message: %v", err)
+
 		}
 
 		expectedMsg := "Added 1 piece(s) to 'Demo Project 1'"
 		if flashMsg != expectedMsg {
-			t.Errorf("Expected flash message to be %s, got '%s'", expectedMsg, flashMsg)
-			return
+			t.Fatalf("Expected flash message to be %s, got '%s'", expectedMsg, flashMsg)
+
 		}
 	}, overViewPage)(t)
 }
@@ -231,8 +231,8 @@ func expandFirstRow(page playwright.Page) (playwright.Locator, error) {
 func TestResourcesDisplayOnClick(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
 		if err := waitForInitialLoad(page); err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		expandable := page.Locator("table tbody tr[id^='expand']")
@@ -315,8 +315,8 @@ func TestDownloadZip(t *testing.T) {
 func TestDownloadSinglePart(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
 		if err := waitForInitialLoad(page); err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		if _, err := expandFirstRow(page); err != nil {

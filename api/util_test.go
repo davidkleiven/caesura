@@ -24,7 +24,7 @@ func TestDefaultPort(t *testing.T) {
 
 	os.Unsetenv("PORT")
 	if Port() != ":8080" {
-		t.Error("Expected default port to be :8080")
+		t.Fatal("Expected default port to be :8080")
 	}
 }
 
@@ -36,7 +36,7 @@ func TestPortSetViaEnvironment(t *testing.T) {
 
 	os.Setenv("PORT", "1234")
 	if Port() != ":1234" {
-		t.Error("Expected port to be set to :1234")
+		t.Fatal("Expected port to be set to :1234")
 	}
 }
 
@@ -44,12 +44,12 @@ func TestIncludeError(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	includeError(recorder, http.StatusInternalServerError, "Test error", fmt.Errorf("This is a test error"))
 	if recorder.Code != http.StatusInternalServerError {
-		t.Errorf("Expected status code %d, got %d", http.StatusInternalServerError, recorder.Code)
+		t.Fatalf("Expected status code %d, got %d", http.StatusInternalServerError, recorder.Code)
 	}
 
 	want := "Test error: This is a test error\n"
 	if recorder.Body.String() != want {
-		t.Errorf("Expected body to be '%s', got '%s'", want, recorder.Body.String())
+		t.Fatalf("Expected body to be '%s', got '%s'", want, recorder.Body.String())
 	}
 }
 
@@ -57,11 +57,11 @@ func TestIncludeErrorOnNoError(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	includeError(recorder, http.StatusInternalServerError, "Test error", nil)
 	if recorder.Code == http.StatusInternalServerError {
-		t.Errorf("Code should not be set by error function. Got %d", recorder.Code)
+		t.Fatalf("Code should not be set by error function. Got %d", recorder.Code)
 	}
 
 	if recorder.Body.String() != "" {
-		t.Errorf("Expected body to be empty, got '%s'", recorder.Body.String())
+		t.Fatalf("Expected body to be empty, got '%s'", recorder.Body.String())
 	}
 }
 
@@ -107,7 +107,7 @@ func TestPanicOnMissingSession(t *testing.T) {
 	request := httptest.NewRequest("GET", "/login", nil)
 	defer func() {
 		if r := recover(); r == nil {
-			t.Errorf("Expected panic, but function did not panic")
+			t.Fatalf("Expected panic, but function did not panic")
 		}
 	}()
 	MustGetSession(request)
@@ -124,7 +124,7 @@ func TestPanicOnWrongOrgIdType(t *testing.T) {
 
 	defer func() {
 		if r := recover(); r == nil {
-			t.Errorf("Expected panic, but function did not panic")
+			t.Fatalf("Expected panic, but function did not panic")
 		}
 	}()
 

@@ -24,8 +24,8 @@ func TestStore(t *testing.T) {
 			data := []byte("test data")
 			name := "testfile.txt"
 			if err := test.store.Store(name, bytes.NewReader(data)); err != nil {
-				t.Errorf("Store failed: %v", err)
-				return
+				t.Fatalf("Store failed: %v", err)
+
 			}
 
 			var contentReader io.Reader
@@ -34,22 +34,22 @@ func TestStore(t *testing.T) {
 			case *FSStore:
 				contentReader, err = store.Get(name)
 				if err != nil {
-					t.Errorf("Get failed: %v", err)
-					return
+					t.Fatalf("Get failed: %v", err)
+
 				}
 			default:
-				t.Errorf("Unknown store type: %T", store)
-				return
+				t.Fatalf("Unknown store type: %T", store)
+
 			}
 
 			content, err := io.ReadAll(contentReader)
 			if err != nil {
-				t.Errorf("ReadAll failed: %v", err)
-				return
+				t.Fatalf("ReadAll failed: %v", err)
+
 			}
 			if !bytes.Equal(content, data) {
-				t.Errorf("Expected content %s, got %s", data, content)
-				return
+				t.Fatalf("Expected content %s, got %s", data, content)
+
 			}
 		})
 	}
@@ -83,8 +83,8 @@ func TestStoreReaderFails(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			name := "testfile.txt"
 			if err := test.store.Store(name, &failingReader{}); !errors.Is(err, ErrRetrievingContent) {
-				t.Error("Expected ErrRetrievingContent, got:", err)
-				return
+				t.Fatal("Expected ErrRetrievingContent, got:", err)
+
 			}
 		})
 	}
@@ -95,8 +95,8 @@ func TestFSStoreFailToCreate(t *testing.T) {
 	defer cleanup()
 	name := "filename/with/path/testfile.txt"
 	if err := store.Store(name, bytes.NewReader([]byte("test data"))); err == nil {
-		t.Error("Expected error when storing file with path, got none")
-		return
+		t.Fatal("Expected error when storing file with path, got none")
+
 	}
 }
 
@@ -107,18 +107,18 @@ func TestFSStoreGetNonExistingFile(t *testing.T) {
 	name := "nonexistent.txt"
 	reader, err := store.Get(name)
 	if !errors.Is(err, ErrFileNotFound) {
-		t.Error("Expected error when getting non-existing file, got none")
-		return
+		t.Fatal("Expected error when getting non-existing file, got none")
+
 	}
 
 	content, err := io.ReadAll(reader)
 	if err != nil {
-		t.Errorf("Expected no content, got error: %v", err)
-		return
+		t.Fatalf("Expected no content, got error: %v", err)
+
 	}
 	if len(content) != 0 {
-		t.Errorf("Expected empty content for non-existing file, got %d bytes", len(content))
-		return
+		t.Fatalf("Expected empty content for non-existing file, got %d bytes", len(content))
+
 	}
 }
 
@@ -131,38 +131,38 @@ func TestRegisterSuccessFS(t *testing.T) {
 	}
 
 	if err := store.Register(meta); err != nil {
-		t.Errorf("Register failed: %v", err)
-		return
+		t.Fatalf("Register failed: %v", err)
+
 	}
 
 	id := meta.ResourceId()
 	loadedMeta := store.staged[id]
 
 	if loadedMeta.Status != StoreStatusPending {
-		t.Errorf("Expected status to be Pending, got %s", loadedMeta.Status)
-		return
+		t.Fatalf("Expected status to be Pending, got %s", loadedMeta.Status)
+
 	}
 
 	if err := store.RegisterSuccess(id); err != nil {
-		t.Errorf("RegisterSuccess failed: %v", err)
-		return
+		t.Fatalf("RegisterSuccess failed: %v", err)
+
 	}
 
 	sidecar, err := os.Open(store.directory + "/testresource.json")
 	if err != nil {
-		t.Errorf("Failed to open sidecar file: %v", err)
-		return
+		t.Fatalf("Failed to open sidecar file: %v", err)
+
 	}
 	defer sidecar.Close()
 	var updatedMeta MetaData
 	if err := json.NewDecoder(sidecar).Decode(&updatedMeta); err != nil {
-		t.Errorf("Failed to decode sidecar file: %v", err)
-		return
+		t.Fatalf("Failed to decode sidecar file: %v", err)
+
 	}
 
 	if updatedMeta.Status != StoreStatusFinished {
-		t.Errorf("Expected status to be Finished, got %s", updatedMeta.Status)
-		return
+		t.Fatalf("Expected status to be Finished, got %s", updatedMeta.Status)
+
 	}
 }
 
@@ -179,8 +179,8 @@ func TestErrorOnNoMetadata(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			id := "non-existing-id"
 			if err := test.store.RegisterSuccess(id); !errors.Is(err, ErrResourceMetadataNotFound) {
-				t.Errorf("Expected ErrResourceMetadataNotFound, got: %v", err)
-				return
+				t.Fatalf("Expected ErrResourceMetadataNotFound, got: %v", err)
+
 			}
 		})
 	}
@@ -195,13 +195,13 @@ func TestErrorOnDuplicateEntries(t *testing.T) {
 	}
 
 	if err := store.Register(meta); err != nil {
-		t.Errorf("First Register failed: %v", err)
-		return
+		t.Fatalf("First Register failed: %v", err)
+
 	}
 
 	if err := store.Register(meta); !errors.Is(err, ErrUpdateMetadata) {
-		t.Errorf("Expected ErrUpdateMetadata, got: %v", err)
-		return
+		t.Fatalf("Expected ErrUpdateMetadata, got: %v", err)
+
 	}
 }
 
@@ -219,7 +219,7 @@ func TestMetaDataString(t *testing.T) {
 		m := test.metaData
 		result := m.ResourceId()
 		if result != test.expected {
-			t.Errorf("Test %d failed. Expected '%s', got '%s'", i, test.expected, result)
+			t.Fatalf("Test %d failed. Expected '%s', got '%s'", i, test.expected, result)
 		}
 	}
 }
@@ -233,15 +233,15 @@ func TestJsonMarshalingMetaData(t *testing.T) {
 
 	data, err := json.Marshal(meta)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// Expect an ID and a resource name in the JSON output
 	if !bytes.Contains(data, []byte(meta.ResourceId())) {
-		t.Errorf("Expected JSON to contain resource ID '%s', got %s", meta.ResourceId(), data)
+		t.Fatalf("Expected JSON to contain resource ID '%s', got %s", meta.ResourceId(), data)
 	}
 	if !bytes.Contains(data, []byte(meta.ResourceId())) {
-		t.Errorf("Expected JSON to contain resource name '%s', got %s", meta.ResourceId(), data)
+		t.Fatalf("Expected JSON to contain resource name '%s', got %s", meta.ResourceId(), data)
 	}
 }
 
@@ -254,7 +254,7 @@ func TestJsonUnmarshalingErrorOnInconsistency(t *testing.T) {
 
 	data, err := json.Marshal(meta)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	for i, replace := range []string{meta.ResourceId(), meta.ResourceId()} {
@@ -263,7 +263,7 @@ func TestJsonUnmarshalingErrorOnInconsistency(t *testing.T) {
 
 		var newMeta MetaData
 		if err := json.Unmarshal(modifiedData, &newMeta); err == nil {
-			t.Errorf("Test #%d: Expected error on unmarshaling with inconsistent resource name, got none", i)
+			t.Fatalf("Test #%d: Expected error on unmarshaling with inconsistent resource name, got none", i)
 		}
 	}
 }
@@ -298,7 +298,7 @@ func TestMetaData_JSONRoundTrip(t *testing.T) {
 
 	// Compare the important fields
 	if original != decoded {
-		t.Errorf("round-trip mismatch:\nOriginal: %+v\nDecoded: %+v", original, decoded)
+		t.Fatalf("round-trip mismatch:\nOriginal: %+v\nDecoded: %+v", original, decoded)
 	}
 }
 
@@ -308,8 +308,8 @@ func TestUnmarshalMetDataInvalidJSON(t *testing.T) {
 	var meta MetaData
 	err := meta.UnmarshalJSON(invalidJSON)
 	if err == nil {
-		t.Error("Expected error on unmarshaling invalid JSON, got none")
-		return
+		t.Fatal("Expected error on unmarshaling invalid JSON, got none")
+
 	}
 }
 

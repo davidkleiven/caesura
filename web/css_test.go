@@ -11,6 +11,6 @@ func TestReceiveCss(t *testing.T) {
 	response := httptest.NewRecorder()
 	server.ServeHTTP(response, request)
 	if response.Code != 200 {
-		t.Errorf("Expected status code 200, got %d", response.Code)
+		t.Fatalf("Expected status code 200, got %d", response.Code)
 	}
 }

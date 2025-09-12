@@ -14,7 +14,7 @@ func TestUpload(t *testing.T) {
 	index := Upload(&ScoreMetaData{}, "en")
 
 	if !bytes.Contains(index, []byte("Caesura</div>")) {
-		t.Error("Expected index to contain 'Caesura</div>'")
+		t.Fatal("Expected index to contain 'Caesura</div>'")
 	}
 }
 
@@ -22,7 +22,7 @@ func TestList(t *testing.T) {
 	list := List()
 
 	if !bytes.Contains(list, []byte("</ul>")) {
-		t.Error("Expected list to contain '</ul>'")
+		t.Fatal("Expected list to contain '</ul>'")
 	}
 }
 
@@ -30,7 +30,7 @@ func TestOverview(t *testing.T) {
 	overview := Overview("en")
 
 	if !bytes.Contains(overview, []byte("Title")) {
-		t.Error("Expected overview to contain 'Title")
+		t.Fatal("Expected overview to contain 'Title")
 	}
 }
 
@@ -41,7 +41,7 @@ func TestResourceList(t *testing.T) {
 	})
 
 	if !bytes.Contains(buf.Bytes(), []byte("Test Title")) {
-		t.Error("Expected resource list to contain 'Test Title'")
+		t.Fatal("Expected resource list to contain 'Test Title'")
 	}
 }
 
@@ -49,7 +49,7 @@ func TestProjectSelectorModal(t *testing.T) {
 	projectSelector := ProjectSelectorModal("en")
 
 	if !bytes.Contains(projectSelector, []byte("Confirm")) {
-		t.Error("Expected project selector modal to contain 'Confirm'")
+		t.Fatal("Expected project selector modal to contain 'Confirm'")
 	}
 }
 
@@ -58,7 +58,7 @@ func TestProjectQueryInput(t *testing.T) {
 	ProjectQueryInput(&buf, "en", "Test Query")
 
 	if !bytes.Contains(buf.Bytes(), []byte("Test Query")) {
-		t.Error("Expected project query input to contain 'Test Query'")
+		t.Fatal("Expected project query input to contain 'Test Query'")
 	}
 }
 
@@ -66,7 +66,7 @@ func TestProjects(t *testing.T) {
 	projects := Projects("en")
 
 	if !bytes.Contains(projects, []byte("# pieces")) {
-		t.Error("Expected projects to contain '# pieces'")
+		t.Fatal("Expected projects to contain '# pieces'")
 	}
 }
 
@@ -91,7 +91,7 @@ func TestProjectList(t *testing.T) {
 
 	for _, exp := range expect {
 		if !strings.Contains(content, exp) {
-			t.Errorf("Expected project list to contain '%s', but it did not", exp)
+			t.Fatalf("Expected project list to contain '%s', but it did not", exp)
 		}
 	}
 }
@@ -124,7 +124,7 @@ func TestProjectContent(t *testing.T) {
 
 	for _, exp := range expect {
 		if !strings.Contains(content, exp) {
-			t.Errorf("Expected project content to contain '%s', but it did not", exp)
+			t.Fatalf("Expected project content to contain '%s', but it did not", exp)
 		}
 	}
 }

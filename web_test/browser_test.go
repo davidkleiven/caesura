@@ -153,12 +153,12 @@ func TestInstrumentListIsLoaded(t *testing.T) {
 		element := page.Locator("#instrument-list")
 		text, err := element.TextContent()
 		if err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		if !strings.Contains(text, "Trumpet") {
-			t.Errorf("Expepected to find 'Trumpet' in the instrument list, but got: %s", text)
+			t.Fatalf("Expepected to find 'Trumpet' in the instrument list, but got: %s", text)
 		}
 	}, uploadPage)(t)
 }
@@ -167,14 +167,14 @@ func TestFilterList(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
 		err := page.Locator("input[name='token']").Fill("flu")
 		if err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		// Trigger key-up
 		if err := page.Locator("input[name='token']").Press("Enter"); err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		response, err := page.ExpectResponse(
@@ -184,20 +184,20 @@ func TestFilterList(t *testing.T) {
 		)
 
 		if err != nil || !response.Ok() {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		element := page.Locator("#instrument-list")
 		text, err := element.TextContent()
 		if err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		for _, instrument := range strings.Split(text, "\n") {
 			if strings.ReplaceAll(instrument, " ", "") != "" && !strings.Contains(instrument, "Flute") {
-				t.Errorf("Expected to find 'Flute' in the instrument list, but got: %s", text)
+				t.Fatalf("Expected to find 'Flute' in the instrument list, but got: %s", text)
 			}
 		}
 	}, uploadPage)(t)
@@ -208,18 +208,18 @@ func TestFieldPopulatedOnClick(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
 		trumpetElement := page.Locator("li:text('Trumpet')").First()
 		if err := trumpetElement.Click(); err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		chosenInstrument := page.Locator("#chosen-instrument")
 		text, err := chosenInstrument.TextContent()
 		if err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 		if !strings.Contains(text, "Trumpet") {
-			t.Errorf("Expected to find 'Trumpet' in the chosen instrument, but got: %s", text)
+			t.Fatalf("Expected to find 'Trumpet' in the chosen instrument, but got: %s", text)
 		}
 
 	}, uploadPage)(t)
@@ -228,23 +228,23 @@ func TestFieldPopulatedOnClick(t *testing.T) {
 func loadPdf(page playwright.Page, t *testing.T) func() {
 	f, err := os.CreateTemp("", "test*.pdf")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 		return func() {}
 	}
 	removeFile := func() { os.Remove(f.Name()) }
 	if err := pkg.CreateNPagePdf(f, 2); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 		return removeFile
 	}
 
 	if err := page.Locator("#file-input").SetInputFiles(f.Name()); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 		return removeFile
 	}
 
 	waitOpts := playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(5000)}
 	if _, err := page.WaitForFunction(`() => document.querySelector("#page-count").textContent === "2"`, waitOpts); err != nil {
-		t.Errorf("Failed to load PDF: %s", err)
+		t.Fatalf("Failed to load PDF: %s", err)
 		return removeFile
 	}
 	return removeFile
@@ -253,8 +253,7 @@ func loadPdf(page playwright.Page, t *testing.T) func() {
 func assignPage(page playwright.Page, t *testing.T) {
 	score := page.Locator("li:text('Conductor')").First()
 	if err := score.Click(); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
 	}
 
 	assignButton := page.Locator("#assign-page")
@@ -263,28 +262,28 @@ func assignPage(page playwright.Page, t *testing.T) {
 	// Now the page should be set to 2
 	pageNum := page.Locator("#page-num")
 	if currentPage, err := pageNum.TextContent(); err != nil || currentPage != "2" {
-		t.Errorf("Expected current page to be '2', but got: %s (err: %v)", currentPage, err)
-		return
+		t.Fatalf("Expected current page to be '2', but got: %s (err: %v)", currentPage, err)
+
 	}
 }
 
 func populateMetaData(page playwright.Page, t *testing.T) {
 	titleInput := page.Locator("#title-input")
 	if err := titleInput.Fill("Brandenburg Concerto No. 3"); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
+
 	}
 
 	composerInput := page.Locator("#composer-input")
 	if err := composerInput.Fill("Johann Sebastian Bach"); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
+
 	}
 
 	arrangerInput := page.Locator("#arranger-input")
 	if err := arrangerInput.Fill("Unknown"); err != nil {
-		t.Error(err)
-		return
+		t.Fatal(err)
+
 	}
 }
 
@@ -293,22 +292,22 @@ func TestLoadPdf(t *testing.T) {
 		// Ensure that Page shows 0 / 0
 		currentPage, err := page.Locator("#page-num").TextContent()
 		if err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		if currentPage != "0" {
-			t.Errorf("Expected current page to be '0', but got: %s", currentPage)
+			t.Fatalf("Expected current page to be '0', but got: %s", currentPage)
 		}
 
 		pageCount, err := page.Locator("#page-count").TextContent()
 		if err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		if pageCount != "0" {
-			t.Errorf("Expected page count to be '0', but got: %s", pageCount)
+			t.Fatalf("Expected page count to be '0', but got: %s", pageCount)
 		}
 
 		deletePdf := loadPdf(page, t)
@@ -328,19 +327,19 @@ func TestLoadPdf(t *testing.T) {
 			{func() error { return prevPage.Click() }, "1"}, // Should stay on page 1
 		} {
 			if err := action.f(); err != nil {
-				t.Errorf("Test #%d: %s", i, err)
-				return
+				t.Fatalf("Test #%d: %s", i, err)
+
 			}
 
 			time.Sleep(500 * time.Millisecond) // Wait for the page to update
 
 			currentPage, err = page.Locator("#page-num").TextContent()
 			if err != nil {
-				t.Error(err)
-				return
+				t.Fatal(err)
+
 			}
 			if currentPage != action.expectedPage {
-				t.Errorf("Action #%d: Expected current page to be %s, but got: %s", i, action.expectedPage, currentPage)
+				t.Fatalf("Action #%d: Expected current page to be %s, but got: %s", i, action.expectedPage, currentPage)
 			}
 		}
 
@@ -364,20 +363,20 @@ func TestAssign(t *testing.T) {
 		// Click the assign button when no group is selected (should trigger an alert)
 		assignButton.Click()
 		if !alertTriggered {
-			t.Error("Expected alert to be triggered, but it was not.")
-			return
+			t.Fatal("Expected alert to be triggered, but it was not.")
+
 		}
 
 		// Trigger population of the chosen instrument field
 		trumpetElement := page.Locator("li:text('Trumpet')").First()
 		if err := trumpetElement.Click(); err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		if txt, err := page.Locator("#chosen-instrument").TextContent(); txt != "Trumpet" || err != nil {
-			t.Errorf("Expected chosen instrument to be 'Trumpet', but got: %s (err: %v)", txt, err)
-			return
+			t.Fatalf("Expected chosen instrument to be 'Trumpet', but got: %s (err: %v)", txt, err)
+
 		}
 
 		// Test that the assignment tab is updated when clicking subsequent times
@@ -394,40 +393,40 @@ func TestAssign(t *testing.T) {
 			// Confirm that there is an element with id "trumpet"
 			trumpetElementAssignment := page.Locator("#trumpet")
 			if exists, err := trumpetElementAssignment.Count(); err != nil || exists != 1 {
-				t.Errorf("Click %d: Err %v number of occurences of #trumpet: %d", i, err, exists)
-				return
+				t.Fatalf("Click %d: Err %v number of occurences of #trumpet: %d", i, err, exists)
+
 			}
 
 			if txt, err := page.Locator("#trumpet-from").TextContent(); err != nil || txt != expect.from {
-				t.Errorf("Click %d: Expected #trumpet-from to be '%s', but got: %s (err: %v)", i, expect.to, txt, err)
-				return
+				t.Fatalf("Click %d: Expected #trumpet-from to be '%s', but got: %s (err: %v)", i, expect.to, txt, err)
+
 			}
 
 			if txt, err := page.Locator("#trumpet-to").TextContent(); err != nil || txt != expect.to {
-				t.Errorf("Click %d: Expected #trumpet-to to be '%s', but got: %s (err: %v)", i, expect.to, txt, err)
-				return
+				t.Fatalf("Click %d: Expected #trumpet-to to be '%s', but got: %s (err: %v)", i, expect.to, txt, err)
+
 			}
 		}
 
 		// Enter delete mode
 		if err := page.Locator("#delete-on-click").Check(); err != nil {
-			t.Error("Failed to check delete mode checkbox")
-			return
+			t.Fatal("Failed to check delete mode checkbox")
+
 		}
 
 		// Check that assignment tab is deleted when clocking it
 		if err := page.Locator("#trumpet").Click(); err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 		if exists, err := page.Locator("#trumpet").Count(); err != nil || exists != 0 {
-			t.Errorf("Expected #trumpet to be deleted, but it still exists (count: %d, err: %v)", exists, err)
-			return
+			t.Fatalf("Expected #trumpet to be deleted, but it still exists (count: %d, err: %v)", exists, err)
+
 		}
 
 		if err := page.Locator("#part-number").Fill("1 brass part"); err != nil {
-			t.Error("Failed to fill part number field")
-			return
+			t.Fatal("Failed to fill part number field")
+
 		}
 
 		waitOpts := playwright.PageWaitForFunctionOptions{Timeout: playwright.Float(5000)}
@@ -444,8 +443,8 @@ func TestAssign(t *testing.T) {
 			{from: "2", to: "2", alert: true, preAction: func() {
 				page.Locator("#prev-page").Click()
 				if _, err := page.WaitForFunction(`() => document.querySelector("#page-num").textContent === "1"`, waitOpts); err != nil {
-					t.Errorf("Failed to load PDF: %s", err)
-					return
+					t.Fatalf("Failed to load PDF: %s", err)
+
 				}
 			}},
 		} {
@@ -453,22 +452,22 @@ func TestAssign(t *testing.T) {
 			alertTriggered = false
 			assignButton.Click()
 			if num, err := page.Locator("#trumpet1brasspart").Count(); err != nil || num != 1 {
-				t.Errorf("Click #%d: Expected #trumpet1brasspart to be created, but it does not exist (count: %d, err: %v)", i, num, err)
-				return
+				t.Fatalf("Click #%d: Expected #trumpet1brasspart to be created, but it does not exist (count: %d, err: %v)", i, num, err)
+
 			}
 
 			if alertTriggered != check.alert {
-				t.Errorf("Click #%d: Expected alert to be %v, but it was %v", i, check.alert, alertTriggered)
-				return
+				t.Fatalf("Click #%d: Expected alert to be %v, but it was %v", i, check.alert, alertTriggered)
+
 			}
 
 			if txt, err := page.Locator("#trumpet1brasspart-from").TextContent(); err != nil || txt != check.from {
-				t.Errorf("Click #%d: Expected #trumpet1brasspart-from to be '%s', but got: %s (err: %v)", i, check.from, txt, err)
-				return
+				t.Fatalf("Click #%d: Expected #trumpet1brasspart-from to be '%s', but got: %s (err: %v)", i, check.from, txt, err)
+
 			}
 			if txt, err := page.Locator("#trumpet1brasspart-to").TextContent(); err != nil || txt != check.to {
-				t.Errorf("Click #%d: Expected #trumpet1brasspart-to to be '%s', but got: %s (err: %v)", i, check.to, txt, err)
-				return
+				t.Fatalf("Click #%d: Expected #trumpet1brasspart-to to be '%s', but got: %s (err: %v)", i, check.to, txt, err)
+
 			}
 		}
 	}, uploadPage)(t)
@@ -481,21 +480,21 @@ func TestJumpToAssignedPage(t *testing.T) {
 
 		score := page.Locator("li:text('Conductor')").First()
 		if err := score.Click(); err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 		assignPage(page, t)
 		pageNum := page.Locator("#page-num")
 
 		if err := page.Locator("#conductor").Click(); err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		// Now the page should be set to 1
 		if currentPage, err := pageNum.TextContent(); err != nil || currentPage != "1" {
-			t.Errorf("Expected current page to be '1', but got: %s (err: %v)", currentPage, err)
-			return
+			t.Fatalf("Expected current page to be '1', but got: %s (err: %v)", currentPage, err)
+
 		}
 	}, uploadPage)(t)
 }
@@ -508,20 +507,20 @@ func TestSubmit(t *testing.T) {
 		populateMetaData(page, t)
 
 		if err := page.Locator("#submit-btn").Click(); err != nil {
-			t.Error(err)
-			return
+			t.Fatal(err)
+
 		}
 
 		waitOpts := playwright.PageExpectResponseOptions{Timeout: playwright.Float(5000)}
 		resp, err := page.ExpectResponse("**/resources**", func() error { return nil }, waitOpts)
 		if err != nil {
-			t.Errorf("Failed to submit form: %s", err)
-			return
+			t.Fatalf("Failed to submit form: %s", err)
+
 		}
 
 		if !resp.Ok() {
-			t.Errorf("Expected response to be OK, but got status: %d", resp.Status())
-			return
+			t.Fatalf("Expected response to be OK, but got status: %d", resp.Status())
+
 		}
 
 		flashMsg := page.Locator("#flash-message")
