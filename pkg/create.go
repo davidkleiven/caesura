@@ -24,7 +24,7 @@ func createTextBox(txt string) *primitives.TextBox {
 
 func CreateNPagePdf(w io.Writer, n int) error {
 	pages := make(map[string]*primitives.PDFPage, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		pageNumber := i + 1
 		pages[strconv.Itoa(pageNumber)] = &primitives.PDFPage{
 			Content: &primitives.Content{
