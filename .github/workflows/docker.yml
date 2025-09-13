@@ -13,6 +13,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Check LICENSE contains latest Git tag
+        run: |
+          git fetch --tags
+          latest_tag=$(git describe --tags --abbrev=0)
+          echo "Latest tag: $latest_tag"
+          if ! grep -q "$latest_tag" LICENSE; then
+            echo "❌ LICENSE does not contain the latest tag: $latest_tag"
+          exit 1
+          else
+            echo "✅ LICENSE contains the latest tag: $latest_tag"
+          fi
+
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
