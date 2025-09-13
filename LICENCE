@@ -1,0 +1,55 @@
+Business Source License 1.1
+
+Copyright (c) 2025 David Kleiven
+
+Licensed Work:
+This license applies to the software known as "Caesura," including its source code and associated documentation, as made publicly available by the Licensor.
+
+1. Definitions
+-------------
+"Change Date" means four (4) years from the date a given version of the Licensed Work is first made publicly available by the Licensor (such as by publishing a Git tag, Docker image, or source archive).
+
+"Change License" means the Mozilla Public License, Version 2.0, as published by the Mozilla Foundation.
+
+2. Grant of License
+-------------------
+Subject to the terms and conditions of this License, the Licensor hereby grants you a non-exclusive, worldwide, royalty-free license to:
+
+a) use, reproduce, modify, display, perform, and create derivative works of the Licensed Work solely for:
+
+   i) your internal business operations; or
+   ii) personal, non-commercial use.
+
+b) reproduce and distribute copies of the Licensed Work, provided that all copies include this license and the above copyright notice.
+
+3. Restrictions
+---------------
+You may not:
+
+a) use the Licensed Work to offer, provide, or enable a commercial software-as-a-service (SaaS), managed service, or hosted service to third parties;
+
+b) sublicense, sell, rent, lease, or otherwise distribute the Licensed Work except as expressly permitted in this License.
+
+4. Change License and Change Date
+---------------------------------
+On and after the Change Date, the Licensed Work (including any derivative works based on that version) will be licensed under the Change License.
+
+5. Termination
+--------------
+This License and the rights granted hereunder will terminate automatically if you fail to comply with any term(s) of this License.
+
+6. Disclaimer of Warranty
+-------------------------
+THE LICENSED WORK IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED.
+
+7. Limitation of Liability
+--------------------------
+IN NO EVENT SHALL LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM THE USE OF THE LICENSED WORK.
+
+---
+
+For the full Business Source License 1.1 text and FAQ, visit:
+https://mariadb.com/bsl11/
+
+For the full Mozilla Public License 2.0 text, visit:
+https://www.mozilla.org/en-US/MPL/2.0/
