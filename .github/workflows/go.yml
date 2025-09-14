@@ -5,6 +5,10 @@ name: Build and test
 
 on: [push]
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,6 +27,17 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version: 1.24
+
+    - id: 'auth'
+      uses: 'google-github-actions/auth@v3.0.0'
+      with:
+        workload_identity_provider: 'projects/602223566336/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+        service_account: caesura-test-sp@caesura-466820.iam.gserviceaccount.com
+
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v3.0.1
+      with:
+        version: '>=363.0.0'
 
     - name: Build
       run: go build -v ./...
