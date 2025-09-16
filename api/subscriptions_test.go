@@ -25,6 +25,10 @@ import (
 
 const webhookSecret = "whsec_test_123456"
 
+func isDependabot() bool {
+	return os.Getenv("GITHUB_ACTOR") == "dependabot[bot]"
+}
+
 func TestCheckoutSubscriptionHandle(t *testing.T) {
 	s := sessions.Session{
 		Values: make(map[any]any),
@@ -64,7 +68,10 @@ func TestCheckoutSubscriptionHandle(t *testing.T) {
 
 			key, ok := os.LookupEnv("CAESURA_STRIPE_SECRET_KEY")
 			ci := os.Getenv("CI")
-			if !ok && ci == "" {
+			if isDependabot() {
+				t.Skip("Dependabot has no access to secrets")
+				return
+			} else if !ok && ci == "" {
 				t.Skip("No secret key provided")
 				return
 			} else if !ok {
