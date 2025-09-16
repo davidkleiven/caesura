@@ -367,18 +367,18 @@ func PopulateSessionWithRoles(session *sessions.Session, userInfo *UserInfo) {
 }
 
 type User struct {
-	Id            string `json:"id"`
-	Email         string `json:"email,omitempty"`
-	VerifiedEmail bool   `json:"verified_email,omitempty"`
-	Name          string `json:"name,omitempty"`
+	Id            string `firestore:"id"`
+	Email         string `firestore:"email"`
+	VerifiedEmail bool   `firestore:"verified_email"`
+	Name          string `firestore:"name"`
 }
 
 type UserOrganizationLink struct {
-	UserId  string   `json:"userId"`
-	OrgId   string   `json:"orgId"`
-	Deleted bool     `json:"deleted"`
-	Role    RoleKind `json:"role"`
-	Groups  []string `json:"groups"`
+	UserId  string   `firestore:"userId"`
+	OrgId   string   `firestore:"orgId"`
+	Deleted bool     `firestore:"deleted"`
+	Role    RoleKind `firestore:"role"`
+	Groups  []string `firestore:"groups"`
 }
 
 type FlatUser struct {
