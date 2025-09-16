@@ -59,10 +59,10 @@ type ProjectMetaByIdGetter interface {
 }
 
 type Project struct {
-	Name        string    `json:"name"`
-	ResourceIds []string  `json:"resource_ids"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	Name        string    `json:"name" firestore:"name"`
+	ResourceIds []string  `json:"resource_ids" firestore:"resource_ids"`
+	CreatedAt   time.Time `json:"created_at" firestore:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" firestore:"updated_at"`
 }
 
 func (p *Project) Merge(other *Project) {
