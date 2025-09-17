@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"math/rand"
 	"net/http"
+	"reflect"
 
 	"github.com/davidkleiven/caesura/utils"
 	"github.com/gorilla/sessions"
@@ -41,8 +44,98 @@ func (u *UserInfo) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+func (u *UserInfo) ToFlat() *FlatUser {
+	user := User{
+		Id:            u.Id,
+		Name:          u.Name,
+		Email:         u.Email,
+		VerifiedEmail: u.VerifiedEmail,
+	}
+
+	orgLinks := make([]UserOrganizationLink, 0, len(u.Roles))
+	for orgId, role := range u.Roles {
+		groups, ok := u.Groups[orgId]
+		if !ok {
+			groups = []string{}
+		}
+		orgLink := UserOrganizationLink{
+			UserId:  u.Id,
+			OrgId:   orgId,
+			Role:    role,
+			Groups:  groups,
+			Deleted: false,
+		}
+		orgLinks = append(orgLinks, orgLink)
+	}
+	return &FlatUser{
+		User:         user,
+		UserOrgLinks: orgLinks,
+	}
+}
+
+func (u UserInfo) Generate(r *rand.Rand, size int) reflect.Value {
+	n := 10
+	names := make([]string, n)
+	orgIds := make([]string, n)
+	groups := make([]string, n)
+	ids := make([]string, n)
+	emails := make([]string, n)
+	roles := []RoleKind{RoleViewer, RoleEditor, RoleAdmin}
+	for i := range n {
+		names[i] = fmt.Sprintf("name%d", i)
+		orgIds[i] = fmt.Sprintf("org%d", i)
+		groups[i] = fmt.Sprintf("group%d", i)
+		ids[i] = fmt.Sprintf("userId%d", i)
+		emails[i] = fmt.Sprintf("user%d@gmail.com", i)
+	}
+
+	org := make(map[string]RoleKind)
+	numOrgs := r.Intn(size)
+	for range numOrgs {
+		orgId := orgIds[r.Intn(n)]
+		role := roles[r.Intn(len(roles))]
+		org[orgId] = role
+	}
+
+	groupsPerOrg := make(map[string][]string)
+	numGroups := r.Intn(size)
+	for range numGroups {
+		orgId := orgIds[r.Intn(n)]
+		numOrgGroups := r.Intn(size)
+		orgGroups := make([]string, numOrgGroups)
+		for j := range numOrgGroups {
+			orgGroups[j] = groups[r.Intn(n)]
+		}
+		groupsPerOrg[orgId] = orgGroups
+	}
+
+	user := UserInfo{
+		Name:          names[r.Intn(n)],
+		Id:            ids[r.Intn(n)],
+		VerifiedEmail: r.Int()%2 == 0,
+		Email:         emails[r.Intn(n)],
+		Roles:         org,
+		Groups:        groupsPerOrg,
+	}
+	return reflect.ValueOf(user)
+}
+
 func NewUserInfo() *UserInfo {
 	return &UserInfo{Roles: make(map[string]RoleKind), Groups: make(map[string][]string)}
+}
+
+func NewUserFromFlat(flatUser *FlatUser) *UserInfo {
+	user := NewUserInfo()
+	user.Id = flatUser.User.Id
+	user.Email = flatUser.User.Email
+	user.VerifiedEmail = flatUser.User.VerifiedEmail
+	user.Name = flatUser.User.Name
+
+	for _, link := range flatUser.UserOrgLinks {
+		user.Roles[link.OrgId] = link.Role
+		user.Groups[link.OrgId] = link.Groups
+	}
+	return user
 }
 
 type Organization struct {
@@ -271,4 +364,24 @@ func PopulateSessionWithRoles(session *sessions.Session, userInfo *UserInfo) {
 		session.Values["orgId"] = orgId
 		break
 	}
+}
+
+type User struct {
+	Id            string `json:"id"`
+	Email         string `json:"email,omitempty"`
+	VerifiedEmail bool   `json:"verified_email,omitempty"`
+	Name          string `json:"name,omitempty"`
+}
+
+type UserOrganizationLink struct {
+	UserId  string   `json:"userId"`
+	OrgId   string   `json:"orgId"`
+	Deleted bool     `json:"deleted"`
+	Role    RoleKind `json:"role"`
+	Groups  []string `json:"groups"`
+}
+
+type FlatUser struct {
+	User         User
+	UserOrgLinks []UserOrganizationLink
 }
