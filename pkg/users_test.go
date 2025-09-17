@@ -6,7 +6,9 @@ import (
 	"errors"
 	"net/http/httptest"
 	"reflect"
+	"slices"
 	"testing"
+	"testing/quick"
 
 	"github.com/davidkleiven/caesura/testutils"
 	"github.com/davidkleiven/caesura/utils"
@@ -217,4 +219,35 @@ func TestOrganizationFlowAbortedOnError(t *testing.T) {
 	if !errors.Is(registrationFlow.Error, err) {
 		t.Fatalf("Wanted '%s' got '%s'", err, registrationFlow.Error)
 	}
+}
+
+func TestFlatUserRoundTrip(t *testing.T) {
+	property := func(u UserInfo) bool {
+		flatUser := u.ToFlat()
+		recovered := NewUserFromFlat(flatUser)
+
+		fieldsAreEqual := (u.Id == recovered.Id &&
+			u.Email == recovered.Email &&
+			u.Name == recovered.Name &&
+			u.VerifiedEmail == recovered.VerifiedEmail)
+
+		// All organizations should have a group
+		for k := range recovered.Roles {
+			_, hasGroup := recovered.Groups[k]
+			if !hasGroup {
+				return false
+			}
+		}
+
+		// All groups which are non-empty should be equal
+		for k, v := range u.Groups {
+			other := recovered.Groups[k]
+			if len(other) > 0 && slices.Compare(other, v) != 0 {
+				return false
+			}
+		}
+
+		return fieldsAreEqual && reflect.DeepEqual(u.Roles, recovered.Roles)
+	}
+	testutils.AssertNil(t, quick.Check(property, nil))
 }
