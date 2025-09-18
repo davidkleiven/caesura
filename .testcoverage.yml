@@ -28,6 +28,8 @@ override:
   # (default is 80, as configured above in this example).
   - path: ^pkg/lib/foo$
     threshold: 100
+  - path: ^pkg/firestore_client\.go$
+    threshold: 70  # Has some tests that only run on main due to cloud integration
 
 # Holds regexp rules which will exclude matched files or packages
 # from coverage statistics.
