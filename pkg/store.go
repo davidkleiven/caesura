@@ -50,18 +50,18 @@ func (d Duration) String() string {
 }
 
 type MetaData struct {
-	Title           string      `json:"title"`
-	Composer        string      `json:"composer"`
-	Arranger        string      `json:"arranger"`
-	Genre           string      `json:"genre"`
-	Year            string      `json:"year"`
-	Instrumentation string      `json:"instrumentation"`
-	Duration        Duration    `json:"duration"`
-	Publisher       string      `json:"publisher"`
-	Isnm            string      `json:"ismn"`
-	Tags            string      `json:"tags"`
-	Notes           string      `json:"notes"`
-	Status          StoreStatus `json:"status"`
+	Title           string      `json:"title" firestore:"title"`
+	Composer        string      `json:"composer" firestore:"composer"`
+	Arranger        string      `json:"arranger" firestore:"arranger"`
+	Genre           string      `json:"genre" firestore:"genre"`
+	Year            string      `json:"year" firestore:"year"`
+	Instrumentation string      `json:"instrumentation" firestore:"instrumentation"`
+	Duration        Duration    `json:"duration" firestore:"duration"`
+	Publisher       string      `json:"publisher" firestore:"publisher"`
+	Ismn            string      `json:"ismn" firestore:"ismn"`
+	Tags            string      `json:"tags" firestore:"tags"`
+	Notes           string      `json:"notes" firestore:"notes"`
+	Status          StoreStatus `json:"status" firestore:"status"`
 }
 
 func (m *MetaData) ResourceId() string {
