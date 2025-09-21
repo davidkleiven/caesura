@@ -278,7 +278,7 @@ func TestMetaData_JSONRoundTrip(t *testing.T) {
 		Instrumentation: "Piano Trio",
 		Duration:        Duration(2*time.Minute + 30*time.Second),
 		Publisher:       "Jazz Press",
-		Isnm:            "979-0-060-11561-5",
+		Ismn:            "979-0-060-11561-5",
 		Tags:            "bebop,standard",
 		Notes:           "A jazz standard often played in jam sessions.",
 		Status:          StoreStatusFinished,
