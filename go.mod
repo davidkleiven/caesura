@@ -6,7 +6,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/gorilla/sessions v1.4.0
 	github.com/pdfcpu/pdfcpu v0.11.0
-	github.com/playwright-community/playwright-go v0.5200.0
+	github.com/playwright-community/playwright-go v0.5200.1
 	github.com/stripe/stripe-go/v82 v82.5.0
 	golang.org/x/oauth2 v0.31.0
 	golang.org/x/sync v0.17.0
