@@ -9,6 +9,7 @@ import (
 	"iter"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -442,4 +443,57 @@ func TestRegisterOrganization(t *testing.T) {
 		testutils.AssertEqual(t, org.Deleted, true)
 	})
 
+}
+
+func TestGoogleRegisterUser(t *testing.T) {
+	fsClient := NewLocalFirestoreClient()
+	store := GoogleStore{FsClient: fsClient}
+	userInfo := UserInfo{
+		Id: "test-user",
+		Roles: map[string]RoleKind{
+			"org1": RoleAdmin,
+			"org2": RoleEditor,
+		},
+		Groups: map[string][]string{
+			"org1": {"Saxophone", "Trombone"},
+			"org2": {"Trumpet"},
+		},
+	}
+
+	ctx := context.Background()
+	err := store.RegisterUser(ctx, &userInfo)
+	testutils.AssertNil(t, err)
+
+	// Put wrong object into the store such that DataTo fails
+	err = fsClient.StoreDocument(ctx, userCollection, userInfoDoc, "wrong-type", nil)
+	testutils.AssertNil(t, err)
+
+	t.Run("success", func(t *testing.T) {
+		receivedUser, err := store.GetUserInfo(ctx, "test-user")
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, receivedUser.Id, "test-user")
+		testutils.AssertEqual(t, receivedUser.Roles["org1"], RoleAdmin)
+		testutils.AssertEqual(t, receivedUser.Roles["org2"], RoleEditor)
+		testutils.AssertEqual(t, slices.Compare(receivedUser.Groups["org1"], []string{"Saxophone", "Trombone"}), 0)
+		testutils.AssertEqual(t, slices.Compare(receivedUser.Groups["org2"], []string{"Trumpet"}), 0)
+
+	})
+
+	t.Run("user-not-found", func(t *testing.T) {
+		receivedUser, err := store.GetUserInfo(ctx, "non-existing-user")
+		if err == nil {
+			t.Fatal("Wanted error")
+		}
+		testutils.AssertContains(t, err.Error(), "not find")
+		testutils.AssertEqual(t, receivedUser.Id, "")
+	})
+
+	t.Run("bad-data-entered", func(t *testing.T) {
+		receivedUser, err := store.GetUserInfo(ctx, "wrong-type")
+		if err == nil {
+			t.Fatal("Wanted error")
+		}
+		testutils.AssertContains(t, err.Error(), "LocalDocument")
+		testutils.AssertEqual(t, receivedUser.Id, "")
+	})
 }

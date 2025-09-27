@@ -13,6 +13,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/storage"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -21,6 +22,9 @@ const (
 	subscriptionCollection = "subscriptions"
 	organizationCollection = "organizations"
 	organizationInfo       = "info"
+	userCollection         = "users"
+	userInfoDoc            = "info"
+	userOrgLinkDoc         = "userOrganizationLinks"
 )
 
 type GoogleConfig struct {
@@ -278,6 +282,45 @@ func (g *GoogleStore) DeleteOrganization(ctx context.Context, orgId string) erro
 		organizationInfo,
 		orgId,
 		[]firestore.Update{{Path: "deleted", Value: true}})
+}
+
+func (g *GoogleStore) RegisterUser(ctx context.Context, userInfo *UserInfo) error {
+	flatUser := userInfo.ToFlat()
+	group, ctx := errgroup.WithContext(ctx)
+	group.Go(func() error {
+		return g.FsClient.StoreDocument(ctx, userCollection, userInfoDoc, flatUser.User.Id, flatUser.User)
+	})
+
+	for i := range flatUser.UserOrgLinks {
+		link := flatUser.UserOrgLinks[i]
+		group.Go(func() error {
+			lId := linkId(link.UserId, link.OrgId)
+			return g.FsClient.StoreDocument(ctx, userCollection, userOrgLinkDoc, lId, link)
+		})
+	}
+	return group.Wait()
+}
+
+func (g *GoogleStore) GetUserInfo(ctx context.Context, userId string) (*UserInfo, error) {
+	doc, err := g.FsClient.GetDoc(ctx, userCollection, userInfoDoc, userId)
+	if err != nil {
+		return &UserInfo{}, err
+	}
+
+	var user User
+	if err := doc.DataTo(&user); err != nil {
+		return &UserInfo{}, err
+	}
+
+	collector := NewValidCollector[UserOrganizationLink]()
+	for item := range g.FsClient.GetDocByPrefix(ctx, userCollection, userOrgLinkDoc, "userId", user.Id) {
+		collector.Push(item)
+	}
+	flat := FlatUser{
+		User:         user,
+		UserOrgLinks: collector.Items,
+	}
+	return NewUserFromFlat(&flat), collector.Err
 }
 
 func firebaseSearchString(s string) string {
