@@ -9,6 +9,7 @@ import (
 	"path"
 	"reflect"
 	"strings"
+	"sync"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
@@ -73,10 +74,13 @@ func logOnErrorNotDone(err error) {
 }
 
 type LocalFirestoreClient struct {
+	mu   sync.Mutex
 	data map[string]any
 }
 
 func (l *LocalFirestoreClient) StoreDocument(ctx context.Context, dataset, orgId, itemId string, data any) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	l.data[path.Join(dataset, orgId, itemId)] = data
 	return nil
 }
