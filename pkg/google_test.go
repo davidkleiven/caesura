@@ -8,6 +8,7 @@ import (
 	"io"
 	"iter"
 	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -407,4 +408,38 @@ func TestGoogleSubscriptions(t *testing.T) {
 		}
 		testutils.AssertEqual(t, res.Id, "")
 	})
+}
+
+func TestRegisterOrganization(t *testing.T) {
+	localClient := NewLocalFirestoreClient()
+	store := GoogleStore{FsClient: localClient}
+	org := Organization{Id: "my-org"}
+	ctx := context.Background()
+	err := store.RegisterOrganization(ctx, &org)
+	testutils.AssertNil(t, err)
+
+	t.Run("success", func(t *testing.T) {
+		receivedOrg, err := store.GetOrganization(ctx, "my-org")
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, receivedOrg.Id, "my-org")
+	})
+
+	t.Run("failure", func(t *testing.T) {
+		receivedOrg, err := store.GetOrganization(ctx, "non-existent-org")
+		if err == nil {
+			t.Fatal("Wanted error")
+		}
+		testutils.AssertEqual(t, receivedOrg.Id, "")
+	})
+
+	t.Run("delete", func(t *testing.T) {
+		err := store.DeleteOrganization(ctx, "my-org")
+		testutils.AssertNil(t, err)
+		deletedOrg, ok := localClient.data[filepath.Join(organizationCollection, organizationInfo, "my-org")]
+		testutils.AssertEqual(t, ok, true)
+		org, ok := deletedOrg.(*Organization)
+		testutils.AssertEqual(t, ok, true)
+		testutils.AssertEqual(t, org.Deleted, true)
+	})
+
 }
