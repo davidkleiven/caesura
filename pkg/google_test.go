@@ -382,3 +382,29 @@ func TestGoogleItem(t *testing.T) {
 		testutils.AssertEqual(t, len(readContent), 0)
 	})
 }
+
+func TestGoogleSubscriptions(t *testing.T) {
+	store := GoogleStore{FsClient: NewLocalFirestoreClient()}
+	sub := Subscription{Id: "my-sub"}
+	ctx := context.Background()
+
+	t.Run("success", func(t *testing.T) {
+		err := store.StoreSubscription(ctx, "org", &sub)
+		testutils.AssertNil(t, err)
+
+		res, err := store.GetSubscription(ctx, "org")
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, res.Id, sub.Id)
+	})
+
+	t.Run("failure", func(t *testing.T) {
+		err := store.StoreSubscription(ctx, "org", &sub)
+		testutils.AssertNil(t, err)
+
+		res, err := store.GetSubscription(ctx, "non-existent")
+		if err == nil {
+			t.Fatal("Wanted error")
+		}
+		testutils.AssertEqual(t, res.Id, "")
+	})
+}
