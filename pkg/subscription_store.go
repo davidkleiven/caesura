@@ -6,11 +6,11 @@ import (
 )
 
 type Subscription struct {
-	Id        string    `json:"id"`
-	PriceId   string    `json:"priceId"`
-	Created   time.Time `json:"created"`
-	Expires   time.Time `json:"expires"`
-	MaxScores int       `json:"maxScores"`
+	Id        string    `json:"id" firestore:"id"`
+	PriceId   string    `json:"priceId" firestore:"priceId"`
+	Created   time.Time `json:"created" firestore:"created"`
+	Expires   time.Time `json:"expires" firestore:"expires"`
+	MaxScores int       `json:"maxScores" firestore:"maxScores"`
 }
 
 type SubscriptionStorer interface {

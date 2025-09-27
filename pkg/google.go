@@ -16,8 +16,10 @@ import (
 )
 
 const (
-	metaDataCollection = "metadata"
-	projectCollection  = "projects"
+	metaDataCollection     = "metadata"
+	projectCollection      = "projects"
+	subscriptionCollection = "subscriptions"
+	organizationCollection = "organizations"
 )
 
 type GoogleConfig struct {
@@ -238,6 +240,20 @@ func (g *GoogleStore) Item(ctx context.Context, path string) ([]byte, error) {
 	}
 	defer content.Close()
 	return io.ReadAll(content)
+}
+
+func (g *GoogleStore) StoreSubscription(ctx context.Context, orgId string, subscription *Subscription) error {
+	return g.FsClient.StoreDocument(ctx, organizationCollection, subscriptionCollection, orgId, subscription)
+}
+
+func (g *GoogleStore) GetSubscription(ctx context.Context, orgId string) (*Subscription, error) {
+	doc, err := g.FsClient.GetDoc(ctx, organizationCollection, subscriptionCollection, orgId)
+	var sub Subscription
+	if err != nil {
+		return &sub, err
+	}
+	err = doc.DataTo(&sub)
+	return &sub, err
 }
 
 func firebaseSearchString(s string) string {
