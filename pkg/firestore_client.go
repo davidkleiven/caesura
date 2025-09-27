@@ -134,6 +134,17 @@ func (l *LocalFirestoreClient) Update(ctx context.Context, dataset, orgId, itemI
 			slog.Warn("LocalFirebase client always removes the last item")
 			item.ResourceIds = item.ResourceIds[:len(item.ResourceIds)-1]
 			l.data[location] = item
+		case "deleted":
+			item, ok := l.data[location].(*Organization)
+			if !ok {
+				return errors.New("could not convert item to organization")
+			}
+			value, ok := u.Value.(bool)
+			if !ok {
+				return errors.New("could not convert value to 'bool'")
+			}
+			item.Deleted = value
+			l.data[location] = item
 		}
 	}
 	return nil

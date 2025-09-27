@@ -20,6 +20,7 @@ const (
 	projectCollection      = "projects"
 	subscriptionCollection = "subscriptions"
 	organizationCollection = "organizations"
+	organizationInfo       = "info"
 )
 
 type GoogleConfig struct {
@@ -254,6 +255,29 @@ func (g *GoogleStore) GetSubscription(ctx context.Context, orgId string) (*Subsc
 	}
 	err = doc.DataTo(&sub)
 	return &sub, err
+}
+
+func (g *GoogleStore) RegisterOrganization(ctx context.Context, org *Organization) error {
+	return g.FsClient.StoreDocument(ctx, organizationCollection, organizationInfo, org.Id, org)
+}
+
+func (g *GoogleStore) GetOrganization(ctx context.Context, orgId string) (Organization, error) {
+	var org Organization
+	doc, err := g.FsClient.GetDoc(ctx, organizationCollection, organizationInfo, orgId)
+	if err != nil {
+		return org, err
+	}
+	err = doc.DataTo(&org)
+	return org, err
+}
+
+func (g *GoogleStore) DeleteOrganization(ctx context.Context, orgId string) error {
+	return g.FsClient.Update(
+		ctx,
+		organizationCollection,
+		organizationInfo,
+		orgId,
+		[]firestore.Update{{Path: "deleted", Value: true}})
 }
 
 func firebaseSearchString(s string) string {

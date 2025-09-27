@@ -31,7 +31,7 @@ func TestErrorOnUnsupportedUpdate(t *testing.T) {
 }
 
 func TestAllFirestoreRecordsHasFirestoreTag(t *testing.T) {
-	objs := []any{Project{}, MetaData{}, User{}, UserOrganizationLink{}, Subscription{}}
+	objs := []any{Project{}, MetaData{}, User{}, UserOrganizationLink{}, Subscription{}, Organization{}}
 	for _, item := range objs {
 		tp := reflect.TypeOf(item)
 		for i := range tp.NumField() {
