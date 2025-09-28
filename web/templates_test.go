@@ -207,3 +207,19 @@ func TestSignedIn(t *testing.T) {
 func TestNoOrganization(t *testing.T) {
 	testutils.AssertEqual(t, NoOrganization("en"), "No organization")
 }
+
+func TestLoginForm(t *testing.T) {
+	var buf bytes.Buffer
+	LoginForm(&buf, "en")
+	testutils.AssertContains(t, buf.String(), "Caesura")
+}
+
+func TestUserNotFound(t *testing.T) {
+	var buf bytes.Buffer
+	UserNotFound(&buf, "en", "john@example.com")
+	testutils.AssertContains(t, buf.String(), "john@example.com")
+}
+
+func TestSuccessfulLogin(t *testing.T) {
+	testutils.AssertContains(t, SuccessfulLogin("en"), "success")
+}
