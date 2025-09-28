@@ -323,6 +323,26 @@ func (g *GoogleStore) GetUserInfo(ctx context.Context, userId string) (*UserInfo
 	return NewUserFromFlat(&flat), collector.Err
 }
 
+func (g *GoogleStore) RegisterGroup(ctx context.Context, userId, orgId, group string) error {
+	return g.FsClient.Update(
+		ctx,
+		userCollection,
+		userOrgLinkDoc,
+		linkId(userId, orgId),
+		[]firestore.Update{{Path: "groups", Value: firestore.ArrayUnion(group)}},
+	)
+}
+
+func (g *GoogleStore) RemoveGroup(ctx context.Context, userId, orgId, group string) error {
+	return g.FsClient.Update(
+		ctx,
+		userCollection,
+		userOrgLinkDoc,
+		linkId(userId, orgId),
+		[]firestore.Update{{Path: "groups", Value: firestore.ArrayRemove(group)}},
+	)
+}
+
 func firebaseSearchString(s string) string {
 	s = strings.ToLower(s)
 	s = strings.TrimPrefix(s, "the")

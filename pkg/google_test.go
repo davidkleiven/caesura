@@ -497,3 +497,31 @@ func TestGoogleRegisterUser(t *testing.T) {
 		testutils.AssertEqual(t, receivedUser.Id, "")
 	})
 }
+
+func TestGoogleGroupRegistration(t *testing.T) {
+	fsClient := NewLocalFirestoreClient()
+	store := GoogleStore{FsClient: fsClient}
+	user := UserInfo{
+		Id:     "user-id",
+		Roles:  map[string]RoleKind{"org1": RoleEditor},
+		Groups: map[string][]string{"org1": {"group1"}},
+	}
+
+	ctx := context.Background()
+	err := store.RegisterUser(ctx, &user)
+	testutils.AssertNil(t, err)
+
+	err = store.RegisterGroup(ctx, "user-id", "org1", "some-new-group")
+	testutils.AssertNil(t, err)
+
+	receivedUser, err := store.GetUserInfo(ctx, "user-id")
+	testutils.AssertNil(t, err)
+	testutils.AssertEqual(t, len(receivedUser.Groups["org1"]), 2)
+
+	err = store.RemoveGroup(ctx, "user-id", "org1", "some-new-group")
+	testutils.AssertNil(t, err)
+
+	receivedUser, err = store.GetUserInfo(ctx, "user-id")
+	testutils.AssertNil(t, err)
+	testutils.AssertEqual(t, len(receivedUser.Groups["org1"]), 1)
+}
