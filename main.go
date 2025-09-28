@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"cloud.google.com/go/firestore"
+	"cloud.google.com/go/storage"
 	"github.com/davidkleiven/caesura/api"
 	"github.com/davidkleiven/caesura/pkg"
 	"github.com/gorilla/sessions"
@@ -18,10 +20,33 @@ import (
 
 func main() {
 	cfgFile := os.Getenv("CAESURA_CONFIG")
+
 	config, err := pkg.LoadConfig(cfgFile)
 	if err != nil {
 		slog.Error("Failed to load configuration", "error", err)
 		os.Exit(1)
+	}
+
+	if config.StoreType == pkg.GoogleCloud {
+		backgroundCtx := context.Background()
+		googleConfig := pkg.LoadGoogleConfig()
+		firestoreClient, err := firestore.NewClient(backgroundCtx, googleConfig.ProjectId)
+		if err != nil {
+			slog.Error("Failed to create firestore client", "error", err)
+			os.Exit(1)
+		}
+		defer firestoreClient.Close()
+
+		cloudStoreClient, err := storage.NewClient(backgroundCtx)
+		if err != nil {
+			slog.Error("Failed to create cloud storage client", "error", err)
+			os.Exit(1)
+		}
+		defer cloudStoreClient.Close()
+
+		config.GoogleClients.FirestoreClient = firestoreClient
+		config.GoogleClients.CloudStoreClient = cloudStoreClient
+		config.GoogleCfg = *googleConfig
 	}
 
 	if err := config.Validate(); err != nil {

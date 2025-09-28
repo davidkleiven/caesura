@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/davidkleiven/caesura/testutils"
 )
 
 func TestDefaultConfigIsValid(t *testing.T) {
@@ -190,4 +192,12 @@ func TestOAuthGetter(t *testing.T) {
 	if config.GoogleAuthClientId != oauth.ClientID {
 		t.Fatalf("Wanted %s got %s", config.GoogleAuthClientId, oauth.ClientID)
 	}
+}
+
+func TestGetGoogleStoreFromConfig(t *testing.T) {
+	config := NewDefaultConfig()
+	config.StoreType = GoogleCloud
+	store := GetStore(config)
+	_, ok := store.(*GoogleStore)
+	testutils.AssertEqual(t, ok, true)
 }

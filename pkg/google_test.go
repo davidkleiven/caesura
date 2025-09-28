@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"iter"
+	"os"
 	"path"
 	"path/filepath"
 	"slices"
@@ -565,4 +566,95 @@ func TestGoogleDeleteRole(t *testing.T) {
 	_, hasRole := receivedUser.Roles["org1"]
 	testutils.AssertEqual(t, hasRole, false)
 
+}
+
+func TestUniqueErrors(t *testing.T) {
+	errs := []error{nil, nil}
+	testutils.AssertNil(t, uniqueErrors(errs))
+
+	myErr := errors.New("my error")
+	errs = append(errs, myErr)
+	errs = append(errs, myErr)
+	all := uniqueErrors(errs)
+	testutils.AssertEqual(t, all.Error(), "my error")
+}
+
+func TestGoogleGetUsersInOrg(t *testing.T) {
+	store := GoogleStore{FsClient: NewLocalFirestoreClient()}
+	ctx := context.Background()
+	for i := range 6 {
+		orgId := fmt.Sprintf("org%d", i%2)
+		user := UserInfo{
+			Id:    fmt.Sprintf("user%d", i),
+			Roles: map[string]RoleKind{orgId: RoleEditor},
+		}
+
+		err := store.RegisterUser(ctx, &user)
+		testutils.AssertNil(t, err)
+	}
+
+	usersInOrg, err := store.GetUsersInOrg(ctx, "org1")
+	testutils.AssertNil(t, err)
+	testutils.AssertEqual(t, len(usersInOrg), 3)
+}
+
+func TestGoogleResourceItemNames(t *testing.T) {
+	store := GoogleStore{
+		BucketClient: NewLocalBucketClient(),
+		FsClient:     NewLocalFirestoreClient(),
+		Config:       NewTestConfig(),
+	}
+	content := func(yield func(n string, b []byte) bool) {
+		yield("part.pdf", []byte("content"))
+	}
+
+	ctx := context.Background()
+	for i := range 3 {
+		meta := MetaData{Title: fmt.Sprintf("%d my song", i)}
+		err := store.Submit(ctx, "org", &meta, content)
+		testutils.AssertNil(t, err)
+	}
+
+	names, err := store.ResourceItemNames(ctx, "org/2m")
+	testutils.AssertNil(t, err)
+	testutils.AssertEqual(t, len(names), 1)
+	testutils.AssertEqual(t, names[0], "caesura-test/org/2mysong/part.pdf")
+}
+
+func TestLoadGoogleConfig(t *testing.T) {
+	env := map[string]string{
+		"CAESURA_BUCKET":             "my-bucket",
+		"CAESURA_PROJECT_ID":         "my-project-id",
+		"CAESURA_GOOGLE_ENVIRONMENT": "staging",
+	}
+	origValues := make(map[string]string)
+	for key := range env {
+		value, ok := os.LookupEnv(key)
+		if ok {
+			origValues[key] = value
+		}
+	}
+
+	defer func() {
+		for key := range env {
+			orig, ok := origValues[key]
+			if ok {
+				os.Setenv(key, orig)
+			} else {
+				os.Unsetenv(key)
+			}
+		}
+	}()
+
+	for key, value := range env {
+		os.Setenv(key, value)
+	}
+
+	config := LoadGoogleConfig()
+	want := GoogleConfig{
+		Bucket:      "my-bucket",
+		ProjectId:   "my-project-id",
+		Environment: "staging",
+	}
+	testutils.AssertEqual(t, *config, want)
 }

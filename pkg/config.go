@@ -12,12 +12,16 @@ import (
 	"strconv"
 	"time"
 
+	"cloud.google.com/go/firestore"
+	"cloud.google.com/go/storage"
 	"github.com/davidkleiven/caesura/utils"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"gopkg.in/yaml.v2"
 )
+
+const GoogleCloud = "google-cloud"
 
 type LocalFSStoreConfig struct {
 	Directory string `yaml:"directory"`
@@ -29,6 +33,11 @@ type Smtp struct {
 	Host   string `yaml:"host"`
 	Port   string `yaml:"port"`
 	SendFn SendFunc
+}
+
+type GoogleClientContainer struct {
+	FirestoreClient  *firestore.Client
+	CloudStoreClient *storage.Client
 }
 
 type Config struct {
@@ -49,7 +58,9 @@ type Config struct {
 	StripeSecretKey          string             `yaml:"stripe_secret_key" env:"CAESURA_STRIPE_SECRET_KEY"`
 	StripeWebhookSignSecret  string             `yaml:"stripe_webhook_sign_secret" env:"CAESURA_STRIPE_WEBHOOK_SIGN_SECRET"`
 	RequireSubscription      bool               `yaml:"require_subscription" env:"CAUSURA_REQUIRE_SUBSCRIPTION"`
+	GoogleCfg                GoogleConfig       `yaml:"google_config"`
 	Transport                http.RoundTripper
+	GoogleClients            GoogleClientContainer
 }
 
 func (c *Config) Validate() error {
@@ -182,6 +193,13 @@ func GetStore(config *Config) Store {
 	switch config.StoreType {
 	case "small-demo":
 		return NewDemoStore()
+	case GoogleCloud:
+		return &GoogleStore{
+			FsClient: &GoogleFirestoreClient{
+				client:      config.GoogleClients.FirestoreClient,
+				environment: config.GoogleCfg.Environment},
+			BucketClient: &GCSBucketClient{client: config.GoogleClients.CloudStoreClient},
+		}
 	default:
 		return NewMultiOrgInMemoryStore()
 	}
