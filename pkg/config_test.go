@@ -117,10 +117,13 @@ func TestDefaultConfigWhenInvalidYamlContent(t *testing.T) {
 
 func TestGetStore(t *testing.T) {
 	config := NewDefaultConfig()
-	config.StoreType = "in-memory"
-	store := GetStore(config)
-	if _, ok := store.(*MultiOrgInMemoryStore); !ok {
-		t.Fatalf("expected store to be of type InMemoryStore, got %T", store)
+
+	for _, storeType := range []string{"in-memory", "small-demo"} {
+		config.StoreType = storeType
+		store := GetStore(config)
+		if _, ok := store.(*MultiOrgInMemoryStore); !ok {
+			t.Fatalf("expected store to be of type InMemoryStore, got %T", store)
+		}
 	}
 }
 
