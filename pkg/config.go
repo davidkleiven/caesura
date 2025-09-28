@@ -178,8 +178,10 @@ func LoadConfig(configFile string) (*Config, error) {
 	return OverrideFromEnv(config, FileEnvGetter(config.SecretsPath)), nil
 }
 
-func GetStore(config *Config) BlobStore {
+func GetStore(config *Config) Store {
 	switch config.StoreType {
+	case "small-demo":
+		return NewDemoStore()
 	default:
 		return NewMultiOrgInMemoryStore()
 	}
