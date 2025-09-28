@@ -343,6 +343,16 @@ func (g *GoogleStore) RemoveGroup(ctx context.Context, userId, orgId, group stri
 	)
 }
 
+func (g *GoogleStore) RegisterRole(ctx context.Context, userId string, organizationId string, role RoleKind) error {
+	return g.FsClient.Update(
+		ctx,
+		userCollection,
+		userOrgLinkDoc,
+		linkId(userId, organizationId),
+		[]firestore.Update{{Path: "role", Value: role}},
+	)
+}
+
 func firebaseSearchString(s string) string {
 	s = strings.ToLower(s)
 	s = strings.TrimPrefix(s, "the")
