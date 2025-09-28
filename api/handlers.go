@@ -1143,6 +1143,7 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("POST /organizations/recipent", adminRoute(RegisterRecipent(store, config.Timeout)))
 	mux.Handle("POST /organizations/users/{id}/groups", readRoute(GroupHandler(store, config.Timeout)))
 	mux.Handle("DELETE /organizations/users/{id}/groups", readRoute(GroupHandler(store, config.Timeout)))
+	mux.Handle("POST /organizations/users/{id}/role", adminRoute(AssignRoleHandler(store, config.Timeout)))
 
 	mux.Handle("GET /session/active-organization/name", requireAuthSession(ActiveOrganization(store, config.Timeout)))
 	mux.Handle("GET /session/logged-in", requireAuthSession(http.HandlerFunc(LoggedIn)))
