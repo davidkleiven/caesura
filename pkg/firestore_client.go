@@ -149,6 +149,22 @@ func (l *LocalFirestoreClient) Update(ctx context.Context, dataset, orgId, itemI
 			}
 			item.Deleted = value
 			l.data[location] = item
+		case "groups":
+			item, ok := l.data[location].(UserOrganizationLink)
+			if !ok {
+				return errors.New("could not convert to 'UserOrganizationLink'")
+			}
+
+			updateName := reflect.TypeOf(u.Value).Name()
+			switch updateName {
+			case "arrayUnion":
+				item.Groups = append(item.Groups, "new-group")
+			case "arrayRemove":
+				item.Groups = slices.DeleteFunc(item.Groups, func(n string) bool { return n == "new-group" })
+			default:
+				return fmt.Errorf("Unknown name %s", updateName)
+			}
+			l.data[location] = item
 		}
 	}
 	return nil
