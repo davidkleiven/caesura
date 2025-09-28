@@ -165,6 +165,18 @@ func (l *LocalFirestoreClient) Update(ctx context.Context, dataset, orgId, itemI
 				return fmt.Errorf("Unknown name %s", updateName)
 			}
 			l.data[location] = item
+		case "role":
+			item, ok := l.data[location].(UserOrganizationLink)
+			if !ok {
+				return errors.New("could not convert to 'UserOrganizationLink'")
+			}
+
+			role, ok := u.Value.(RoleKind)
+			if !ok {
+				return errors.New("could not convert value to 'RoleKind'")
+			}
+			item.Role = role
+			l.data[location] = item
 		}
 	}
 	return nil
