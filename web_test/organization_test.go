@@ -114,7 +114,7 @@ func TestOrganizationPage(t *testing.T) {
 
 			inviteLinkResp, err := client.Get(data.InviteLink)
 			testutils.AssertNil(t, err)
-			testutils.AssertEqual(t, inviteLinkResp.StatusCode, http.StatusTemporaryRedirect)
+			testutils.AssertEqual(t, inviteLinkResp.StatusCode, http.StatusOK)
 		})
 
 		// Set up listeners to keep track of all sequence of calls

@@ -190,6 +190,11 @@ type BasicAuthRoleStore interface {
 	UserByEmailGetter
 }
 
+type BasicAuthUserRegisterer interface {
+	UserRegisterer
+	UserByEmailGetter
+}
+
 type OrganizationGetter interface {
 	GetOrganization(ctx context.Context, orgId string) (Organization, error)
 }
