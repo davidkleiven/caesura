@@ -403,6 +403,16 @@ func (g *GoogleStore) ResourceItemNames(ctx context.Context, resourceId string) 
 	}
 }
 
+func (g *GoogleStore) UserByEmail(ctx context.Context, email string) (UserInfo, error) {
+	var user User
+	for doc := range g.FsClient.GetDocByPrefix(ctx, userCollection, userInfoDoc, "email", email) {
+		doc.DataTo(&user)
+		break
+	}
+	u, err := g.GetUserInfo(ctx, user.Id)
+	return *u, err
+}
+
 func uniqueErrors(possibleErrors []error) error {
 	errs := make(map[error]struct{})
 	for _, err := range possibleErrors {

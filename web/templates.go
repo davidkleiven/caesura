@@ -307,3 +307,54 @@ func SubscriptionExpires(lang string) string {
 func MaxNumScoresReached(lang string) string {
 	return translator.MustGet(lang, "org.max-num-scores-reached")
 }
+
+func LoginForm(w io.Writer, language string) {
+	tmpl := template.Must(
+		template.New("login").
+			Funcs(template.FuncMap{"T": translateFunc(language)}).
+			ParseFS(templatesFS, "templates/login.html", "templates/header.html", "templates/footer.html"),
+	)
+
+	pkg.PanicOnErr(tmpl.ExecuteTemplate(w, "login", LoadDependencies()))
+}
+
+func MinimumPasswordLength(lang string) string {
+	return translator.MustGet(lang, "login.minimum_password_length")
+}
+
+func UserNotFound(w io.Writer, lang string, email string) {
+	templText := translator.MustGet(lang, "login.user_not_found")
+	templ := utils.Must(template.New("msg").Parse(templText))
+
+	data := struct {
+		Email string
+	}{
+		Email: email,
+	}
+	pkg.PanicOnErr(templ.Execute(w, data))
+}
+
+func SuccessfulLogin(lang string) string {
+	return translator.MustGet(lang, "login.success")
+}
+
+func UserAlreadyExist(w io.Writer, lang, email string) {
+	templText := translator.MustGet(lang, "login.user_exists")
+	templ := utils.Must(template.New("msg").Parse(templText))
+
+	data := struct {
+		Email string
+	}{
+		Email: email,
+	}
+	pkg.PanicOnErr(templ.Execute(w, data))
+
+}
+
+func PasswordAndRetypedPasswordMustMatch(lang string) string {
+	return translator.MustGet(lang, "login.password_must_match")
+}
+
+func Unauthorized(lang string) string {
+	return translator.MustGet(lang, "login.unauthorized")
+}

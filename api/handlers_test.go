@@ -1296,7 +1296,7 @@ func TestInviteLinkAddedToSession(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/login?invite-token=ddaa", nil)
-	handler := RequireSession(cookie, AuthSession, &opt)(HandleGoogleLogin(pkg.NewDefaultConfig().OAuthConfig()))
+	handler := RequireSession(cookie, AuthSession, &opt)(http.HandlerFunc(LoginHandler))
 	handler.ServeHTTP(recorder, request)
 
 	session, err := cookie.Get(request, AuthSession)
@@ -2524,4 +2524,96 @@ func TestEmailFetchError(t *testing.T) {
 	handler(rec, req.WithContext(ctx))
 
 	testutils.AssertEqual(t, rec.Code, http.StatusInternalServerError)
+}
+
+func TestLoginHandlerReturnInternalServerError(t *testing.T) {
+	store := errorStore{}
+	req := httptest.NewRequest("GET", "/login?invite-token=daa", nil)
+	rec := httptest.NewRecorder()
+
+	session, err := store.Get(req, AuthSession)
+	ctx := context.WithValue(context.Background(), sessionKey, session)
+	testutils.AssertNil(t, err)
+	LoginHandler(rec, req.WithContext(ctx))
+	testutils.AssertEqual(t, rec.Code, http.StatusInternalServerError)
+}
+
+func TestLoginByPasswordErrorOnTooLargeRequest(t *testing.T) {
+	store := pkg.NewMultiOrgInMemoryStore()
+	handler := LoginByPassword(store, "secret", time.Second)
+
+	body := bytes.Repeat([]byte("b"), 4096)
+	req := httptest.NewRequest("POST", "/login", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	rec := httptest.NewRecorder()
+	handler(rec, req)
+	testutils.AssertEqual(t, rec.Code, http.StatusRequestEntityTooLarge)
+}
+
+func TestRegisterUserAndLogin(t *testing.T) {
+	store := pkg.NewMultiOrgInMemoryStore()
+	handler := LoginByPassword(store, "secret", time.Second)
+	cookieStore := sessions.NewCookieStore([]byte("sign-key"))
+
+	form := url.Values{}
+	form.Add("email", "john@example.com")
+	form.Add("password", "johns-password")
+	form.Add("retyped", "johns-password")
+
+	// Register user
+	req := httptest.NewRequest("POST", "/login", bytes.NewBufferString(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	withSession := RequireSession(cookieStore, AuthSession, &sessions.Options{})(handler)
+
+	rec := httptest.NewRecorder()
+	withSession.ServeHTTP(rec, req)
+	testutils.AssertEqual(t, rec.Code, http.StatusOK)
+	testutils.AssertEqual(t, len(store.Users), 1)
+
+	// Login with correct username and password
+	t.Run("Successful login", func(t *testing.T) {
+		form.Del("retyped")
+		req = httptest.NewRequest("POST", "/login", bytes.NewBufferString(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		loginRec := httptest.NewRecorder()
+		withSession.ServeHTTP(loginRec, req)
+		testutils.AssertEqual(t, loginRec.Code, http.StatusOK)
+	})
+
+	t.Run("Wrong password", func(t *testing.T) {
+		form := url.Values{}
+		form.Add("email", "john@example.com")
+		form.Add("password", "wrong-password")
+		req = httptest.NewRequest("POST", "/login", bytes.NewBufferString(form.Encode()))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+		loginRec := httptest.NewRecorder()
+		withSession.ServeHTTP(loginRec, req)
+		testutils.AssertEqual(t, loginRec.Code, http.StatusOK)
+		testutils.AssertContains(t, loginRec.Body.String(), "password is not valid")
+	})
+}
+
+func TestLoginByUserFailToInitSession(t *testing.T) {
+	store := pkg.NewMultiOrgInMemoryStore()
+	cookieStore := brokenSessionStore{}
+
+	form := url.Values{}
+	form.Add("email", "john@example.com")
+	form.Add("password", "pass")
+	form.Add("retyped", "pass")
+
+	req := httptest.NewRequest("POST", "/login", bytes.NewBufferString(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	handler := LoginByPassword(store, "sign-secret", time.Second)
+	session, err := cookieStore.New(req, AuthSession)
+	testutils.AssertNil(t, err)
+	ctx := context.WithValue(context.Background(), sessionKey, session)
+
+	rec := httptest.NewRecorder()
+	handler(rec, req.WithContext(ctx))
+	testutils.AssertContains(t, rec.Body.String(), "broken session store")
 }

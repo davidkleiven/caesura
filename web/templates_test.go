@@ -207,3 +207,37 @@ func TestSignedIn(t *testing.T) {
 func TestNoOrganization(t *testing.T) {
 	testutils.AssertEqual(t, NoOrganization("en"), "No organization")
 }
+
+func TestLoginForm(t *testing.T) {
+	var buf bytes.Buffer
+	LoginForm(&buf, "en")
+	testutils.AssertContains(t, buf.String(), "Caesura")
+}
+
+func TestUserNotFound(t *testing.T) {
+	var buf bytes.Buffer
+	UserNotFound(&buf, "en", "john@example.com")
+	testutils.AssertContains(t, buf.String(), "john@example.com")
+}
+
+func TestSuccessfulLogin(t *testing.T) {
+	testutils.AssertContains(t, SuccessfulLogin("en"), "success")
+}
+
+func TestUserAlreadyExists(t *testing.T) {
+	var buf bytes.Buffer
+	UserAlreadyExist(&buf, "en", "john@example.com")
+	testutils.AssertEqual(t, buf.String(), "User john@example.com already exists")
+}
+
+func TestPasswordAndRetypeMustMatch(t *testing.T) {
+	txt := PasswordAndRetypedPasswordMustMatch("en")
+	testutils.AssertEqual(t, txt, "Passwords does not match")
+}
+
+func TestUnauthorized(t *testing.T) {
+	txt := Unauthorized("en")
+	testutils.AssertEqual(t, txt, "Email or password is not valid")
+	testutils.AssertEqual(t, txt, "Email or password is not valid")
+	testutils.AssertEqual(t, txt, "Email or password is not valid")
+}

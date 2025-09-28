@@ -36,6 +36,21 @@ en:
   index.wherever: wherever they are
   index.with-pre-caesura: With
   loading: Loading
+  login.forgot_password: "Forgot password?"
+  login.google: Sign in with Google
+  login.header: Login to Your Account
+  login.login: "Login"
+  login.or: or
+  login.password: Password
+  login.password_must_match: "Passwords does not match"
+  login.register_new: Register new user
+  login.retype_password: Retype password
+  login.success: "Login success"
+  login.unauthorized: Email or password is not valid
+  login.username: Username
+  login.user_exists: "User {{.Email}} already exists"
+  login.user_not_found: "User with email {{.Email}} not found"
+  login.minimum_password_length: "The provided password is too short. Minimum length:"
   monthly: Monthly
   nav.contact: Contact
   nav.home: Home
@@ -159,6 +174,21 @@ nb:
   index.wherever: hvor enn de er
   index.with-pre-caesura: Med
   loading: Laster
+  login.forgot_password: "Glemt passordet?"
+  login.google: Logg inn med Google
+  login.header: Logg inn
+  login.login: "Logg inn"
+  login.or: eller
+  login.password: Passord
+  login.password_must_match: "Passord og passordkontroll er ikke like"
+  login.register_new: Registrer ny bruker
+  login.retype_password: Skriv passordet på nytt
+  login.success: Innlogging OK
+  login.unauthorized: Epost eller passord er ikke riktig
+  login.username: Brukernavn
+  login.user_exists: "Bruker med epost {{.Email}} finnes allerede"
+  login.user_not_found: "Kunne ikke finne brukere med epost {{.Email}}"
+  login.minimum_password_length: "Passordet er for kort. Minste lengde: "
   monthly: Månedlig
   nav.contact: Kontakt
   nav.home: Hjem
