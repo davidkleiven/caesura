@@ -353,6 +353,10 @@ func (g *GoogleStore) RegisterRole(ctx context.Context, userId string, organizat
 	)
 }
 
+func (g *GoogleStore) DeleteRole(ctx context.Context, userId, orgId string) error {
+	return g.FsClient.DeleteDoc(ctx, userCollection, userOrgLinkDoc, linkId(userId, orgId))
+}
+
 func firebaseSearchString(s string) string {
 	s = strings.ToLower(s)
 	s = strings.TrimPrefix(s, "the")
