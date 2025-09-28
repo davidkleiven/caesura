@@ -120,7 +120,7 @@ func OverrideFromFile(filePath string, config *Config) (*Config, error) {
 type EnvGetter func(key string) (string, bool)
 
 // OverrideFromEnv asks all getters in the passed
-func OverrideFromEnv(config *Config, getter EnvGetter) *Config {
+func OverrideFromEnv[T any](config *T, getter EnvGetter) *T {
 	t := reflect.TypeOf(config).Elem()
 	v := reflect.ValueOf(config).Elem()
 
