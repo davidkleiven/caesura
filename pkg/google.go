@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"iter"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -28,16 +29,22 @@ const (
 )
 
 type GoogleConfig struct {
-	Bucket    string `yaml:"bucket" env:"CAESURA_BUCKET"`
-	ProjectId string `yaml:"projectId" env:"CAESURA_PROJECT_ID"`
+	Bucket      string `yaml:"bucket" env:"CAESURA_BUCKET"`
+	ProjectId   string `yaml:"projectId" env:"CAESURA_PROJECT_ID"`
+	Environment string `yaml:"environment" env:"CAESURA_GOOGLE_ENVIRONMENT"`
 }
 
 func NewTestConfig() *GoogleConfig {
 	return &GoogleConfig{
-		Bucket:    "caesura-test",
-		ProjectId: "caesura-466820",
+		Bucket:      "caesura-test",
+		ProjectId:   "caesura-466820",
+		Environment: "test",
 	}
+}
 
+func LoadGoogleConfig() *GoogleConfig {
+	config := NewTestConfig()
+	return OverrideFromEnv(config, os.LookupEnv)
 }
 
 type ObjectLister interface {
@@ -355,6 +362,63 @@ func (g *GoogleStore) RegisterRole(ctx context.Context, userId string, organizat
 
 func (g *GoogleStore) DeleteRole(ctx context.Context, userId, orgId string) error {
 	return g.FsClient.DeleteDoc(ctx, userCollection, userOrgLinkDoc, linkId(userId, orgId))
+}
+
+func (g *GoogleStore) GetUsersInOrg(ctx context.Context, orgId string) ([]UserInfo, error) {
+	collector := NewValidCollector[UserOrganizationLink]()
+	for doc := range g.FsClient.GetDocByPrefix(ctx, userCollection, userOrgLinkDoc, "orgId", orgId) {
+		collector.Push(doc)
+	}
+
+	users := make([]UserInfo, len(collector.Items))
+	errors := make([]error, len(collector.Items))
+	var wg sync.WaitGroup
+	wg.Add(len(users))
+	for i, link := range collector.Items {
+		idx, userId := i, link.UserId
+		go func() {
+			defer wg.Done()
+
+			u, err := g.GetUserInfo(ctx, userId)
+			if err != nil {
+				errors[idx] = err
+			} else {
+				users[idx] = *u
+			}
+		}()
+	}
+	wg.Wait()
+	return users, uniqueErrors(errors)
+}
+
+func (g *GoogleStore) ResourceItemNames(ctx context.Context, resourceId string) ([]string, error) {
+	objList := g.BucketClient.GetObjects(ctx, g.Config.Bucket, &storage.Query{Prefix: resourceId})
+	names := []string{}
+	for {
+		item, err := objList.Next()
+		if err != nil {
+			return names, nil
+		}
+		names = append(names, item.Name)
+	}
+}
+
+func uniqueErrors(possibleErrors []error) error {
+	errs := make(map[error]struct{})
+	for _, err := range possibleErrors {
+		if err != nil {
+			_, seen := errs[err]
+			if !seen {
+				errs[err] = struct{}{}
+			}
+		}
+	}
+
+	uniqueErrors := make([]error, 0, len(errs))
+	for e := range errs {
+		uniqueErrors = append(uniqueErrors, e)
+	}
+	return errors.Join(uniqueErrors...)
 }
 
 func firebaseSearchString(s string) string {
