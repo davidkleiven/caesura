@@ -455,11 +455,6 @@ func HandleGoogleLogin(oauthConfig *oauth2.Config) http.HandlerFunc {
 			return
 		}
 
-		inviteToken := r.URL.Query().Get("invite-token")
-		if inviteToken != "" {
-			session.Values["invite-token"] = inviteToken
-		}
-
 		url := oauthConfig.AuthCodeURL(stateString)
 		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 	}
@@ -1079,6 +1074,94 @@ func SendEmail(store pkg.EmailDataCollector, config *pkg.Config) http.HandlerFun
 	}
 }
 
+func LoginHandler(w http.ResponseWriter, r *http.Request) {
+	language := pkg.LanguageFromReq(r)
+	session := MustGetSession(r)
+	inviteToken := r.URL.Query().Get(inviteTokenKey)
+	if inviteToken != "" {
+		session.Values[inviteTokenKey] = inviteToken
+	}
+
+	if err := session.Save(r, w); err != nil {
+		http.Error(w, "Could not save session", http.StatusInternalServerError)
+		slog.Error("Could not save session", "error", err, "host", r.Host)
+		return
+	}
+	web.LoginForm(w, language)
+}
+
+func LoginByPassword(store pkg.BasicAuthRoleStore, signSecret string, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 1024)
+		defer r.Body.Close()
+		code, err := parseForm(r)
+		if err != nil {
+			http.Error(w, err.Error(), code)
+			slog.Error("Error parsing form", "error", err, "host", r.Host)
+			return
+		}
+
+		language := pkg.LanguageFromReq(r)
+		email := r.FormValue("email")
+		password := r.FormValue("password")
+		retypedPassword := r.FormValue("retyped")
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		var (
+			ok   bool
+			user pkg.UserInfo
+		)
+		basicAuthCommonParams := BasicAuthCommonParams{
+			Ctx:      ctx,
+			Email:    email,
+			Password: password,
+			Writer:   w,
+			Language: language,
+		}
+		if retypedPassword != "" {
+			params := BasicAuthUserNewUser{
+				BasicAuthCommonParams: basicAuthCommonParams,
+				RetypedPassword:       retypedPassword,
+				Store:                 store,
+			}
+			user, ok = RegisterNewUserByPassword(params)
+		} else {
+			basicAuthParams := BasicAuthUserLoginParams{
+				BasicAuthCommonParams: basicAuthCommonParams,
+				Store:                 store,
+			}
+			user, ok = LoginUserByPassword(basicAuthParams)
+		}
+
+		if !ok {
+			// Return login functions are responsible of populating the
+			// ResponseWriter
+			return
+		}
+
+		session := MustGetSession(r)
+
+		params := SessionInitParams{
+			Ctx:        ctx,
+			Session:    session,
+			User:       &user,
+			SignSecret: signSecret,
+			Store:      store,
+			Writer:     w,
+			Req:        r,
+		}
+		result := InitializeUserSession(params)
+		if result.Error != nil {
+			http.Error(w, result.Error.Error(), result.ReturnCode)
+			slog.Error("Error while initializing user by password", "error", result.Error, "host", r.Host)
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(web.SuccessfulLogin(language)))
+	}
+
+}
+
 func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
 	sessionOpt := config.SessionOpts()
 	readRoute := RequireRead(cookieStore, sessionOpt)
@@ -1120,7 +1203,9 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 
 	oauthCfg := config.OAuthConfig()
 	requireAuthSession := RequireSession(cookieStore, AuthSession, sessionOpt)
-	mux.Handle("/login", requireAuthSession(HandleGoogleLogin(oauthCfg)))
+	mux.Handle("/login", requireAuthSession(http.HandlerFunc(LoginHandler)))
+	mux.Handle("/login/google", requireAuthSession(HandleGoogleLogin(oauthCfg)))
+	mux.Handle("/login/basic", requireAuthSession(LoginByPassword(store, config.CookieSecretSignKey, config.Timeout)))
 	mux.Handle("/auth/callback", requireAuthSession(HandleGoogleCallback(store, oauthCfg, config.Timeout, config.CookieSecretSignKey, config.Transport)))
 
 	mux.HandleFunc("GET /organizations/form", OrganizationsHandler)

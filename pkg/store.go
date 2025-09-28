@@ -192,4 +192,5 @@ type Store interface {
 	BlobStore
 	IAMStore
 	EmailDataCollector
+	BasicAuthRoleStore
 }

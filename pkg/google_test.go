@@ -658,3 +658,21 @@ func TestLoadGoogleConfig(t *testing.T) {
 	}
 	testutils.AssertEqual(t, *config, want)
 }
+
+func TestGetUserByEmailGoogle(t *testing.T) {
+	user := UserInfo{
+		Id:    "user-id",
+		Email: "john@example.com",
+	}
+
+	fsClient := NewLocalFirestoreClient()
+	store := GoogleStore{FsClient: fsClient}
+
+	ctx := context.Background()
+	err := store.RegisterUser(ctx, &user)
+	testutils.AssertNil(t, err)
+
+	receivedUser, err := store.UserByEmail(ctx, "john@example.com")
+	testutils.AssertNil(t, err)
+	testutils.AssertEqual(t, receivedUser.Id, user.Id)
+}
