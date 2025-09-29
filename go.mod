@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	cloud.google.com/go/firestore v1.18.0
-	cloud.google.com/go/storage v1.56.2
+	cloud.google.com/go/storage v1.57.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/gorilla/sessions v1.4.0
 	github.com/pdfcpu/pdfcpu v0.11.0
@@ -71,6 +71,6 @@ require (
 	google.golang.org/genproto v0.0.0-20250603155806-513f23925822 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250818200422-3122310a409c // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250818200422-3122310a409c // indirect
-	google.golang.org/grpc v1.74.2 // indirect
+	google.golang.org/grpc v1.74.3 // indirect
 	google.golang.org/protobuf v1.36.7 // indirect
 )
