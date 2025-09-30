@@ -41,13 +41,13 @@ jobs:
         version: '>=363.0.0'
 
     - name: Build
-      run: go build -v ./...
+      run: go build ./...
 
     - name: Install playwright
       run: go run github.com/playwright-community/playwright-go/cmd/playwright install chromium-headless-shell
 
     - name: Test
-      run: go test -v -tags=integration ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
+      run: go test -failfast -tags=integration ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
 
     - name: Check coverage
       uses: vladopajic/go-test-coverage@v2
