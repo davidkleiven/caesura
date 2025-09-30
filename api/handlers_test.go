@@ -1438,8 +1438,8 @@ func TestInternalServerErrorOnCookieSaveFailure(t *testing.T) {
 	}
 
 	body := recorder.Body.String()
-	if !strings.Contains(body, "save user role") {
-		t.Fatalf("Wanted body to contain 'save user role' got %s", body)
+	if !strings.Contains(body, "mock save error") {
+		t.Fatalf("Wanted body to contain 'mock save error' got %s", body)
 	}
 }
 
