@@ -18,6 +18,7 @@ type UserInfo struct {
 	Email         string              `json:"email,omitempty"`
 	VerifiedEmail bool                `json:"verified_email,omitempty"`
 	Name          string              `json:"name,omitempty"`
+	Password      string              `json:"password,omitempty"`
 	Roles         map[string]RoleKind `json:"roles,omitempty"`
 	Groups        map[string][]string `json:"groups,omitempty"`
 }
@@ -356,6 +357,7 @@ func PopulateSessionWithRoles(session *sessions.Session, userInfo *UserInfo) {
 	userInfo.Name = ""
 	userInfo.VerifiedEmail = false
 	userInfo.Groups = nil
+	userInfo.Password = ""
 
 	userInfoJson := utils.Must(json.Marshal(userInfo))
 	session.Values["role"] = userInfoJson
@@ -371,6 +373,7 @@ type User struct {
 	Email         string `firestore:"email"`
 	VerifiedEmail bool   `firestore:"verified_email"`
 	Name          string `firestore:"name"`
+	Password      string `firestore:"password"`
 }
 
 type UserOrganizationLink struct {
