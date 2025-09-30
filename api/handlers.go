@@ -510,28 +510,19 @@ func HandleGoogleCallback(roleStore pkg.RoleStore, oauthConfig *oauth2.Config, t
 			return
 		}
 
-		inviteTokenOrg, err := orgIdFromInviteToken(session, signSecret)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		session.Values["userId"] = userInfo.Id
+		result := InitializeUserSession(SessionInitParams{
+			Ctx:        ctx,
+			Session:    session,
+			User:       &userInfo,
+			SignSecret: signSecret,
+			Store:      roleStore,
+			Writer:     w,
+			Req:        r,
+		})
 
-		roleUpdater := pkg.NewUserRolePipeline(roleStore, ctx, &userInfo).
-			RegisterIfMissing().
-			AssignViewRoleIfNoRole(inviteTokenOrg)
-
-		if roleUpdater.Error != nil {
-			http.Error(w, "Failed to update user roles "+roleUpdater.Error.Error(), http.StatusInternalServerError)
-			slog.Error("Failed to update user roles", "error", roleUpdater.Error.Error(), "host", r.Host)
-			return
-		}
-
-		userInfoWithRoles := roleUpdater.User
-		pkg.PopulateSessionWithRoles(session, userInfoWithRoles)
-
-		if err := session.Save(r, w); err != nil {
-			http.Error(w, "Could not save user role", http.StatusInternalServerError)
+		if result.Error != nil {
+			http.Error(w, result.Error.Error(), result.ReturnCode)
+			slog.Error("Could not initialize user session", "error", result.Error, "host", r.Host)
 			return
 		}
 
