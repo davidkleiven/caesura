@@ -17,6 +17,8 @@ import (
 	"github.com/gorilla/sessions"
 )
 
+const inviteTokenKey = "invite-token"
+
 func Port() string {
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -120,7 +122,7 @@ type InviteClaim struct {
 
 // orgIdFromInviteToken return true if the role was changed, false otherwise
 func orgIdFromInviteToken(session *sessions.Session, signSecret string) (string, error) {
-	token, ok := session.Values["invite-token"].(string)
+	token, ok := session.Values[inviteTokenKey].(string)
 	if !ok {
 		return "", nil
 	}
@@ -190,6 +192,7 @@ func InitializeUserSession(p SessionInitParams) SessionInitResult {
 
 	userInfoWithRoles := roleUpdater.User
 	pkg.PopulateSessionWithRoles(p.Session, userInfoWithRoles)
+	delete(p.Session.Values, inviteTokenKey)
 	if err := p.Session.Save(p.Req, p.Writer); err != nil {
 		return SessionInitResult{Error: err, ReturnCode: http.StatusInternalServerError}
 	}
