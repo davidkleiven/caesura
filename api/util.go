@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -151,4 +152,46 @@ func parseForm(r *http.Request) (int, error) {
 		return http.StatusBadRequest, err
 	}
 	return http.StatusOK, nil
+}
+
+type SessionInitParams struct {
+	Ctx        context.Context
+	Session    *sessions.Session
+	User       *pkg.UserInfo
+	SignSecret string
+	Store      pkg.RoleStore
+	Writer     http.ResponseWriter
+	Req        *http.Request
+}
+
+type SessionInitResult struct {
+	Error      error
+	ReturnCode int
+}
+
+func NewSessionInitResult() SessionInitResult {
+	return SessionInitResult{ReturnCode: http.StatusOK}
+}
+
+func InitializeUserSession(p SessionInitParams) SessionInitResult {
+	inviteTokenOrg, err := orgIdFromInviteToken(p.Session, p.SignSecret)
+	if err != nil {
+		return SessionInitResult{Error: err, ReturnCode: http.StatusBadRequest}
+	}
+	p.Session.Values["userId"] = p.User.Id
+
+	roleUpdater := pkg.NewUserRolePipeline(p.Store, p.Ctx, p.User).
+		RegisterIfMissing().
+		AssignViewRoleIfNoRole(inviteTokenOrg)
+
+	if roleUpdater.Error != nil {
+		return SessionInitResult{Error: roleUpdater.Error, ReturnCode: http.StatusInternalServerError}
+	}
+
+	userInfoWithRoles := roleUpdater.User
+	pkg.PopulateSessionWithRoles(p.Session, userInfoWithRoles)
+	if err := p.Session.Save(p.Req, p.Writer); err != nil {
+		return SessionInitResult{Error: err, ReturnCode: http.StatusInternalServerError}
+	}
+	return NewSessionInitResult()
 }
