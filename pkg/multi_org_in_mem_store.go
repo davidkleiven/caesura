@@ -367,6 +367,15 @@ func (m *MultiOrgInMemoryStore) StoreSubscription(ctx context.Context, orgId str
 	return nil
 }
 
+func (m *MultiOrgInMemoryStore) UserByEmail(ctx context.Context, email string) (UserInfo, error) {
+	for _, user := range m.Users {
+		if user.Email == email && user.Password != "" {
+			return user, nil
+		}
+	}
+	return UserInfo{Email: email}, ErrUserNotFound
+}
+
 func NewMultiOrgInMemoryStore() *MultiOrgInMemoryStore {
 	return &MultiOrgInMemoryStore{
 		Data:          make(map[string]*InMemoryStore),
