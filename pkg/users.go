@@ -174,11 +174,20 @@ type DeleteRole interface {
 	DeleteRole(ctx context.Context, userId, orgId string) error
 }
 
+type UserByEmailGetter interface {
+	UserByEmail(ctx context.Context, email string) (UserInfo, error)
+}
+
 type RoleStore interface {
 	RoleGetter
 	RoleRegisterer
 	UserRegisterer
 	DeleteRole
+}
+
+type BasicAuthRoleStore interface {
+	RoleStore
+	UserByEmailGetter
 }
 
 type OrganizationGetter interface {
