@@ -466,3 +466,38 @@ func TestGetSubscription(t *testing.T) {
 		testutils.AssertEqual(t, *s, target)
 	})
 }
+
+func TestUserByEmail(t *testing.T) {
+	store := NewMultiOrgInMemoryStore()
+	store.Users = []UserInfo{
+		{
+			Id:    "user1",
+			Email: "john@example.com",
+		},
+		{
+			Id:       "user2",
+			Email:    "peter@example.com",
+			Password: "secure-hash-of-password",
+		},
+		{
+			Id:       "user3",
+			Email:    "john@example.com",
+			Password: "secure-hash-of-password2",
+		},
+	}
+
+	ctx := context.Background()
+	t.Run("not found", func(t *testing.T) {
+		user, err := store.UserByEmail(ctx, "susan@example.com")
+		testutils.AssertEqual(t, user.Email, "susan@example.com")
+		if !errors.Is(err, ErrUserNotFound) {
+			t.Fatalf("Wanted %s got %s", ErrUserNotFound, err)
+		}
+	})
+
+	t.Run("ensure user with password is picked", func(t *testing.T) {
+		user, err := store.UserByEmail(ctx, "john@example.com")
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, user.Id, "user3")
+	})
+}
