@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -15,6 +16,8 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/sessions"
 )
+
+const inviteTokenKey = "invite-token"
 
 func Port() string {
 	port := os.Getenv("PORT")
@@ -119,7 +122,7 @@ type InviteClaim struct {
 
 // orgIdFromInviteToken return true if the role was changed, false otherwise
 func orgIdFromInviteToken(session *sessions.Session, signSecret string) (string, error) {
-	token, ok := session.Values["invite-token"].(string)
+	token, ok := session.Values[inviteTokenKey].(string)
 	if !ok {
 		return "", nil
 	}
@@ -151,4 +154,47 @@ func parseForm(r *http.Request) (int, error) {
 		return http.StatusBadRequest, err
 	}
 	return http.StatusOK, nil
+}
+
+type SessionInitParams struct {
+	Ctx        context.Context
+	Session    *sessions.Session
+	User       *pkg.UserInfo
+	SignSecret string
+	Store      pkg.RoleStore
+	Writer     http.ResponseWriter
+	Req        *http.Request
+}
+
+type SessionInitResult struct {
+	Error      error
+	ReturnCode int
+}
+
+func NewSessionInitResult() SessionInitResult {
+	return SessionInitResult{ReturnCode: http.StatusOK}
+}
+
+func InitializeUserSession(p SessionInitParams) SessionInitResult {
+	inviteTokenOrg, err := orgIdFromInviteToken(p.Session, p.SignSecret)
+	if err != nil {
+		return SessionInitResult{Error: err, ReturnCode: http.StatusBadRequest}
+	}
+	p.Session.Values["userId"] = p.User.Id
+
+	roleUpdater := pkg.NewUserRolePipeline(p.Store, p.Ctx, p.User).
+		RegisterIfMissing().
+		AssignViewRoleIfNoRole(inviteTokenOrg)
+
+	if roleUpdater.Error != nil {
+		return SessionInitResult{Error: roleUpdater.Error, ReturnCode: http.StatusInternalServerError}
+	}
+
+	userInfoWithRoles := roleUpdater.User
+	pkg.PopulateSessionWithRoles(p.Session, userInfoWithRoles)
+	delete(p.Session.Values, inviteTokenKey)
+	if err := p.Session.Save(p.Req, p.Writer); err != nil {
+		return SessionInitResult{Error: err, ReturnCode: http.StatusInternalServerError}
+	}
+	return NewSessionInitResult()
 }

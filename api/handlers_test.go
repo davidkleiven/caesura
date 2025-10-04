@@ -1296,7 +1296,7 @@ func TestInviteLinkAddedToSession(t *testing.T) {
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/login?invite-token=ddaa", nil)
-	handler := RequireSession(cookie, AuthSession, &opt)(HandleGoogleLogin(pkg.NewDefaultConfig().OAuthConfig()))
+	handler := RequireSession(cookie, AuthSession, &opt)(http.HandlerFunc(LoginHandler))
 	handler.ServeHTTP(recorder, request)
 
 	session, err := cookie.Get(request, AuthSession)
@@ -1438,8 +1438,8 @@ func TestInternalServerErrorOnCookieSaveFailure(t *testing.T) {
 	}
 
 	body := recorder.Body.String()
-	if !strings.Contains(body, "save user role") {
-		t.Fatalf("Wanted body to contain 'save user role' got %s", body)
+	if !strings.Contains(body, "mock save error") {
+		t.Fatalf("Wanted body to contain 'mock save error' got %s", body)
 	}
 }
 
@@ -2523,5 +2523,17 @@ func TestEmailFetchError(t *testing.T) {
 	handler := SendEmail(&collector, pkg.NewDefaultConfig())
 	handler(rec, req.WithContext(ctx))
 
+	testutils.AssertEqual(t, rec.Code, http.StatusInternalServerError)
+}
+
+func TestLoginHandlerReturnInternalServerError(t *testing.T) {
+	store := errorStore{}
+	req := httptest.NewRequest("GET", "/login?invite-token=daa", nil)
+	rec := httptest.NewRecorder()
+
+	session, err := store.Get(req, AuthSession)
+	ctx := context.WithValue(context.Background(), sessionKey, session)
+	testutils.AssertNil(t, err)
+	LoginHandler(rec, req.WithContext(ctx))
 	testutils.AssertEqual(t, rec.Code, http.StatusInternalServerError)
 }
