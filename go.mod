@@ -10,7 +10,7 @@ require (
 	github.com/pdfcpu/pdfcpu v0.11.0
 	github.com/playwright-community/playwright-go v0.5200.0
 	github.com/stripe/stripe-go/v82 v82.5.1
-	golang.org/x/oauth2 v0.31.0
+	golang.org/x/oauth2 v0.32.0
 	golang.org/x/sync v0.17.0
 	golang.org/x/text v0.29.0
 	google.golang.org/api v0.251.0
