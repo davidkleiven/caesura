@@ -3,7 +3,7 @@ module github.com/davidkleiven/caesura
 go 1.24.0
 
 require (
-	cloud.google.com/go/firestore v1.19.0
+	cloud.google.com/go/firestore v1.20.0
 	cloud.google.com/go/storage v1.57.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/gorilla/sessions v1.4.0
