@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
 	"github.com/davidkleiven/caesura/utils"
@@ -146,6 +147,14 @@ func orgIdFromInviteToken(session *sessions.Session, signSecret string) (string,
 	return claims.OrgId, nil
 }
 
+func emailFromResetPasswordJwt(token string, signSecret string) (string, error) {
+	var resetEmailToken ResetEmailToken
+	_, err := jwt.ParseWithClaims(token, &resetEmailToken, func(t *jwt.Token) (any, error) {
+		return []byte(signSecret), nil
+	})
+	return resetEmailToken.Email, err
+}
+
 func parseForm(r *http.Request) (int, error) {
 	err := r.ParseForm()
 	var maxErr *http.MaxBytesError
@@ -203,4 +212,23 @@ func InitializeUserSession(p SessionInitParams) SessionInitResult {
 func validEmail(email string) bool {
 	regex := regexp.MustCompile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$")
 	return regex.MatchString(email)
+}
+
+type ResetEmailToken struct {
+	Email string
+	jwt.RegisteredClaims
+}
+
+func SignedResetToken(email, signKey string, expiryTime time.Duration) (string, error) {
+	currentTime := time.Now()
+	resetPaswordClaim := ResetEmailToken{
+		Email: email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(currentTime.Add(expiryTime)),
+			IssuedAt:  jwt.NewNumericDate(currentTime),
+			NotBefore: jwt.NewNumericDate(currentTime),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, resetPaswordClaim)
+	return token.SignedString([]byte(signKey))
 }

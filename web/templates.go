@@ -358,3 +358,29 @@ func PasswordAndRetypedPasswordMustMatch(lang string) string {
 func Unauthorized(lang string) string {
 	return translator.MustGet(lang, "login.unauthorized")
 }
+
+func EnterValidEmail(w io.Writer, lang string) {
+	w.Write([]byte(translator.MustGet(lang, "login.enter_valid_email")))
+}
+
+func ResetEmailSent(w io.Writer, lang string, email string) {
+	templText := translator.MustGet(lang, "login.reset_email_sent")
+	templ := utils.Must(template.New("msg").Parse(templText))
+
+	data := struct {
+		Email string
+	}{
+		Email: email,
+	}
+	pkg.PanicOnErr(templ.Execute(w, data))
+}
+
+func ResetPasswordPage(w io.Writer, lang string) {
+	tmpl := template.Must(
+		template.New("resetPassword").
+			Funcs(template.FuncMap{"T": translateFunc(lang)}).
+			ParseFS(templatesFS, "templates/resetPassword.html", "templates/header.html", "templates/footer.html"),
+	)
+	pkg.PanicOnErr(tmpl.ExecuteTemplate(w, "resetPassword", LoadDependencies()))
+
+}

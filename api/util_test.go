@@ -367,3 +367,41 @@ func TestValidEmail(t *testing.T) {
 		testutils.AssertEqual(t, validEmail(test.email), test.want)
 	}
 }
+
+func TestEmailFromResetPasswordToken(t *testing.T) {
+	secret := "top-secret"
+
+	validToken := ResetEmailToken{
+		Email: "john@example.com",
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute)),
+		},
+	}
+
+	expiredToken := ResetEmailToken{
+		Email: "john@example.com",
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(-time.Minute)),
+		},
+	}
+
+	t.Run("test error on exired token", func(t *testing.T) {
+		token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, expiredToken).SignedString([]byte(secret))
+		testutils.AssertNil(t, err)
+		email, err := emailFromResetPasswordJwt(token, secret)
+		testutils.AssertEqual(t, email, "john@example.com")
+		if err == nil {
+			t.Fatal("Wanted error")
+		}
+
+		testutils.AssertContains(t, err.Error(), "expired")
+	})
+
+	t.Run("test email on valid token", func(t *testing.T) {
+		token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, validToken).SignedString([]byte(secret))
+		testutils.AssertNil(t, err)
+		email, err := emailFromResetPasswordJwt(token, secret)
+		testutils.AssertEqual(t, email, "john@example.com")
+		testutils.AssertNil(t, err)
+	})
+}

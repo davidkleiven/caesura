@@ -170,3 +170,67 @@ func TestNotOkOnFailingRegistration(t *testing.T) {
 	testutils.AssertEqual(t, ok, false)
 	testutils.AssertEqual(t, buf.String(), store.RegisterErr.Error())
 }
+
+func TestResetUserPassword(t *testing.T) {
+	store := pkg.NewMultiOrgInMemoryStore()
+	user := pkg.UserInfo{
+		Id:       "user-id",
+		Email:    "john@example.com",
+		Password: "old-password",
+	}
+	store.RegisterUser(context.Background(), &user)
+	params := BasicAuthResetPasswordParams{
+		BasicAuthCommonParams: BasicAuthCommonParams{
+			Password: "password",
+			Writer:   bytes.NewBuffer([]byte{}),
+		},
+		RetypedPassword: "password",
+		Store:           store,
+	}
+
+	resetParams := func() {
+		params.Password = "password"
+		params.RetypedPassword = params.Password
+		params.Email = "john@example.com"
+	}
+
+	t.Run("error on empty password", func(t *testing.T) {
+		defer resetParams()
+		params.Password = ""
+		err := ResetUserPassword(params)
+		if err == nil {
+			t.Fatal("Wanted error")
+		}
+
+		testutils.AssertContains(t, err.Error(), "can not be empty")
+	})
+
+	t.Run("retyped password differ", func(t *testing.T) {
+		defer resetParams()
+		params.RetypedPassword = "wrong-password"
+		err := ResetUserPassword(params)
+		if err == nil {
+			t.Fatal("Wanted error")
+		}
+
+		testutils.AssertContains(t, err.Error(), "are not equal")
+	})
+
+	t.Run("error when user does not exist", func(t *testing.T) {
+		defer resetParams()
+		params.Email = "lisa@example.com"
+
+		err := ResetUserPassword(params)
+		if err == nil {
+			t.Fatal("Wanted err")
+		}
+		testutils.AssertEqual(t, err.Error(), "user not found")
+	})
+
+	t.Run("successful reset", func(t *testing.T) {
+		defer resetParams()
+
+		err := ResetUserPassword(params)
+		testutils.AssertNil(t, err)
+	})
+}

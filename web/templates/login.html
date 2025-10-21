@@ -91,7 +91,9 @@
           type="button"
 	  id="forgot-password-btn"
           class="text-sm text-blue-600 hover:underline"
-          onclick="alert('Password reset logic here')"
+          hx-post="/login/reset"
+	  hx-swap="innerHTML"
+	  hx-target="#flashMessage"
         >
 	{{ T "login.forgot_password" }}
         </button>
@@ -99,7 +101,7 @@
           type="button"
 	  id="register-new-btn"
           class="text-sm text-blue-600 hover:underline"
-          onclick="enterNewUserMode()"
+	  onclick="enterNewUserMode()"
         >
 	{{ T "login.register_new" }}
         </button>

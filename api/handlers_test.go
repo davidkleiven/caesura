@@ -12,6 +12,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/smtp"
 	"net/url"
 	"regexp"
 	"slices"
@@ -2616,4 +2617,180 @@ func TestLoginByUserFailToInitSession(t *testing.T) {
 	rec := httptest.NewRecorder()
 	handler(rec, req.WithContext(ctx))
 	testutils.AssertContains(t, rec.Body.String(), "broken session store")
+}
+
+func TestResetPasswordErrorOnLargeRequest(t *testing.T) {
+	config := pkg.NewDefaultConfig()
+	handler := ResetPasswordEmail(config)
+
+	rec := httptest.NewRecorder()
+	data := bytes.Repeat([]byte("a"), 2048)
+
+	req := httptest.NewRequest("POST", "/login/reset", bytes.NewBuffer(data))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	handler(rec, req)
+	testutils.AssertEqual(t, rec.Code, http.StatusOK)
+	testutils.AssertContains(t, rec.Body.String(), "Status: 413")
+}
+
+func TestResetPasswordErrorOnInvalidEmail(t *testing.T) {
+	config := pkg.NewDefaultConfig()
+	handler := ResetPasswordEmail(config)
+	form := url.Values{}
+	form.Set("email", "john@example.n")
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/login/reset", bytes.NewBufferString(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	handler(rec, req)
+
+	testutils.AssertEqual(t, rec.Code, http.StatusOK)
+	testutils.AssertContains(t, rec.Body.String(), "Invalid email")
+}
+
+func TestSendResetPasswordEmail(t *testing.T) {
+	var msg []byte
+	config := pkg.NewDefaultConfig()
+	config.EmailSender = "caesura@gmail.com"
+	config.SmtpConfig.SendFn = func(addr string, auth smtp.Auth, sender string, recipents []string, m []byte) error {
+		msg = m
+		return nil
+	}
+
+	handler := ResetPasswordEmail(config)
+	form := url.Values{}
+	form.Set("email", "john@example.com")
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("POST", "/login/reset", bytes.NewBufferString(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	handler(rec, req)
+	testutils.AssertEqual(t, rec.Code, http.StatusOK)
+	testutils.AssertContains(t, rec.Body.String(), "john@example.com")
+
+	mailContent := string(msg)
+	testutils.AssertContains(t, mailContent, "/login/reset/form?token=")
+
+	err := errors.New("Could not send email")
+	config.SmtpConfig.SendFn = func(addr string, auth smtp.Auth, sender string, recipents []string, m []byte) error {
+		return err
+	}
+
+	rec = httptest.NewRecorder()
+	handler = ResetPasswordEmail(config)
+	handler(rec, req)
+	testutils.AssertContains(t, rec.Body.String(), err.Error())
+}
+
+func TestResetPasswordForm(t *testing.T) {
+	req := httptest.NewRequest("GET", "/login/form?token=abc", nil)
+	t.Run("internal error on save failure", func(t *testing.T) {
+		store := errorStore{}
+		session, err := store.Get(req, AuthSession)
+		testutils.AssertNil(t, err)
+		ctx := context.WithValue(req.Context(), sessionKey, session)
+		rec := httptest.NewRecorder()
+		ResetPasswordForm(rec, req.WithContext(ctx))
+		testutils.AssertEqual(t, rec.Code, http.StatusOK)
+		testutils.AssertContains(t, rec.Body.String(), "server error")
+	})
+
+	t.Run("reset token added to session", func(t *testing.T) {
+		store := sessions.NewCookieStore([]byte("top-secret"))
+		session, err := store.Get(req, AuthSession)
+		testutils.AssertNil(t, err)
+		rec := httptest.NewRecorder()
+		ctx := context.WithValue(req.Context(), sessionKey, session)
+		ResetPasswordForm(rec, req.WithContext(ctx))
+		testutils.AssertEqual(t, rec.Code, http.StatusOK)
+		cookie := rec.Result().Cookies()[0]
+
+		newRec := httptest.NewRequest("GET", "/whatever", nil)
+		newRec.AddCookie(cookie)
+		session, err = store.Get(newRec, AuthSession)
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, session.Values[resetPasswordToken], "abc")
+	})
+}
+
+func TestUpdatePassword(t *testing.T) {
+	store := pkg.NewMultiOrgInMemoryStore()
+	user := pkg.UserInfo{
+		Id:       "userId",
+		Email:    "john@example.com",
+		Password: "hashed-password",
+	}
+	store.RegisterUser(context.Background(), &user)
+	secret := "top-secret"
+	cookieStore := sessions.NewCookieStore([]byte(secret))
+	handler := UpdatePassword(store, secret, time.Second)
+	req := httptest.NewRequest("PUT", "/password", nil)
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	session, err := cookieStore.Get(req, AuthSession)
+	testutils.AssertNil(t, err)
+	ctx := context.WithValue(req.Context(), sessionKey, session)
+
+	t.Run("no JWT", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		handler(rec, req.WithContext(ctx))
+		testutils.AssertContains(t, rec.Body.String(), "Invalid reset token")
+	})
+
+	t.Run("could not parse jwt", func(t *testing.T) {
+		session.Values[resetPasswordToken] = "invalid JWT"
+		rec := httptest.NewRecorder()
+		handler(rec, req.WithContext(ctx))
+		testutils.AssertContains(t, rec.Body.String(), "Invalid JWT")
+	})
+
+	// Tests below this runs with a valid JWT in the session cookie
+	validToken, err := SignedResetToken(user.Email, secret, time.Minute)
+	testutils.AssertNil(t, err)
+	session.Values[resetPasswordToken] = validToken
+
+	t.Run("error on too large body", func(t *testing.T) {
+		body := bytes.Repeat([]byte("b"), 1024)
+		req.Body = io.NopCloser(bytes.NewBuffer(body))
+		rec := httptest.NewRecorder()
+		handler(rec, req.WithContext(ctx))
+		testutils.AssertContains(t, rec.Body.String(), "Http error (413)")
+	})
+
+	t.Run("invalid reset check token not deleted", func(t *testing.T) {
+		form := url.Values{}
+		form.Set("password", "pw1")
+		form.Set("retyped", "pw2")
+		req.Body = io.NopCloser(bytes.NewBufferString(form.Encode()))
+		rec := httptest.NewRecorder()
+		handler(rec, req.WithContext(ctx))
+		testutils.AssertContains(t, rec.Body.String(), "Passwords does not match")
+		_, ok := session.Values[resetPasswordToken]
+		testutils.AssertEqual(t, ok, true)
+	})
+
+	// Populate session with a valid form
+	form := url.Values{}
+	form.Set("password", "pw1")
+	form.Set("retyped", "pw1")
+	req.Body = io.NopCloser(bytes.NewBufferString(form.Encode()))
+
+	t.Run("reset password success", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		handler(rec, req.WithContext(ctx))
+		testutils.AssertContains(t, rec.Body.String(), "Password successfully reset")
+		_, ok := session.Values[resetPasswordToken]
+		testutils.AssertEqual(t, ok, false)
+	})
+
+	t.Run("internal server error on session failure", func(t *testing.T) {
+		store := errorStore{}
+		session, err := store.Get(req, AuthSession)
+		testutils.AssertNil(t, err)
+		session.Values[resetPasswordToken] = validToken
+		rec := httptest.NewRecorder()
+
+		ctx := context.WithValue(req.Context(), sessionKey, session)
+		req.Body = io.NopCloser(bytes.NewBufferString(form.Encode()))
+		handler(rec, req.WithContext(ctx))
+		testutils.AssertContains(t, rec.Body.String(), "server error", "mock save error")
+	})
 }

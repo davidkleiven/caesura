@@ -198,6 +198,11 @@ type BasicAuthUserRegisterer interface {
 	UserByEmailGetter
 }
 
+type BasicAuthPasswordResetter interface {
+	UserByEmailGetter
+	ResetPassword(ctx context.Context, userId, password string) error
+}
+
 type OrganizationGetter interface {
 	GetOrganization(ctx context.Context, orgId string) (Organization, error)
 }

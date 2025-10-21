@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 
@@ -78,4 +79,33 @@ func RegisterNewUserByPassword(params BasicAuthUserNewUser) (pkg.UserInfo, bool)
 		return user, false
 	}
 	return newUser, true
+}
+
+type BasicAuthResetPasswordParams struct {
+	BasicAuthCommonParams
+	Store           pkg.BasicAuthPasswordResetter
+	RetypedPassword string
+}
+
+func ResetUserPassword(params BasicAuthResetPasswordParams) error {
+	if params.Password == "" {
+		fmt.Fprintf(params.Writer, "Password can not be empty")
+		return fmt.Errorf("Password can not be empty")
+	}
+	if params.Password != params.RetypedPassword {
+		params.Writer.Write([]byte(web.PasswordAndRetypedPasswordMustMatch(params.Language)))
+		return fmt.Errorf("Password and retyped password are not equal")
+	}
+	user, err := params.Store.UserByEmail(params.Ctx, params.Email)
+	if err != nil {
+		fmt.Fprintf(params.Writer, "Internal server error: %s", err)
+		return err
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(params.Password), bcrypt.DefaultCost)
+	if err != nil {
+		params.Writer.Write([]byte(err.Error()))
+		return err
+	}
+	return params.Store.ResetPassword(params.Ctx, user.Id, string(hash))
 }

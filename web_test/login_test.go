@@ -67,3 +67,29 @@ func TestRegisterNewUser(t *testing.T) {
 		testutils.AssertContains(t, flashContent, "success")
 	}, loginPage)(t)
 }
+
+func TestForgotPassword(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		forgotPasswd := page.Locator("button[id=forgot-password-btn]")
+		count, err := forgotPasswd.Count()
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, count, 1)
+
+		flashMsg := page.Locator("div[id=flashMessage]")
+		count, err = flashMsg.Count()
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, count, 1)
+
+		timeout := playwright.PageExpectResponseOptions{
+			Timeout: playwright.Float(1000.0),
+		}
+
+		_, err = page.ExpectResponse("**/login/reset", func() error { return forgotPasswd.Click() }, timeout)
+		testutils.AssertNil(t, err)
+
+		flashContent, err := flashMsg.TextContent()
+		testutils.AssertNil(t, err)
+		testutils.AssertContains(t, flashContent, "Invalid email")
+
+	}, loginPage)(t)
+}

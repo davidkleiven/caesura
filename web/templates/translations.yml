@@ -36,6 +36,7 @@ en:
   index.wherever: wherever they are
   index.with-pre-caesura: With
   loading: Loading
+  login.enter_valid_email: "Invalid email entered"
   login.forgot_password: "Forgot password?"
   login.google: Sign in with Google
   login.header: Login to Your Account
@@ -44,6 +45,7 @@ en:
   login.password: Password
   login.password_must_match: "Passwords does not match"
   login.register_new: Register new user
+  login.reset_email_sent: "Email sent to {{.Email}}"
   login.retype_password: Retype password
   login.success: "Login success"
   login.unauthorized: Email or password is not valid
@@ -123,6 +125,7 @@ en:
   project-modal.select-placeholder: Search or create project...
   previous: Previous
   register: Register
+  resetPassword.header: Reset password
   role: Role
   search: Search
   search-placholder: Type to search
@@ -174,6 +177,7 @@ nb:
   index.wherever: hvor enn de er
   index.with-pre-caesura: Med
   loading: Laster
+  login.enter_valid_email: "Skriv en gyldig epostadresse"
   login.forgot_password: "Glemt passordet?"
   login.google: Logg inn med Google
   login.header: Logg inn
@@ -182,6 +186,7 @@ nb:
   login.password: Passord
   login.password_must_match: "Passord og passordkontroll er ikke like"
   login.register_new: Registrer ny bruker
+  login.reset_email_sent: "Epost sent til {{.Email}}"
   login.retype_password: Skriv passordet på nytt
   login.success: Innlogging OK
   login.unauthorized: Epost eller passord er ikke riktig
@@ -257,6 +262,7 @@ nb:
   project-modal.select-placeholder: Søk eller opprett prosjekt...
   previous: Forrige
   register: Registrer
+  resetPassword.header: Lag nytt passord
   role: Rolle
   search: Søk
   search-placholder: Skriv for å søke
