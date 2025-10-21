@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
+	"github.com/davidkleiven/caesura/testutils"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/sessions"
 )
@@ -339,4 +340,30 @@ func TestMustGetUserInfo(t *testing.T) {
 		}()
 		MustGetUserInfo(&session)
 	})
+}
+
+func TestValidEmail(t *testing.T) {
+	for _, test := range []struct {
+		email string
+		want  bool
+	}{
+		{
+			email: "john@example.com",
+			want:  true,
+		},
+		{
+			email: "john@example.c",
+			want:  false,
+		},
+		{
+			email: "",
+			want:  false,
+		},
+		{
+			email: "@example.com",
+			want:  false,
+		},
+	} {
+		testutils.AssertEqual(t, validEmail(test.email), test.want)
+	}
 }

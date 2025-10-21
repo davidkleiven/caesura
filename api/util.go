@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"regexp"
 
 	"github.com/davidkleiven/caesura/pkg"
 	"github.com/davidkleiven/caesura/utils"
@@ -194,4 +195,9 @@ func InitializeUserSession(p SessionInitParams) SessionInitResult {
 		return SessionInitResult{Error: err, ReturnCode: http.StatusInternalServerError}
 	}
 	return NewSessionInitResult()
+}
+
+func validEmail(email string) bool {
+	regex := regexp.MustCompile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+.[a-zA-Z]{2,}$")
+	return regex.MatchString(email)
 }
