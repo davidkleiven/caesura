@@ -29,8 +29,9 @@ import (
 type HandlerFunc func(http.ResponseWriter, *http.Request)
 
 const (
-	AuthSession = "auth"
-	OAuthState  = "oauth_state"
+	AuthSession        = "auth"
+	OAuthState         = "oauth_state"
+	resetPasswordToken = "resetEmailToken"
 )
 
 type ctxKey string
@@ -1159,7 +1160,133 @@ func LoginByPassword(store pkg.BasicAuthRoleStore, signSecret string, timeout ti
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(web.SuccessfulLogin(language)))
 	}
+}
 
+func ResetPasswordEmail(config *pkg.Config) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 1024)
+		defer r.Body.Close()
+		code, err := parseForm(r)
+		if err != nil {
+			fmt.Fprintf(w, "Status: %d. Message: %s", code, err)
+			slog.Error("Error parsing form", "error", err, "host", r.Host)
+			return
+		}
+
+		language := pkg.LanguageFromReq(r)
+		emailAddr := r.FormValue("email")
+		if !validEmail(emailAddr) {
+			web.EnterValidEmail(w, language)
+			return
+		}
+
+		email := pkg.Email{
+			Sender:    config.EmailSender,
+			SmtpHost:  config.SmtpConfig.Host,
+			SmtpPort:  config.SmtpConfig.Port,
+			SmtpAuth:  config.SmtpConfig.Auth,
+			Recipents: []string{emailAddr},
+			SendFn:    config.SmtpConfig.SendFn,
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), config.Timeout)
+		defer cancel()
+
+		var (
+			signedToken  string
+			emailContent *bytes.Buffer
+		)
+		overallErr := pkg.ReturnOnFirstError(
+			func() error {
+				var err error
+				signedToken, err = SignedResetToken(emailAddr, config.CookieSecretSignKey, 20*time.Minute)
+				return err
+			},
+			func() error {
+				var err error
+				url := config.BaseURL + "/login/reset/form?token=" + signedToken
+				emailContent, err = email.Build("Caesura: reset password", "Reset link: "+url, func(yield func(string, io.Reader) bool) {})
+				return err
+			},
+			func() error {
+				return email.Send(ctx, emailContent.Bytes())
+			},
+		)
+
+		if overallErr != nil {
+			fmt.Fprintf(w, "Error: %s", overallErr)
+			return
+		}
+		web.ResetEmailSent(w, language, emailAddr)
+	}
+}
+
+func ResetPasswordForm(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	session := MustGetSession(r)
+	session.Values[resetPasswordToken] = token
+	if err := session.Save(r, w); err != nil {
+		slog.Error("Could not save session", "error", err)
+		fmt.Fprintf(w, "Internal server error: %s", err)
+		return
+	}
+	lang := pkg.LanguageFromReq(r)
+	web.ResetPasswordPage(w, lang)
+}
+
+func UpdatePassword(store pkg.BasicAuthPasswordResetter, signSecret string, timeout time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		session := MustGetSession(r)
+		jwtToken, ok := session.Values[resetPasswordToken].(string)
+		if !ok {
+			fmt.Fprintf(w, "Invalid reset token: could not convert into string")
+			slog.Error("Invalid reset token: could not convert into string")
+			return
+		}
+
+		email, err := emailFromResetPasswordJwt(jwtToken, signSecret)
+		if err != nil {
+			fmt.Fprintf(w, "Invalid JWT token: %s", err)
+			slog.Warn("Invalid JWT token", "error", err)
+			return
+		}
+
+		ctx, cancel := context.WithTimeout(r.Context(), timeout)
+		defer cancel()
+
+		lang := pkg.LanguageFromReq(r)
+
+		r.Body = http.MaxBytesReader(w, r.Body, 512)
+		code, err := parseForm(r)
+		if err != nil {
+			fmt.Fprintf(w, "Http error (%d): %s", code, err)
+			return
+		}
+		password := r.FormValue("password")
+		retyped := r.FormValue("retyped")
+
+		params := BasicAuthResetPasswordParams{
+			BasicAuthCommonParams: BasicAuthCommonParams{
+				Ctx:      ctx,
+				Email:    email,
+				Language: lang,
+				Password: password,
+				Writer:   w,
+			},
+			RetypedPassword: retyped,
+			Store:           store,
+		}
+		if err := ResetUserPassword(params); err != nil {
+			return
+		}
+		delete(session.Values, resetPasswordToken)
+
+		if err := session.Save(r, w); err != nil {
+			fmt.Fprintf(w, "Internal server error: %s", err)
+			return
+		}
+		fmt.Fprintf(w, "Password successfully reset. Return to the login page")
+	}
 }
 
 func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
@@ -1206,6 +1333,9 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("/login", requireAuthSession(http.HandlerFunc(LoginHandler)))
 	mux.Handle("/login/google", requireAuthSession(HandleGoogleLogin(oauthCfg)))
 	mux.Handle("/login/basic", requireAuthSession(LoginByPassword(store, config.CookieSecretSignKey, config.Timeout)))
+	mux.Handle("POST /login/reset", ResetPasswordEmail(config))
+	mux.Handle("GET /login/reset/form", requireAuthSession(http.HandlerFunc(ResetPasswordForm)))
+	mux.Handle("PUT /password", requireAuthSession(UpdatePassword(store, config.CookieSecretSignKey, config.Timeout)))
 	mux.Handle("/auth/callback", requireAuthSession(HandleGoogleCallback(store, oauthCfg, config.Timeout, config.CookieSecretSignKey, config.Transport)))
 
 	mux.HandleFunc("GET /organizations/form", OrganizationsHandler)

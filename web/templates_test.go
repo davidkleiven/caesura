@@ -241,3 +241,21 @@ func TestUnauthorized(t *testing.T) {
 	testutils.AssertEqual(t, txt, "Email or password is not valid")
 	testutils.AssertEqual(t, txt, "Email or password is not valid")
 }
+
+func TestEnterValidEmail(t *testing.T) {
+	var buf bytes.Buffer
+	EnterValidEmail(&buf, "en")
+	testutils.AssertContains(t, buf.String(), "email entered")
+}
+
+func TestResetEmailSent(t *testing.T) {
+	var buf bytes.Buffer
+	ResetEmailSent(&buf, "en", "john@example.com")
+	testutils.AssertContains(t, buf.String(), "john@example.com")
+}
+
+func TestRestPasswordPage(t *testing.T) {
+	var buf bytes.Buffer
+	ResetPasswordPage(&buf, "en")
+	testutils.AssertContains(t, buf.String(), "Reset password")
+}
