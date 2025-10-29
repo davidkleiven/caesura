@@ -676,3 +676,21 @@ func TestGetUserByEmailGoogle(t *testing.T) {
 	testutils.AssertNil(t, err)
 	testutils.AssertEqual(t, receivedUser.Id, user.Id)
 }
+
+func TestGoogleResetPassword(t *testing.T) {
+	user := UserInfo{
+		Id:       "user-id",
+		Password: "top-secret",
+	}
+
+	fsClient := NewLocalFirestoreClient()
+	store := GoogleStore{FsClient: fsClient}
+	err := store.RegisterUser(context.Background(), &user)
+	testutils.AssertNil(t, err)
+	err = store.ResetPassword(context.Background(), "user-id", "new-top-secret-password")
+	testutils.AssertNil(t, err)
+
+	receivedUser, err := store.GetUserInfo(context.Background(), "user-id")
+	testutils.AssertNil(t, err)
+	testutils.AssertEqual(t, receivedUser.Password, "new-top-secret-password")
+}
