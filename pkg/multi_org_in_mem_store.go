@@ -376,6 +376,16 @@ func (m *MultiOrgInMemoryStore) UserByEmail(ctx context.Context, email string) (
 	return UserInfo{Email: email}, ErrUserNotFound
 }
 
+func (m *MultiOrgInMemoryStore) ResetPassword(ctx context.Context, userId, password string) error {
+	for i, user := range m.Users {
+		if user.Id == userId {
+			m.Users[i].Password = password
+			return nil
+		}
+	}
+	return ErrUserNotFound
+}
+
 func NewMultiOrgInMemoryStore() *MultiOrgInMemoryStore {
 	return &MultiOrgInMemoryStore{
 		Data:          make(map[string]*InMemoryStore),
