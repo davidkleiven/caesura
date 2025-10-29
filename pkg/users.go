@@ -188,6 +188,7 @@ type RoleStore interface {
 type BasicAuthRoleStore interface {
 	RoleStore
 	UserByEmailGetter
+	BasicAuthPasswordResetter
 }
 
 type BasicAuthUserRegisterer interface {

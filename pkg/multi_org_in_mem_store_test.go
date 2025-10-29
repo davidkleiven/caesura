@@ -501,3 +501,33 @@ func TestUserByEmail(t *testing.T) {
 		testutils.AssertEqual(t, user.Id, "user3")
 	})
 }
+
+func TestResetPassword(t *testing.T) {
+	user := UserInfo{
+		Id:       "user-id",
+		Password: "top-secret",
+	}
+
+	store := NewMultiOrgInMemoryStore()
+	err := store.RegisterUser(context.Background(), &user)
+	testutils.AssertNil(t, err)
+
+	t.Run("user not found", func(t *testing.T) {
+		err := store.ResetPassword(context.Background(), "non-existent-id", "new-password")
+		if !errors.Is(err, ErrUserNotFound) {
+			t.Fatalf("Wanted 'ErrUserNotFound' got %s", err)
+		}
+	})
+
+	t.Run("successfull reset", func(t *testing.T) {
+		err := store.RegisterUser(context.Background(), &user)
+		testutils.AssertNil(t, err)
+
+		err = store.ResetPassword(context.Background(), "user-id", "new-password")
+		testutils.AssertNil(t, err)
+
+		receivedUser, err := store.GetUserInfo(context.Background(), "user-id")
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, receivedUser.Password, "new-password")
+	})
+}
