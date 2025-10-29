@@ -413,6 +413,20 @@ func (g *GoogleStore) UserByEmail(ctx context.Context, email string) (UserInfo, 
 	return *u, err
 }
 
+// ResetPassword resets the users password
+// Note that the password should be a hashed version of the password using
+// a cryptographically safe hash method
+func (g *GoogleStore) ResetPassword(ctx context.Context, userId, password string) error {
+	return g.FsClient.Update(
+		ctx,
+		userCollection,
+		userInfoDoc,
+		userId,
+		[]firestore.Update{{Path: "password", Value: password}},
+	)
+
+}
+
 func uniqueErrors(possibleErrors []error) error {
 	errs := make(map[error]struct{})
 	for _, err := range possibleErrors {

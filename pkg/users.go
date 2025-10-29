@@ -51,6 +51,7 @@ func (u *UserInfo) ToFlat() *FlatUser {
 		Name:          u.Name,
 		Email:         u.Email,
 		VerifiedEmail: u.VerifiedEmail,
+		Password:      u.Password,
 	}
 
 	orgLinks := make([]UserOrganizationLink, 0, len(u.Roles))
@@ -131,6 +132,7 @@ func NewUserFromFlat(flatUser *FlatUser) *UserInfo {
 	user.Email = flatUser.User.Email
 	user.VerifiedEmail = flatUser.User.VerifiedEmail
 	user.Name = flatUser.User.Name
+	user.Password = flatUser.User.Password
 
 	for _, link := range flatUser.UserOrgLinks {
 		user.Roles[link.OrgId] = link.Role

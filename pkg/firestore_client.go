@@ -177,6 +177,10 @@ func (l *LocalFirestoreClient) Update(ctx context.Context, dataset, orgId, itemI
 			}
 			item.Role = role
 			l.data[location] = item
+		case "password":
+			item := l.data[location].(User)
+			item.Password = u.Value.(string)
+			l.data[location] = item
 		}
 	}
 	return nil
