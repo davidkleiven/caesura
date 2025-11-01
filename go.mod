@@ -4,12 +4,13 @@ go 1.24.0
 
 require (
 	cloud.google.com/go/firestore v1.20.0
-	cloud.google.com/go/storage v1.57.0
+	cloud.google.com/go/storage v1.57.1
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/gorilla/sessions v1.4.0
 	github.com/pdfcpu/pdfcpu v0.11.0
 	github.com/playwright-community/playwright-go v0.5200.0
 	github.com/stripe/stripe-go/v82 v82.5.1
+	golang.org/x/crypto v0.43.0
 	golang.org/x/oauth2 v0.32.0
 	golang.org/x/sync v0.17.0
 	golang.org/x/text v0.30.0
@@ -63,7 +64,6 @@ require (
 	go.opentelemetry.io/otel/sdk v1.37.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.37.0 // indirect
 	go.opentelemetry.io/otel/trace v1.37.0 // indirect
-	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/image v0.29.0 // indirect
 	golang.org/x/net v0.46.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
