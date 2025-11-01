@@ -1344,7 +1344,7 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("GET /organizations/{id}/invite", adminRoute(InviteLink(config.BaseURL, config.CookieSecretSignKey)))
 	mux.Handle("GET /organizations/options", userInfoRoute(OptionsFromSessionHandler(store, config.Timeout)))
 	mux.Handle("GET /organizations/active/session", userInfoRoute(http.HandlerFunc(ChosenOrganizationSessionHandler)))
-	mux.Handle("GET /organizations/users", requireAuthSession(AllUsers(store, config.Timeout)))
+	mux.Handle("GET /organizations/users", readRoute(AllUsers(store, config.Timeout)))
 	mux.Handle("DELETE /organizations/users/{id}", adminRoute(DeleteUserFromOrg(store, config.Timeout)))
 	mux.Handle("POST /organizations/recipent", adminRoute(RegisterRecipent(store, config.Timeout)))
 	mux.Handle("POST /organizations/users/{id}/groups", readRoute(GroupHandler(store, config.Timeout)))
