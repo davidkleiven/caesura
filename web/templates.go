@@ -66,7 +66,7 @@ func Overview(language string) []byte {
 	tmpl := template.Must(
 		template.New("overview").
 			Funcs(template.FuncMap{"T": translateFunc(language)}).
-			ParseFS(templatesFS, "templates/overview.html", "templates/header.html", "templates/resource_table.html"),
+			ParseFS(templatesFS, "templates/overview.html", "templates/header.html", "templates/resource_table.html", "templates/footer.html"),
 	)
 	var buf bytes.Buffer
 	pkg.PanicOnErr(tmpl.ExecuteTemplate(&buf, "overview", LoadDependencies().Dependencies))

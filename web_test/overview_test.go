@@ -196,7 +196,7 @@ func TestAddToExistingProject(t *testing.T) {
 
 		}
 
-		flashMsg, err := page.Locator("#flash-message").TextContent()
+		flashMsg, err := page.Locator("#flashMessage").TextContent()
 		if err != nil {
 			t.Fatalf("Error getting flash message: %v", err)
 
@@ -466,7 +466,7 @@ func TestSendCheckedItemsAsEmail(t *testing.T) {
 			testutils.AssertEqual(t, v, want[i])
 		}
 
-		flashMsg := page.Locator("#flash-message")
+		flashMsg := page.Locator("#flashMessage")
 		text, err := flashMsg.TextContent()
 		testutils.AssertNil(t, err)
 		testutils.AssertContains(t, text, "Successfully sent")
