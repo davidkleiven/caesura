@@ -1291,12 +1291,11 @@ func UpdatePassword(store pkg.BasicAuthPasswordResetter, signSecret string, time
 
 func SignOut(w http.ResponseWriter, r *http.Request) {
 	session := MustGetSession(r)
-	originalAge := session.Options.MaxAge
-	defer func() {
-		session.Options.MaxAge = originalAge
-	}()
 
-	session.Options.MaxAge = -1
+	// Make a copy to avoid editing options for other sessions
+	opts := *session.Options
+	opts.MaxAge = -1
+	session.Options = &opts
 	if err := session.Save(r, w); err != nil {
 		fmt.Fprintf(w, "Internal server error: %s", err)
 		return
