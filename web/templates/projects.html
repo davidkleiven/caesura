@@ -35,6 +35,7 @@
       </table>
     </div>
   </div>
+  {{ template "footer" }}
   <script defer>
     document.body.addEventListener("htmx:afterRequest", function (evt) {
       const path = evt.detail.requestConfig.path;
