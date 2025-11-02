@@ -6,7 +6,7 @@
 {{template "resource_table" . }}
 <button type="button" id="distribute-btn" hx-post="/resources/email" hx-trigger="click" hx-swap="none"
     hx-vals='js:{ resourceId: getAllResourceIds() }'
-    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition mt-8">
     Distribute
 </button>
 {{end}}
