@@ -1289,6 +1289,21 @@ func UpdatePassword(store pkg.BasicAuthPasswordResetter, signSecret string, time
 	}
 }
 
+func SignOut(w http.ResponseWriter, r *http.Request) {
+	session := MustGetSession(r)
+	originalAge := session.Options.MaxAge
+	defer func() {
+		session.Options.MaxAge = originalAge
+	}()
+
+	session.Options.MaxAge = -1
+	if err := session.Save(r, w); err != nil {
+		fmt.Fprintf(w, "Internal server error: %s", err)
+		return
+	}
+	w.Write([]byte("Logged out, session cleared"))
+}
+
 func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
 	sessionOpt := config.SessionOpts()
 	readRoute := RequireRead(cookieStore, sessionOpt)
@@ -1334,6 +1349,7 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("/login/google", requireAuthSession(HandleGoogleLogin(oauthCfg)))
 	mux.Handle("/login/basic", requireAuthSession(LoginByPassword(store, config.CookieSecretSignKey, config.Timeout)))
 	mux.Handle("POST /login/reset", ResetPasswordEmail(config))
+	mux.Handle("POST /logout", requireAuthSession(http.HandlerFunc(SignOut)))
 	mux.Handle("GET /login/reset/form", requireAuthSession(http.HandlerFunc(ResetPasswordForm)))
 	mux.Handle("PUT /password", requireAuthSession(UpdatePassword(store, config.CookieSecretSignKey, config.Timeout)))
 	mux.Handle("/auth/callback", requireAuthSession(HandleGoogleCallback(store, oauthCfg, config.Timeout, config.CookieSecretSignKey, config.Transport)))

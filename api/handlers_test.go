@@ -2794,3 +2794,39 @@ func TestUpdatePassword(t *testing.T) {
 		testutils.AssertContains(t, rec.Body.String(), "server error", "mock save error")
 	})
 }
+
+func TestSignOut(t *testing.T) {
+	store := sessions.NewCookieStore([]byte("sign-key"))
+
+	for _, test := range []struct {
+		Store      sessions.Store
+		WantEmpty  bool
+		WantMaxAge int
+	}{
+		{
+			Store:     store,
+			WantEmpty: false,
+		},
+		{
+			Store:     &errorStore{},
+			WantEmpty: true,
+		},
+	} {
+		req := httptest.NewRequest("POST", "/logout", nil)
+		session, err := test.Store.Get(req, AuthSession)
+		testutils.AssertNil(t, err)
+		session.Values["some-key"] = "whatever"
+
+		rec := httptest.NewRecorder()
+		ctx := context.WithValue(req.Context(), sessionKey, session)
+		SignOut(rec, req.WithContext(ctx))
+		cookie := rec.Result().Cookies()
+		if test.WantEmpty && len(cookie) != 0 {
+			t.Fatalf("Wanted empty cookie got %v", cookie)
+		}
+
+		if !test.WantEmpty && len(cookie) == 0 {
+			t.Fatalf("Cookie was empty")
+		}
+	}
+}
