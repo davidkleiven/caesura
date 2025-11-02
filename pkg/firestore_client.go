@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
@@ -180,6 +181,10 @@ func (l *LocalFirestoreClient) Update(ctx context.Context, dataset, orgId, itemI
 		case "password":
 			item := l.data[location].(User)
 			item.Password = u.Value.(string)
+			l.data[location] = item
+		case "updated_at":
+			item := l.data[location].(*FirestoreProject)
+			item.UpdatedAt = u.Value.(time.Time)
 			l.data[location] = item
 		}
 	}

@@ -310,6 +310,10 @@ func TestRemoveResourceFromProject(t *testing.T) {
 	testutils.AssertNil(t, err)
 	testutils.AssertEqual(t, len(storedProject.ResourceIds), 1)
 	testutils.AssertEqual(t, storedProject.ResourceIds[0], "id1")
+
+	if !storedProject.CreatedAt.Before(storedProject.UpdatedAt) {
+		t.Fatalf("UpdatedAt (%s) is not after CreatedAt (%s)", storedProject.UpdatedAt, storedProject.CreatedAt)
+	}
 }
 
 func TestGoogleMetaById(t *testing.T) {
