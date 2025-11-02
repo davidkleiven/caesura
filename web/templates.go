@@ -207,7 +207,7 @@ func WritePeopleHTML(w io.Writer, language string) {
 	tmpl := template.Must(
 		template.New("people").
 			Funcs(template.FuncMap{"T": translateFunc(language)}).
-			ParseFS(templatesFS, "templates/people.html", "templates/header.html"),
+			ParseFS(templatesFS, "templates/people.html", "templates/header.html", "templates/footer.html"),
 	)
 	pkg.PanicOnErr(tmpl.ExecuteTemplate(w, "people", LoadDependencies()))
 }

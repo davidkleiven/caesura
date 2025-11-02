@@ -104,6 +104,15 @@ func TestRemoveGroup(t *testing.T) {
 		testutils.AssertNil(t, err)
 		testutils.AssertEqual(t, afterNumWithAlto, numtdWithAlto-1)
 		testutils.AssertEqual(t, slices.Contains(store.Users[0].Groups[orgId], "Alto"), false)
+
+		flashMsg := page.Locator("#flashMessage")
+		count, err := flashMsg.Count()
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, 1, count)
+
+		flashContent, err := flashMsg.TextContent()
+		testutils.AssertNil(t, err)
+		testutils.AssertContains(t, flashContent, "group")
 	}, peoplePage)(t)
 }
 
