@@ -108,7 +108,7 @@ func Projects(language string) []byte {
 	tmpl := template.Must(
 		template.New("projects").
 			Funcs(template.FuncMap{"T": translateFunc(language)}).
-			ParseFS(templatesFS, "templates/projects.html", "templates/header.html"),
+			ParseFS(templatesFS, "templates/projects.html", "templates/header.html", "templates/footer.html"),
 	)
 	var buf bytes.Buffer
 	pkg.PanicOnErr(tmpl.ExecuteTemplate(&buf, "projects", LoadDependencies().Dependencies))

@@ -41,7 +41,7 @@
         </a>
         <button type="button"
             class="text-red-600 hover:text-red-800 {{if not $.RemoveFromProjectVisible}}hidden{{end}} hover:cursor-pointer"
-            title="Remove from project" hx-delete="/projects/{{$.ProjectId}}/{{.ResourceId}}" hx-swap="none">
+            title="Remove from project" hx-delete="/projects/{{$.ProjectId}}/{{.ResourceId}}" hx-swap="innerHTML" hx-target="#flashMessage">
             <svg xmlns="http://www.w3.org/2000/svg" class="inline h-5 w-5" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M6 18L18 6M6 6l12 12" />
