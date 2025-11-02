@@ -19,8 +19,8 @@ func NewLargeDemoStore() *MultiOrgInMemoryStore {
 	adjectives := []string{"Bright", "Silent", "Curious", "Gentle", "Swift"}
 	nouns := []string{"River", "Mountain", "Lantern", "Garden", "Bridge"}
 
-	for range numOrgs {
-		orgId := RandomInsecureID()
+	for orgNum := range numOrgs {
+		orgId := fmt.Sprintf("OrgId%d", orgNum)
 		singleOrgStore := NewInMemoryStore()
 		singleOrgStore.Metadata = make([]MetaData, num)
 		for i := range num {
