@@ -339,10 +339,15 @@ func TestDeleteResourceFromProject(t *testing.T) {
 	}
 
 	want := []string{"id1", "id3"}
-	got := store.Projects["myproject"].ResourceIds
+	project = store.Projects["myproject"]
+	got := project.ResourceIds
 
 	if slices.Compare(got, want) != 0 {
 		t.Fatalf("Wanted %v got %v", want, got)
+	}
+
+	if !project.CreatedAt.Before(project.UpdatedAt) {
+		t.Fatalf("Updated (%s) is not larger than (%s)", project.UpdatedAt, project.CreatedAt)
 	}
 }
 

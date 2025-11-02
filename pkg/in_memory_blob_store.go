@@ -9,6 +9,7 @@ import (
 	"path"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/davidkleiven/caesura/utils"
 )
@@ -91,6 +92,7 @@ func (s *InMemoryStore) RemoveResource(ctx context.Context, projectId string, re
 	project.ResourceIds = slices.DeleteFunc(project.ResourceIds, func(item string) bool {
 		return item == resourceId
 	})
+	project.UpdatedAt = time.Now()
 	s.Projects[projectId] = project
 	return nil
 }
