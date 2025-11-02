@@ -112,7 +112,6 @@ func withBrowser(testFunc func(t *testing.T, page playwright.Page), path string)
 
 		cookie := createSignedInCookie(cookieStore, server.URL)
 		err = context.AddCookies([]playwright.OptionalCookie{cookie})
-
 		if err != nil {
 			t.Fatal(err)
 		}

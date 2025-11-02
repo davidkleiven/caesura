@@ -36,7 +36,7 @@
     </div>
 
     <!-- Username/Password Form -->
-    <form hx-post="/login/basic" hx-target="#flashMessage" hx-swap="innerHTML">
+    <form hx-post="/login/basic" hx-target="#flashMessage" hx-swap="innerHTML" hx-on::after-request="document.body.dispatchEvent(new Event('loginEvent'))">
       <div class="mb-4">
         <label class="block text-gray-700 text-sm font-medium mb-2" for="email">
 		{{ T "email" }}

@@ -2,7 +2,9 @@ package web_test
 
 import (
 	"context"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/davidkleiven/caesura/testutils"
 	"github.com/playwright-community/playwright-go"
@@ -91,5 +93,40 @@ func TestForgotPassword(t *testing.T) {
 		testutils.AssertNil(t, err)
 		testutils.AssertContains(t, flashContent, "Invalid email")
 
+	}, loginPage)(t)
+}
+
+func TestLogout(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		signOut := page.Locator("div[id=logout]")
+		count, err := signOut.Count()
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, count, 1)
+
+		urls := []string{}
+		var mu sync.Mutex
+		page.On("response", func(resp playwright.Response) {
+			mu.Lock()
+			urls = append(urls, resp.URL())
+			mu.Unlock()
+		})
+		err = signOut.Click()
+		testutils.AssertNil(t, err)
+
+		numResposnesOk := false
+		for range 10 {
+			mu.Lock()
+			num := len(urls)
+			mu.Unlock()
+			if num >= 3 {
+				numResposnesOk = true
+				break
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		if !numResposnesOk {
+			t.Fatalf("Wanted at least 3 urls, got %v", urls)
+		}
 	}, loginPage)(t)
 }
