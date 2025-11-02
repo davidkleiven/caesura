@@ -17,7 +17,7 @@
         {{ range .Groups}}
         <span>{{.}}</span>
         <button class="text-red-600 hover:text-red-800 hover:cursor-pointer" title="Remove group"
-            hx-delete="/organizations/users/{{$outer.Id}}/groups" hx-swap="none"
+            hx-delete="/organizations/users/{{$outer.Id}}/groups" hx-swap="innerHTML" hx-target="#flashMessage"
             hx-vals='{"group": "{{.}}"}'
             hx-on::after-request="htmx.ajax('GET', '/organizations/users', {target: '#people-list', swap: 'innerHTML'})"
             id="remove-group-{{$outer.Id}}-{{.}}-btn">
