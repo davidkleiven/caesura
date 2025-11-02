@@ -47,6 +47,15 @@ func TestRegisterRecipent(t *testing.T) {
 		}
 
 		testutils.AssertEqual(t, group, "Alto")
+
+		flashMsg := page.Locator("#flashMessage")
+		count, err := flashMsg.Count()
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, 1, count)
+
+		flashContent, err := flashMsg.TextContent()
+		testutils.AssertNil(t, err)
+		testutils.AssertContains(t, flashContent, "recipent")
 	}, peoplePage)(t)
 }
 

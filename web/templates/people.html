@@ -46,7 +46,7 @@
 
         <button type="submit" id="register-recipent-btn"
           class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors"
-          hx-post="/organizations/recipent" hx-swap="none"
+          hx-post="/organizations/recipent" hx-swap="innerHTML" hx-target="#flashMessage"
           hx-on::after-request="htmx.ajax('GET', '/organizations/users', {target: '#people-list', swap: 'innerHTML'})"
           hx-on::401="Unauthorized: only admins can register a new recipent">
           {{T "register" }}
