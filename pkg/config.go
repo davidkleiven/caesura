@@ -67,6 +67,10 @@ func (c *Config) Validate() error {
 	switch c.StoreType {
 	case "in-memory":
 		// No additional validation needed for in-memory store
+	case "small-demo":
+		// No additional validation
+	case "large-demo":
+		// No additional validation
 	case "local-fs":
 		if c.LocalFS.Directory == "" {
 			return fmt.Errorf("local_fs.directory must be specified for local-fs store")
@@ -190,10 +194,17 @@ func LoadConfig(configFile string) (*Config, error) {
 }
 
 func GetStore(config *Config) Store {
+	msg := "Getting store for config"
+	key := "store"
 	switch config.StoreType {
 	case "small-demo":
+		slog.Info(msg, key, "small-demo")
 		return NewDemoStore()
+	case "large-demo":
+		slog.Info(msg, key, "large-demo")
+		return NewLargeDemoStore()
 	case GoogleCloud:
+		slog.Info(msg, key, "google-cloud")
 		return &GoogleStore{
 			FsClient: &GoogleFirestoreClient{
 				client:      config.GoogleClients.FirestoreClient,
@@ -201,6 +212,7 @@ func GetStore(config *Config) Store {
 			BucketClient: &GCSBucketClient{client: config.GoogleClients.CloudStoreClient},
 		}
 	default:
+		slog.Info(msg, key, "empty-store")
 		return NewMultiOrgInMemoryStore()
 	}
 }
