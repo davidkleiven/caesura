@@ -55,7 +55,7 @@ func main() {
 	}
 
 	cookieStore := sessions.NewCookieStore([]byte(config.CookieSecretSignKey))
-	mux := api.Setup(pkg.NewDemoStore(), config, cookieStore)
+	mux := api.Setup(pkg.GetStore(config), config, cookieStore)
 	stripe.Key = config.StripeSecretKey
 
 	server := &http.Server{
