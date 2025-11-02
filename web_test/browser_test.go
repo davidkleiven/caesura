@@ -194,7 +194,7 @@ func TestFilterList(t *testing.T) {
 
 		}
 
-		for _, instrument := range strings.Split(text, "\n") {
+		for instrument := range strings.SplitSeq(text, "\n") {
 			if strings.ReplaceAll(instrument, " ", "") != "" && !strings.Contains(instrument, "Flute") {
 				t.Fatalf("Expected to find 'Flute' in the instrument list, but got: %s", text)
 			}
