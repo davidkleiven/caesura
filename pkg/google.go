@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/storage"
@@ -216,6 +217,10 @@ func (g *GoogleStore) RemoveResource(ctx context.Context, orgId string, projectI
 		{
 			Path:  "resource_ids",
 			Value: firestore.ArrayRemove(resourceId),
+		},
+		{
+			Path:  "updated_at",
+			Value: time.Now(),
 		},
 	}
 	return g.FsClient.Update(ctx, projectCollection, orgId, projectId, update)
