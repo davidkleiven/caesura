@@ -201,3 +201,22 @@ func TestGetGoogleStoreFromConfig(t *testing.T) {
 	_, ok := store.(*GoogleStore)
 	testutils.AssertEqual(t, ok, true)
 }
+
+func TestOverrideEmailDeliveryService(t *testing.T) {
+	config := NewDefaultConfig()
+	_, err := OverrideEmailDeliveryService(config)
+	testutils.AssertNil(t, err)
+
+	config.EmailDeliveryService = "brevo"
+	_, err = OverrideEmailDeliveryService(config)
+	if err == nil {
+		t.Fatal("Wanted error")
+	}
+	testutils.AssertContains(t, err.Error(), "brevo")
+
+	config.BrevoApiKey = "some-api-key"
+	_, err = OverrideEmailDeliveryService(config)
+	testutils.AssertNil(t, err)
+	testutils.AssertEqual(t, config.EmailSender, "noreply@caesura.no")
+	testutils.AssertEqual(t, config.SmtpConfig.Host, "smtp-relay.brevo.com")
+}
