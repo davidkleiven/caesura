@@ -35,6 +35,16 @@ type Smtp struct {
 	SendFn SendFunc
 }
 
+func NewBrevo(password string) *Smtp {
+	host := "smtp-relay.brevo.com"
+	return &Smtp{
+		Host:   host,
+		Port:   "587",
+		Auth:   smtp.PlainAuth("", "9ac97b001@smtp-brevo.com", password, host),
+		SendFn: smtp.SendMail,
+	}
+}
+
 type GoogleClientContainer struct {
 	FirestoreClient  *firestore.Client
 	CloudStoreClient *storage.Client
@@ -58,6 +68,8 @@ type Config struct {
 	StripeSecretKey          string             `yaml:"stripe_secret_key" env:"CAESURA_STRIPE_SECRET_KEY"`
 	StripeWebhookSignSecret  string             `yaml:"stripe_webhook_sign_secret" env:"CAESURA_STRIPE_WEBHOOK_SIGN_SECRET"`
 	RequireSubscription      bool               `yaml:"require_subscription" env:"CAUSURA_REQUIRE_SUBSCRIPTION"`
+	BrevoApiKey              string             `yaml:"brevo_api_key" env:"CAESURA_BREVO_API_KEY"`
+	EmailDeliveryService     string             `yaml:"email_delivery_service" env:"CAESURA_EMAIL_DELIVERY_SERVICE"`
 	GoogleCfg                GoogleConfig       `yaml:"google_config"`
 	Transport                http.RoundTripper
 	GoogleClients            GoogleClientContainer
@@ -190,7 +202,20 @@ func LoadConfig(configFile string) (*Config, error) {
 		}
 	}
 	OverrideFromEnv(config, os.LookupEnv)
-	return OverrideFromEnv(config, FileEnvGetter(config.SecretsPath)), nil
+	OverrideFromEnv(config, FileEnvGetter(config.SecretsPath))
+	return OverrideEmailDeliveryService(config)
+}
+
+func OverrideEmailDeliveryService(config *Config) (*Config, error) {
+	switch config.EmailDeliveryService {
+	case "brevo":
+		if config.BrevoApiKey == "" {
+			return config, fmt.Errorf("Email delivery service was 'brevo', but no api key was provided")
+		}
+		config.SmtpConfig = *NewBrevo(config.BrevoApiKey)
+		config.EmailSender = "noreply@caesura.no"
+	}
+	return config, nil
 }
 
 func GetStore(config *Config) Store {
