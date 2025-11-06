@@ -48,7 +48,26 @@ func (r *ResourceDownloader) ExtractSingleFile(filename string, w io.Writer) *Re
 	return r
 }
 
-func (r *ResourceDownloader) ZipResource(w io.Writer) *ResourceDownloader {
+func IncludeAll(string) bool {
+	return true
+}
+
+func MatchAny(tokens []string) func(string) bool {
+	for i, token := range tokens {
+		tokens[i] = strings.ToLower(token)
+	}
+	return func(name string) bool {
+		lower := strings.ToLower(name)
+		for _, token := range tokens {
+			if strings.Contains(lower, token) {
+				return true
+			}
+		}
+		return false
+	}
+}
+
+func (r *ResourceDownloader) ZipResource(w io.Writer, include func(string) bool) *ResourceDownloader {
 	if r.Error != nil {
 		return r
 	}
@@ -58,6 +77,9 @@ func (r *ResourceDownloader) ZipResource(w io.Writer) *ResourceDownloader {
 
 	for name, content := range r.contentIter {
 		resourceExist = true
+		if !include(name) {
+			continue
+		}
 		subwriter, err := zw.Create(name)
 		if err != nil {
 			r.Error = err

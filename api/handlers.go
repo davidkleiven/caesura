@@ -396,7 +396,7 @@ func ResourceDownload(s pkg.ResourceGetter, timeout time.Duration) http.HandlerF
 			zipFilename := downloader.ZipFilename()
 			contentDisposition = "attachment; filename=\"" + zipFilename + "\""
 			contentType = "application/zip"
-			downloader.ZipResource(w)
+			downloader.ZipResource(w, pkg.IncludeAll)
 		} else {
 			contentDisposition = "attachment; filename=\"" + filename + "\""
 			contentType = "application/pdf"
