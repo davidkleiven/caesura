@@ -25,7 +25,7 @@ func TestZipReaderHasFiveFiles(t *testing.T) {
 	downloader := populatedDownloader()
 	var buffer bytes.Buffer
 
-	if err := downloader.ZipResource(&buffer).Error; err != nil {
+	if err := downloader.ZipResource(&buffer, IncludeAll).Error; err != nil {
 		t.Fatal(err)
 	}
 
@@ -70,7 +70,7 @@ func TestResourceDownloadPropagateErrors(t *testing.T) {
 		func() { downloader.GetMetaData(ctx, store, orgId, "unknownId") },
 		func() { downloader.GetResource(ctx, store, orgId) },
 		func() { downloader.ExtractSingleFile("file.pdf", &buf) },
-		func() { downloader.ZipResource(&buf) },
+		func() { downloader.ZipResource(&buf, IncludeAll) },
 	} {
 		f()
 		if !errors.Is(downloader.Error, initialError) {
@@ -116,7 +116,7 @@ func TestFilenames(t *testing.T) {
 func TestResourceNotExistOnEmpty(t *testing.T) {
 	downloader := NewResourceDownloader()
 	var buf bytes.Buffer
-	downloader.ZipResource(&buf)
+	downloader.ZipResource(&buf, IncludeAll)
 	if !errors.Is(downloader.Error, ErrResourceNotFound) {
 		t.Fatalf("Wanted error to be %s got %s", ErrResourceNotFound, downloader.Error)
 	}
@@ -141,7 +141,7 @@ func TestErrorSetOnFailingCreate(t *testing.T) {
 		return &failingZipWriter{errCreate: errors.New("could not created")}
 	}
 	var buf bytes.Buffer
-	downloader.ZipResource(&buf)
+	downloader.ZipResource(&buf, IncludeAll)
 
 	if downloader.Error == nil {
 		t.Fatal("Expected error to be set")
@@ -156,7 +156,7 @@ func TestErrorSetOnFailingSubwriter(t *testing.T) {
 		return &failingZipWriter{w: &failingWriter{}}
 	}
 	var buf bytes.Buffer
-	downloader.ZipResource(&buf)
+	downloader.ZipResource(&buf, IncludeAll)
 	if downloader.Error == nil {
 		t.Fatal("Expected error to be set")
 	}
