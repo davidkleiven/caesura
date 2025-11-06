@@ -415,7 +415,7 @@ func TestAddToItemNotHidden(t *testing.T) {
 	}, overViewPage)(t)
 }
 
-func TestSendCheckedItemsAsEmail(t *testing.T) {
+func TestDownloadCheckedItems(t *testing.T) {
 	withBrowser(func(t *testing.T, page playwright.Page) {
 		if err := waitForInitialLoad(page); err != nil {
 			t.Fatal(err)
@@ -438,7 +438,7 @@ func TestSendCheckedItemsAsEmail(t *testing.T) {
 
 		var resourceIds []string
 		requestInspector := func(request playwright.Request) {
-			if strings.Contains(request.URL(), "/resources/email") && request.Method() == "POST" {
+			if strings.Contains(request.URL(), "/resources/parts") && request.Method() == "POST" {
 				body, err := request.PostData()
 				testutils.AssertNil(t, err)
 
@@ -454,7 +454,7 @@ func TestSendCheckedItemsAsEmail(t *testing.T) {
 		timeout := playwright.PageExpectResponseOptions{
 			Timeout: playwright.Float(1000),
 		}
-		_, err = page.ExpectResponse("**/resources/email", func() error {
+		_, err = page.ExpectResponse("**/resources/parts", func() error {
 			return btn.Click()
 		}, timeout)
 		testutils.AssertNil(t, err)
@@ -465,11 +465,5 @@ func TestSendCheckedItemsAsEmail(t *testing.T) {
 		for i, v := range resourceIds {
 			testutils.AssertEqual(t, v, want[i])
 		}
-
-		flashMsg := page.Locator("#flashMessage")
-		text, err := flashMsg.TextContent()
-		testutils.AssertNil(t, err)
-		testutils.AssertContains(t, text, "Successfully sent")
-
 	}, overViewPage)(t)
 }

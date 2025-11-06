@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/css/output.css">
   <script src="https://unpkg.com/htmx.org@{{ .HtmxVersion }}/dist/htmx.min.js"></script>
   <script src="/js/expand-row-content.js"></script>
+  <script src="/js/downloadParts.js"></script>
   <title>Caesura</title>
 </head>
 
@@ -48,14 +49,14 @@
           htmx.ajax("GET", `/projects/${projectId}`, '#page-content')
         }
       }
+
     });
 
-    // Function used in project_content.html
+    // function used by project_content.html
     function getAllResourceIds() {
-      const rows = document.querySelectorAll('tr[id^="row-"]');
-      const ids = Array.from(rows).map(row => row.id.replace("row-", ""));
-      return ids;
-    }
+    	const rows = document.querySelectorAll('tr[id^="row-"]');
+	return Array.from(rows).map((row) => row.id.replace("row-", ""));
+	}
   </script>
 </body>
 {{end}}
