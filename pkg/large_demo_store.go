@@ -40,10 +40,11 @@ func NewLargeDemoStore() *MultiOrgInMemoryStore {
 		var pdfBuf bytes.Buffer
 		PanicOnErr(CreateNPagePdf(&pdfBuf, 2))
 		content := pdfBuf.Bytes()
+		parts := []string{"Cornet", "Tenor"}
 		for _, m := range singleOrgStore.Metadata {
 			name := m.ResourceId()
 			for i := range 5 {
-				fname := fmt.Sprintf("%s/Part%d.pdf", name, i)
+				fname := fmt.Sprintf("%s/%s%d.pdf", name, parts[i%2], i)
 				singleOrgStore.Data[fname] = content
 			}
 		}
