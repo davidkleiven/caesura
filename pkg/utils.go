@@ -199,3 +199,36 @@ func LanguageFromReq(r *http.Request) string {
 	baseLang, _ := bestMatch.Base()
 	return baseLang.String()
 }
+
+type NamedBuffer struct {
+	Name string
+	Buf  bytes.Buffer
+}
+
+func CombineZip(writer *zip.Writer, namedBuffers []NamedBuffer) (int, error) {
+	numFiles := 0
+	for _, namedBuffer := range namedBuffers {
+		bufReader := bytes.NewReader(namedBuffer.Buf.Bytes())
+		reader, err := zip.NewReader(bufReader, int64(bufReader.Len()))
+		if err != nil {
+			return numFiles, fmt.Errorf("CombineZip: %w", err)
+		}
+
+		for _, file := range reader.File {
+			fReader, err := file.Open()
+			if err != nil {
+				return numFiles, fmt.Errorf("CombineZip: %w", err)
+			}
+
+			fWriter, err := writer.Create(namedBuffer.Name + "_" + file.Name)
+			if err != nil {
+				fReader.Close()
+				return numFiles, fmt.Errorf("CombineZip: %w", err)
+			}
+			io.Copy(fWriter, fReader)
+			fReader.Close()
+			numFiles += 1
+		}
+	}
+	return numFiles, nil
+}

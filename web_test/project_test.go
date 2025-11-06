@@ -193,7 +193,7 @@ func TestDistributeProject(t *testing.T) {
 
 		var resourceIds []string
 		requestInspector := func(request playwright.Request) {
-			if strings.Contains(request.URL(), "/resources/email") && request.Method() == "POST" {
+			if strings.Contains(request.URL(), "/resources/parts") && request.Method() == "POST" {
 				body, err := request.PostData()
 				testutils.AssertNil(t, err)
 
@@ -206,7 +206,7 @@ func TestDistributeProject(t *testing.T) {
 		}
 		page.On("request", requestInspector)
 
-		_, err = page.ExpectResponse("**/resources/email", func() error {
+		_, err = page.ExpectResponse("**/resources/parts", func() error {
 			return btn.Click()
 		}, timeout)
 		testutils.AssertNil(t, err)

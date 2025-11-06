@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/css/output.css">
   <script src="https://unpkg.com/htmx.org@{{ .HtmxVersion }}/dist/htmx.min.js"></script>
   <script src="/js/expand-row-content.js"></script>
+  <script src="/js/downloadParts.js"></script>
   <title>Caesura</title>
 </head>
 
@@ -25,9 +26,7 @@
       class="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">
       {{T "overview.add-to-project" }}
     </button>
-    <button type="button" id="distribute-btn" hx-post="/resources/email" hx-trigger="click"
-      hx-target="#flashMessage" hx-swap="innerHTML"
-      hx-vals='js:{ resourceId: getCheckedIds() }'
+    <button type="button" id="distribute-btn" onclick="downloadParts(document, getCheckedIds())"
       class="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">
       {{ T "distribute"}}
     </button>

@@ -2411,122 +2411,6 @@ func TestLoggedIn(t *testing.T) {
 	})
 }
 
-func TestSendEmail(t *testing.T) {
-	config := pkg.NewDefaultConfig()
-	config.SmtpConfig.SendFn = pkg.NoOpSendFunc
-	store := pkg.NewDemoStore()
-	handler := SendEmail(store, config)
-	orgId := store.FirstOrganizationId()
-
-	// Add all users to the "part" group
-	for i := range store.Users {
-		store.Users[i].Groups[orgId] = []string{"part"}
-	}
-
-	seen := map[string]struct{}{}
-	form := url.Values{}
-	for r := range store.Data[orgId].Data {
-		splitted := strings.Split(r, "/")
-		path := orgId + "/" + strings.Join(splitted[:len(splitted)-1], "/")
-		if _, ok := seen[path]; !ok {
-			form.Add("resourceId", path)
-			seen[path] = struct{}{}
-		}
-	}
-
-	body := form.Encode()
-	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
-
-	validReq := httptest.NewRequest("GET", "/email", bytes.NewBufferString(body))
-	validReq.Header.Set("Content-Type", "application/json")
-
-	session, err := cookieStore.Get(validReq, AuthSession)
-	testutils.AssertNil(t, err)
-	session.Values["orgId"] = orgId
-	ctx := context.WithValue(validReq.Context(), sessionKey, session)
-
-	t.Run("valid email", func(t *testing.T) {
-		recorder := httptest.NewRecorder()
-		handler(recorder, validReq.WithContext(ctx))
-		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
-	})
-}
-
-func TestSendEmailGetUserFails(t *testing.T) {
-	collector := pkg.FailingEmailDataCollector{
-		ErrUsersInOrg: errors.New("could not call users"),
-	}
-
-	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
-	form := url.Values{}
-	form.Add("resourceId", "resource")
-
-	req := httptest.NewRequest("GET", "/email", bytes.NewBufferString(form.Encode()))
-	session, err := cookieStore.Get(req, AuthSession)
-	testutils.AssertNil(t, err)
-	session.Values["orgId"] = "some-org-id"
-	ctx := context.WithValue(req.Context(), sessionKey, session)
-
-	handler := SendEmail(&collector, pkg.NewDefaultConfig())
-
-	rec := httptest.NewRecorder()
-	handler(rec, req.WithContext(ctx))
-	testutils.AssertEqual(t, rec.Code, http.StatusInternalServerError)
-	testutils.AssertContains(t, rec.Body.String(), collector.ErrUsersInOrg.Error())
-}
-
-func TestEmailErrorOnTooLargeForm(t *testing.T) {
-	store := pkg.NewMultiOrgInMemoryStore()
-	content := bytes.Repeat([]byte("a"), 40000)
-	form := url.Values{}
-	form.Add("ids", string(content))
-
-	body := bytes.NewBufferString(form.Encode())
-	req := httptest.NewRequest("POST", "/email", body)
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	rec := httptest.NewRecorder()
-
-	session := sessions.Session{
-		Values: make(map[any]any),
-	}
-	session.Values["orgId"] = "orgId"
-
-	ctx := context.WithValue(req.Context(), sessionKey, &session)
-	handler := SendEmail(store, pkg.NewDefaultConfig())
-	handler(rec, req.WithContext(ctx))
-	testutils.AssertEqual(t, rec.Code, http.StatusRequestEntityTooLarge)
-}
-
-func TestEmailFetchError(t *testing.T) {
-	collector := pkg.FailingEmailDataCollector{
-		ErrItemGetter: errors.New("something went wrong"),
-		ResourceNames: []string{"part1"},
-		Users: []pkg.UserInfo{{Id: "userId", Groups: map[string][]string{
-			"some-org-id": {"part"},
-		}}},
-	}
-
-	form := url.Values{}
-	form.Add("resourceId", "resource1")
-	body := form.Encode()
-
-	session := sessions.Session{
-		Values: make(map[any]any),
-	}
-	session.Values["orgId"] = "some-org-id"
-
-	req := httptest.NewRequest("POST", "/email", bytes.NewBufferString(body))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	rec := httptest.NewRecorder()
-
-	ctx := context.WithValue(req.Context(), sessionKey, &session)
-
-	handler := SendEmail(&collector, pkg.NewDefaultConfig())
-	handler(rec, req.WithContext(ctx))
-
-	testutils.AssertEqual(t, rec.Code, http.StatusInternalServerError)
-}
-
 func TestLoginHandlerReturnInternalServerError(t *testing.T) {
 	store := errorStore{}
 	req := httptest.NewRequest("GET", "/login?invite-token=daa", nil)
@@ -2829,4 +2713,79 @@ func TestSignOut(t *testing.T) {
 			t.Fatalf("Cookie was empty")
 		}
 	}
+}
+
+func TestDownloadUserPartErrorOnTooLargeBody(t *testing.T) {
+	body := bytes.Repeat([]byte("b"), 40000)
+	req := httptest.NewRequest("POST", "/download", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+	store := pkg.NewMultiOrgInMemoryStore()
+	config := pkg.NewDefaultConfig()
+	DownloadUserParts(store, config)(rec, req)
+	testutils.AssertEqual(t, rec.Code, http.StatusRequestEntityTooLarge)
+}
+
+type failingResourceGetter struct {
+	metaErr error
+}
+
+func (f *failingResourceGetter) MetaById(ctx context.Context, orgId string, id string) (*pkg.MetaData, error) {
+	return &pkg.MetaData{}, f.metaErr
+}
+
+func (f *failingResourceGetter) Resource(ctx context.Context, orgId string, path string) iter.Seq2[string, []byte] {
+	return func(yield func(string, []byte) bool) {}
+}
+
+func TestDownloadUserPartsSuccess(t *testing.T) {
+	store := pkg.NewDemoStore()
+	orgId := store.FirstOrganizationId()
+	session := sessions.Session{
+		Values: make(map[any]any),
+	}
+	userInfo := store.Users[0]
+	for k, groups := range userInfo.Groups {
+		// User to group Part such that it matches the files in the demo store
+		userInfo.Groups[k] = append(groups, "Part")
+	}
+
+	session.Values["orgId"] = orgId
+	userData, err := json.Marshal(userInfo)
+	testutils.AssertNil(t, err)
+	session.Values["role"] = userData
+
+	form := url.Values{}
+	for _, m := range store.FirstDataStore().Metadata {
+		form.Set("resourceId", m.ResourceId())
+	}
+
+	config := pkg.NewDefaultConfig()
+	handler := DownloadUserParts(store, config)
+
+	req := httptest.NewRequest("POST", "/download", bytes.NewBufferString(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	ctx := context.WithValue(req.Context(), sessionKey, &session)
+	handler(rec, req.WithContext(ctx))
+	testutils.AssertEqual(t, rec.Code, http.StatusOK)
+	testutils.AssertEqual(t, rec.Header().Get("Content-Type"), "application/zip")
+	testutils.AssertContains(t, rec.Header().Get("Content-Disposition"), "casesura", ".zip", "attachment", "filename")
+
+	result, err := zip.NewReader(bytes.NewReader(rec.Body.Bytes()), int64(rec.Body.Len()))
+	testutils.AssertNil(t, err)
+	testutils.AssertEqual(t, len(result.File), 5)
+
+	t.Run("failing handler", func(t *testing.T) {
+		failingGetter := failingResourceGetter{metaErr: errors.New("something went wrong")}
+		failingHandler := DownloadUserParts(&failingGetter, config)
+		failingRec := httptest.NewRecorder()
+		failingHandler(failingRec, req.WithContext(ctx))
+		testutils.AssertEqual(t, failingRec.Code, http.StatusOK)
+		emptyZip, err := zip.NewReader(bytes.NewReader(failingRec.Body.Bytes()), int64(failingRec.Body.Len()))
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, len(emptyZip.File), 0)
+	})
+
 }

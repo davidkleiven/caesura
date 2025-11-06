@@ -198,3 +198,53 @@ func TestEnglishOnInvalidHeader(t *testing.T) {
 	r.Header.Set("Accept-Language", "some-random-content")
 	testutils.AssertEqual(t, LanguageFromReq(r), "en")
 }
+
+func TestCombineZipErrorOnInvalidZip(t *testing.T) {
+	var buf bytes.Buffer
+	writer := zip.NewWriter(&buf)
+	defer writer.Close()
+
+	notZip := bytes.NewBuffer([]byte("invalid zip"))
+	namedBuffer := NamedBuffer{
+		Name: "buffer 1",
+		Buf:  *notZip,
+	}
+
+	num, err := CombineZip(writer, []NamedBuffer{namedBuffer})
+	testutils.AssertEqual(t, 0, num)
+	if err == nil {
+		t.Fatal("Wanted error")
+	}
+	testutils.AssertContains(t, err.Error(), "CombineZip")
+}
+
+func TestCombineTwoZips(t *testing.T) {
+	namedBuffers := make([]NamedBuffer, 2)
+	for i := range 2 {
+		writer := zip.NewWriter(&namedBuffers[i].Buf)
+		namedBuffers[i].Name = fmt.Sprintf("buffer%d", i)
+		for fileNo := range 3 {
+			fname := fmt.Sprintf("file%d.txt", fileNo)
+			f, err := writer.Create(fname)
+			testutils.AssertNil(t, err)
+			_, err = f.Write([]byte("some text"))
+			testutils.AssertNil(t, err)
+		}
+		writer.Close()
+	}
+
+	var combinedBuf bytes.Buffer
+	combinedWriter := zip.NewWriter(&combinedBuf)
+	num, err := CombineZip(combinedWriter, namedBuffers)
+	combinedWriter.Close()
+	testutils.AssertEqual(t, 6, num)
+	testutils.AssertNil(t, err)
+
+	combinedReader, err := zip.NewReader(bytes.NewReader(combinedBuf.Bytes()), int64(combinedBuf.Len()))
+	testutils.AssertNil(t, err)
+	fnamePattern := regexp.MustCompile(`^[a-z]+\d{1}_[a-z]+\d{1}\.txt$`)
+	for _, f := range combinedReader.File {
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, fnamePattern.MatchString(f.Name), true)
+	}
+}

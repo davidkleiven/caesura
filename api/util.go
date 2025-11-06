@@ -232,3 +232,14 @@ func SignedResetToken(email, signKey string, expiryTime time.Duration) (string, 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, resetPaswordClaim)
 	return token.SignedString([]byte(signKey))
 }
+
+func GroupFilterFromSession(session *sessions.Session) func(string) bool {
+	orgId := MustGetOrgId(session)
+	userInfo := MustGetUserInfo(session)
+	groups, ok := userInfo.Groups[orgId]
+	if !ok {
+		slog.Warn("Could not find any groups linked to current user and organization", "user", userInfo.Id, "org", orgId)
+		return pkg.IncludeAll
+	}
+	return pkg.MatchAny(groups)
+}
