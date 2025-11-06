@@ -378,7 +378,6 @@ func PopulateSessionWithRoles(session *sessions.Session, userInfo *UserInfo) {
 	userInfo.Email = ""
 	userInfo.Name = ""
 	userInfo.VerifiedEmail = false
-	userInfo.Groups = nil
 	userInfo.Password = ""
 
 	userInfoJson := utils.Must(json.Marshal(userInfo))
