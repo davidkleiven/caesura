@@ -32,16 +32,17 @@ jobs:
         run: |
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o caesura main.go
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker image
         run: |
-          docker build -t docker.io/${{ secrets.DOCKERHUB_USERNAME }}/caesura:${{ needs.release.outputs.new_tag }} .
+          docker build -t ghcr.io/${{ github.repository_owner }}/caesura:${{ needs.release.outputs.new_tag }} .
 
       - name: Push Docker image
         run: |
-          docker push docker.io/${{ secrets.DOCKERHUB_USERNAME }}/caesura:${{ needs.release.outputs.new_tag }}
+          docker push ghcr.io/${{ github.repository_owner }}/caesura:${{ needs.release.outputs.new_tag }}
