@@ -1236,6 +1236,11 @@ func SignOut(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Logged out, session cleared"))
 }
 
+func AboutUs(w http.ResponseWriter, r *http.Request) {
+	lang := pkg.LanguageFromReq(r)
+	web.AboutUsPage(w, lang)
+}
+
 func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
 	sessionOpt := config.SessionOpts()
 	readRoute := RequireRead(cookieStore, sessionOpt)
@@ -1306,5 +1311,7 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("POST /subscription-page", adminWithoutSubscription(checkoutSessionHandler(config)))
 	mux.Handle("GET /subscription", readRoute(Subscription(store, config.Timeout)))
 	mux.Handle("POST /payment", stripeWebhookHandler(store, config))
+
+	mux.Handle("GET /about", http.HandlerFunc(AboutUs))
 	return mux
 }

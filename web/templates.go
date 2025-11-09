@@ -388,3 +388,12 @@ func ResetPasswordPage(w io.Writer, lang string) {
 func CreateNewProject(lang string) string {
 	return translator.MustGet(lang, "project-modal.create-new")
 }
+
+func AboutUsPage(w io.Writer, lang string) {
+	tmpl := template.Must(
+		template.New("contact").
+			Funcs(template.FuncMap{"T": translateFunc(lang)}).
+			ParseFS(templatesFS, "templates/about.html", "templates/header.html", "templates/footer.html"),
+	)
+	pkg.PanicOnErr(tmpl.ExecuteTemplate(w, "contact", nil))
+}

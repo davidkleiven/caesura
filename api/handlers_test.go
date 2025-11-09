@@ -2789,3 +2789,10 @@ func TestDownloadUserPartsSuccess(t *testing.T) {
 	})
 
 }
+
+func TestAboutHandler(t *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/about", nil)
+	AboutUs(rec, req)
+	testutils.AssertEqual(t, rec.Code, http.StatusOK)
+}
