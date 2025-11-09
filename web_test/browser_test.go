@@ -533,3 +533,80 @@ func TestSubmit(t *testing.T) {
 
 	}, uploadPage)(t)
 }
+
+func TestNavigateByArrowBtns(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		deletePdf := loadPdf(page, t)
+		defer deletePdf()
+
+		pageNum := page.Locator("#page-num")
+		current, err := pageNum.TextContent()
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, current, "1")
+
+		err = page.Keyboard().Press("ArrowRight")
+		pageSwitched := false
+
+		// Run in a loop to give the browser some time to update
+		for range 10 {
+			content, err := pageNum.TextContent()
+			testutils.AssertNil(t, err)
+			if content == "2" {
+				pageSwitched = true
+				break
+			}
+			time.Sleep(time.Millisecond)
+		}
+		testutils.AssertEqual(t, pageSwitched, true)
+
+		err = page.Keyboard().Press("ArrowLeft")
+		pageSwitched = false
+
+		// Run in a loop to give the browser some time to update
+		for range 10 {
+			content, err := pageNum.TextContent()
+			testutils.AssertNil(t, err)
+			if content == "1" {
+				pageSwitched = true
+				break
+			}
+			time.Sleep(time.Millisecond)
+		}
+		testutils.AssertEqual(t, pageSwitched, true)
+
+	}, uploadPage)(t)
+}
+
+func TestAssignByPressingPlussBtn(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		deletePdf := loadPdf(page, t)
+		defer deletePdf()
+
+		// Pick part
+		score := page.Locator("li:text('Conductor')").First()
+		err := score.Click()
+		testutils.AssertNil(t, err)
+
+		assignments := page.Locator("#conductor-group")
+		num, err := assignments.Count()
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, 0, num)
+
+		err = page.Keyboard().Press("+")
+		testutils.AssertNil(t, err)
+
+		assignementWasAdded := false
+		for range 10 {
+			num, err = assignments.Count()
+			testutils.AssertNil(t, err)
+			if num == 1 {
+				assignementWasAdded = true
+				break
+			}
+			time.Sleep(time.Millisecond)
+		}
+		testutils.AssertEqual(t, assignementWasAdded, true)
+
+	}, uploadPage)(t)
+
+}
