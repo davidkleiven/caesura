@@ -259,3 +259,9 @@ func TestRestPasswordPage(t *testing.T) {
 	ResetPasswordPage(&buf, "en")
 	testutils.AssertContains(t, buf.String(), "Reset password")
 }
+
+func TestLoadAboutPage(t *testing.T) {
+	var buf bytes.Buffer
+	AboutUsPage(&buf, "en")
+	testutils.AssertContains(t, buf.String(), "Caesura Free")
+}

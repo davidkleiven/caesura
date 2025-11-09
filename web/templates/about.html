@@ -1,0 +1,62 @@
+{{ define "contact" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Caesura</title>
+  <link rel="stylesheet" href="/css/output.css">
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans">
+	{{ template "header" }}
+
+  <!-- Products & Pricing -->
+  <section id="products" class="py-16">
+    <div class="max-w-5xl mx-auto px-6">
+	    <h2 class="text-2xl font-bold text-gray-800 mb-6">🛍️ {{ T "about.products" }}</h2>
+
+      <div class="grid md:grid-cols-3 gap-8">
+        <!-- Caesura Free -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+          <h3 class="text-xl font-semibold text-indigo-700 mb-4">Caesura Free</h3>
+	  <p class="text-gray-600 mb-4">{{ T "about.caesura-free" }}</p>
+	  <p class="text-2xl font-bold text-gray-800 mb-4">0 NOK/{{T "about.month" }}</p>
+        </div>
+
+        <!-- Caesura Monthly -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-indigo-600">
+          <h3 class="text-xl font-semibold text-indigo-700 mb-4">Caesura Monthly</h3>
+          <p class="text-gray-600 mb-4">{{ T "about.caesura-monthly" }}</p>
+	  <p class="text-2xl font-bold text-gray-800 mb-4">79 NOK/{{T "about.month" }}</p>
+        </div>
+
+        <!-- Caesura Annual -->
+        <div class="bg-white rounded-2xl shadow-lg p-6">
+          <h3 class="text-xl font-semibold text-indigo-700 mb-4">Caesura Annual</h3>
+	  <p class="text-gray-600 mb-4">{{ T "about.caesura-annual" }}</p>
+	  <p class="text-2xl font-bold text-gray-800 mb-4">790 NOK/{{T "about.year" }}</p>
+        </div>
+      </div>
+      <div class="text-center mt-8">
+	      <a href="/organizations/form" class="bg-indigo-600 text-white px-6 py-3 rounded-xl text-lg font-semibold hover:bg-indigo-700">{{ T "about.get-started" }}</a>
+    </div>
+    </div>
+  </section>
+
+  <!-- Contact Information -->
+  <section id="contact" class="py-16 bg-indigo-50">
+    <div class="max-w-5xl mx-auto px-6 text-center">
+	    <h2 class="text-2xl font-bold text-gray-800 mb-6">📞 {{ T "about.contact" }}</h2>
+      <div class="bg-white rounded-2xl shadow-lg p-8 inline-block text-left">
+	      <p class="mb-2"><strong>{{ T "email" }}:</strong> <a href="mailto:info@caesura.com" class="text-indigo-600 hover:underline">info@caesura.com</a></p>
+	      <p class="mb-2"><strong>{{ T "about.website" }}:</strong> <a href="http://www.caesura.com" class="text-indigo-600 hover:underline">www.caesura.no</a></p>
+      </div>
+    </div>
+  </section>
+
+  {{ template "footer" }}
+
+</body>
+</html>
+
+{{end}}

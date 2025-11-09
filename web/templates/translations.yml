@@ -1,4 +1,15 @@
 en:
+  about.caesura-free: Basic access to explore Caesura features for free. Store up to 10 scores.
+  about.caesura-monthly: >
+    Enjoy all features with a flexible monthly subscription.
+    You can store up to 500 scores, and if you need more, simply send us an email and we’ll handle it.
+  about.caesura-annual: Best value! Pay once for a full year of Caesura features
+  about.get-started: Get started
+  about.month: month
+  about.products: Products & Pricing
+  about.contact: Contact Information
+  about.website: Website
+  about.year: year
   annual: Annual
   assign: Assign
   arranger: Arranger
@@ -54,7 +65,7 @@ en:
   login.user_not_found: "User with email {{.Email}} not found"
   login.minimum_password_length: "The provided password is too short. Minimum length:"
   monthly: Monthly
-  nav.contact: Contact
+  nav.about: About us
   nav.home: Home
   nav.organizations: Organizations
   nav.overview: Overview
@@ -142,6 +153,17 @@ en:
   upload.init-flash-msg: Ready to upload new files
 
 nb:
+  about.caesura-free: Grunnleggende tilgang for å utforske Caesura. Du kan lagre opp til 10 notesett
+  about.caesura-monthly: >
+    Tilgang til alle funksjoner med et fleksibelt månedlig abonnement. Du kan lagre opptil 500
+    notesett, og hvis du trenger flere, kan du bare sende oss en e-post, så ordner vi det
+  about.caesura-annual: Beste verdi! Betal én gang for ett helt år med Caesura-funksjoner.
+  about.get-started: Kom i gang
+  about.month: måned
+  about.products: Produkter og priser
+  about.contact: Kontaktinformasjon
+  about.website: Nettside
+  about.year: År
   annual: Årlig
   assign: Tildel
   arranger: Arrangør
@@ -197,7 +219,7 @@ nb:
   login.user_not_found: "Kunne ikke finne brukere med epost {{.Email}}"
   login.minimum_password_length: "Passordet er for kort. Minste lengde: "
   monthly: Månedlig
-  nav.contact: Kontakt
+  nav.about: Om oss
   nav.home: Hjem
   nav.organizations: Organisasjoner
   nav.overview: Oversikt
