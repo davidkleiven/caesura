@@ -28,7 +28,7 @@ func Upload(data *ScoreMetaData, language string) []byte {
 	tmpl := template.Must(
 		template.New("upload").
 			Funcs(template.FuncMap{"T": translateFunc(language)}).
-			ParseFS(templatesFS, "templates/upload.html", "templates/header.html"),
+			ParseFS(templatesFS, "templates/upload.html", "templates/header.html", "templates/footer.html"),
 	)
 	var buf bytes.Buffer
 
@@ -185,7 +185,7 @@ func Organizations(language string) []byte {
 	tmpl := template.Must(
 		template.New("organizations").
 			Funcs(template.FuncMap{"T": translateFunc(language)}).
-			ParseFS(templatesFS, "templates/organizations.html", "templates/header.html", "templates/organization_list.html"),
+			ParseFS(templatesFS, "templates/organizations.html", "templates/header.html", "templates/organization_list.html", "templates/footer.html"),
 	)
 	var buf bytes.Buffer
 

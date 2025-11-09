@@ -522,7 +522,7 @@ func TestSubmit(t *testing.T) {
 
 		}
 
-		flashMsg := page.Locator("#flash-message")
+		flashMsg := page.Locator("#flashMessage")
 		num, err := flashMsg.Count()
 		testutils.AssertNil(t, err)
 		testutils.AssertEqual(t, num, 1)
