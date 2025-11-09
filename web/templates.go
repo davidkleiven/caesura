@@ -384,3 +384,7 @@ func ResetPasswordPage(w io.Writer, lang string) {
 	pkg.PanicOnErr(tmpl.ExecuteTemplate(w, "resetPassword", LoadDependencies()))
 
 }
+
+func CreateNewProject(lang string) string {
+	return translator.MustGet(lang, "project-modal.create-new")
+}

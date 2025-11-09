@@ -124,6 +124,7 @@ en:
   project.downloadParts: "Download my sheet music"
   project-modal.select: Select Project
   project-modal.select-placeholder: Search or create project...
+  project-modal.create-new: Create new project
   previous: Previous
   register: Register
   resetPassword.header: Reset password
@@ -262,6 +263,7 @@ nb:
   project.downloadParts: Last ned mine stemmer
   project-modal.select: Velg prosjekt
   project-modal.select-placeholder: Søk eller opprett prosjekt...
+  project-modal.create-new: Opprett nytt prosjekt
   previous: Forrige
   register: Registrer
   resetPassword.header: Lag nytt passord

@@ -34,6 +34,7 @@ type IdentifiedList struct {
 	Items    []string
 	HxGet    string
 	HxTarget string
+	Fallback string
 }
 
 func includeError(w http.ResponseWriter, status int, message string, err error) {
