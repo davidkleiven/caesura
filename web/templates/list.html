@@ -4,6 +4,6 @@
         hx-swap="innerHTML"
         class="cursor-pointer hover:text-blue-800 hover:underline transition">{{.}}</li>
     {{else}}
-      <li>No items found.</li>
+    <li>{{.Fallback}}</li>
     {{end}}
 </ul>

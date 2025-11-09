@@ -58,7 +58,7 @@ func InstrumentSearchHandler(w http.ResponseWriter, r *http.Request) {
 		html := string(web.List())
 		t := template.Must(template.New("list").Parse(html))
 
-		err := t.Execute(w, IdentifiedList{Id: "instruments", Items: instruments, HxGet: "/choice", HxTarget: "#chosen-instrument"})
+		err := t.Execute(w, IdentifiedList{Id: "instruments", Items: instruments, HxGet: "/choice", HxTarget: "#chosen-instrument", Fallback: "No items found"})
 		includeError(w, http.StatusInternalServerError, "Failed to render template", err)
 	}
 }
@@ -223,7 +223,8 @@ func SearchProjectHandler(store pkg.ProjectByNameGetter, timeout time.Duration) 
 		for i, p := range project {
 			project_names[i] = p.Name
 		}
-		pkg.PanicOnErr(t.Execute(w, IdentifiedList{Id: "projects", Items: project_names, HxGet: "/project-query-input", HxTarget: "#project-query-input"}))
+		lang := pkg.LanguageFromReq(r)
+		pkg.PanicOnErr(t.Execute(w, IdentifiedList{Id: "projects", Items: project_names, HxGet: "/project-query-input", HxTarget: "#project-query-input", Fallback: web.CreateNewProject(lang)}))
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	}
 }
