@@ -12,11 +12,12 @@
   <body class="bg-gray-100">
     {{ template "header" . }}
     <!-- Page Content Placeholder -->
-    <div id="page-content" class="flex pt-16">
-      <div class="flex-col w-2/3">
-        <div
-          class="max-w-md mx-auto mt-8 mb-6 p-4 bg-gray-50 rounded-md shadow-sm"
-        >
+    <div
+      id="page-content"
+      class="flex flex-col lg:flex-row gap-8 pt-16 max-w-7xl mx-auto px-6"
+    >
+      <div class="flex-1 flex flex-col gap-8">
+        <div class="bg-white rounded-xl shadow-md p-6 space-y-4">
           <label
             for="existing-orgs"
             class="block mb-2 text-sm font-medium text-gray-700"
@@ -26,18 +27,22 @@
           <select
             id="existing-orgs"
             name="existing_org"
-            class="w-full px-4 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            class="w-full px-4 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-4"
             hx-get="/organizations/active/session"
             hx-trigger="change"
             hx-swap="none"
             hx-on::after-request="htmx.ajax('GET', '/session/active-organization/name', {target: '#active-organization', swap: 'innerHTML'})"
           ></select>
           <form
-            class="flex items-center space-x-4"
+            class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 gap-2 flex-wrap"
             hx-post="/subscription-page"
             hx-swap="none"
           >
-            <label for="subscription-plan">{{T "org.choose-plan"}}:</label>
+            <label
+              for="subscription-plan"
+              class="block text-sm font-medium text-gray-700"
+              >{{T "org.choose-plan"}}:</label
+            >
             <select id="subscription-plan" name="subscription-plan">
               <option value="free">{{T "free"}}</option>
               <option value="monthly">{{T "monthly"}}</option>
@@ -46,23 +51,23 @@
             <button
               id="subscribe-btn"
               type="submit"
-              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md ml-2"
+              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
             >
-              {{T "org.subscripe"}}
+              💳 {{T "org.subscripe"}}
             </button>
           </form>
           <button
             id="invite-button"
             type="button"
-            class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
             hx-on::401="alert('Unauthorized')"
             onclick="generateInvite()"
           >
-            {{ T "org.invite" }}
+            📧 {{ T "org.invite" }}
           </button>
           <button
             id="delete-btn"
-            class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md ml-2"
+            class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition-colors"
             hx-delete="/organizations"
             hx-swap="none"
             hx-on::after-request="htmx.ajax('GET', '/organizations/options', {target: '#existing-orgs', swap: 'innerHTML'});
@@ -70,7 +75,7 @@
             hx-on::401="alert('Unauthorized')"
             hx-confirm='{{T "org.delete.confirm" }}?'
           >
-            {{T "org.delete" }}
+            🗑️ {{T "org.delete" }}
           </button>
           <div id="subscription" class="flex">
             <div
@@ -92,44 +97,40 @@
             class="hidden"
           ></div>
         </div>
-        <div id="new-org" class="flex pt-16">
-          <form
-            class="max-w-md mx-auto p-6 bg-white rounded-md shadow-md"
-            hx-post="/organizations"
-            hx-swap="none"
-            hx-on::after-request="htmx.ajax('GET', '/organizations/options', {target: '#existing-orgs', swap: 'innerHTML'});
+        <form
+          class="bg-white rounded-xl shadow-md p-6 flex flex-col gap-4"
+          hx-post="/organizations"
+          hx-swap="none"
+          hx-on::after-request="htmx.ajax('GET', '/organizations/options', {target: '#existing-orgs', swap: 'innerHTML'});
                         htmx.ajax('GET', '/session/active-organization/name', {target: '#active-organization', swap: 'innerHTML'})"
+        >
+          <h2 class="text-2xl font-semibold mb-6 text-gray-800">
+            {{ T "org.new-org" }}
+          </h2>
+
+          <label for="name" class="block mb-2 text-sm font-medium text-gray-700"
+            >{{T "org.name" }}:</label
           >
-            <h2 class="text-2xl font-semibold mb-6 text-gray-800">
-              {{ T "org.new-org" }}
-            </h2>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            placeholder='{{T "org.new-org.placeholder" }}'
+            class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            required
+          />
 
-            <label
-              for="name"
-              class="block mb-2 text-sm font-medium text-gray-700"
-              >{{T "org.name" }}:</label
-            >
-            <input
-              type="text"
-              id="name"
-              name="name"
-              placeholder='{{T "org.new-org.placeholder" }}'
-              class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
-
-            <button
-              type="submit"
-              id="create-btn"
-              class="mt-6 w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              {{T "org.create" }}
-            </button>
-          </form>
-        </div>
+          <button
+            type="submit"
+            id="create-btn"
+            class="mt-6 w-full bg-blue-600 text-white font-semibold py-2 rounded-md hover:bg-blue-700 transition-colors"
+          >
+            {{T "org.create" }}
+          </button>
+        </form>
       </div>
       <div
-        class="bg-white text-gray-600 text-sm rounded-lg p-4 shadow-md w-1/3"
+        class="-full lg:w-1/3 bg-white rounded-xl shadow-md p-6 space-y-4 text-gray-600 text-sm"
       >
         <p class="font-semibold text-gray-700">💡 {{T "org.help"}}?</p>
         <p class="mb-4">{{ T "org.select-existing" }}</p>
