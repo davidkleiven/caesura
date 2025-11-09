@@ -23,6 +23,16 @@ const titleInput = document.getElementById("title-input");
 const durationInput = document.getElementById("duration-input");
 const genreInput = document.getElementById("genre-input");
 
+document.addEventListener("keydown", function (event) {
+  if (event.key === "+") {
+    assignPageBtn.click();
+  } else if (event.key === "ArrowLeft") {
+    prevPageBtn.click();
+  } else if (event.key === "ArrowRight") {
+    nextPageBtn.click();
+  }
+});
+
 let pdfDoc = null;
 let currentPage = 1;
 let currentRenderTask = null;
