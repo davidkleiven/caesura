@@ -1,11 +1,15 @@
 {{ define "project-content" }}
 <div class="flex p-4">
-    <p class="font-bold pr-2">{{T "project"}}:</p>
-    <p class="italic">{{ .Name }}</p>
+  <p class="font-bold pr-2">{{T "project"}}:</p>
+  <p class="italic">{{ .Name }}</p>
 </div>
 {{template "resource_table" . }}
-<button type="button" id="distribute-btn" onclick="downloadParts(document, getAllResourceIds())"
-    class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition mt-8">
-	{{T "project.downloadParts" }}
+<button
+  type="button"
+  id="distribute-btn"
+  onclick="downloadParts(document, getAllResourceIds())"
+  class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition mt-8"
+>
+  {{T "project.downloadParts" }}
 </button>
 {{end}}

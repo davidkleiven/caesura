@@ -1,62 +1,71 @@
 {{ define "projects" }}
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/css/output.css" />
+    <script src="https://unpkg.com/htmx.org@{{ .HtmxVersion }}/dist/htmx.min.js"></script>
+    <script src="/js/expand-row-content.js"></script>
+    <script src="/js/downloadParts.js"></script>
+    <title>Caesura</title>
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="/css/output.css">
-  <script src="https://unpkg.com/htmx.org@{{ .HtmxVersion }}/dist/htmx.min.js"></script>
-  <script src="/js/expand-row-content.js"></script>
-  <script src="/js/downloadParts.js"></script>
-  <title>Caesura</title>
-</head>
-
-<body class="bg-gray-100">
-  {{ template "header" . }}
-  <!-- Page Content Placeholder -->
-  <div id="page-content" class="flex-col pt-16">
-    <div class="flex items-center justify-center">
-      <p class="mr-2 font-semibold">Search:</p>
-      <input type="text" name="projectQuery" hx-get="/projects/info" hx-trigger="load, keyup changed delay:500ms"
-        hx-target="#project-list" placeholder="Type to search" />
+  <body class="bg-gray-100">
+    {{ template "header" . }}
+    <!-- Page Content Placeholder -->
+    <div id="page-content" class="flex-col pt-16">
+      <div class="flex items-center justify-center">
+        <p class="mr-2 font-semibold">Search:</p>
+        <input
+          type="text"
+          name="projectQuery"
+          hx-get="/projects/info"
+          hx-trigger="load, keyup changed delay:500ms"
+          hx-target="#project-list"
+          placeholder="Type to search"
+        />
+      </div>
+      <div
+        class="overflow-auto max-h-[70vh] rounded-2xl shadow-md border border-gray-200 pt-8"
+      >
+        <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
+          <thead class="bg-gray-100 text-gray-700">
+            <tr>
+              <th class="px-4 py-3">Title</th>
+              <th class="px-4 py-3">Created</th>
+              <th class="px-4 py-3">Updated</th>
+              <th class="px-4 py-3"># pieces</th>
+            </tr>
+          </thead>
+          <tbody
+            id="project-list"
+            class="divide-y divide-gray-100 bg-white"
+          ></tbody>
+        </table>
+      </div>
     </div>
-    <div class="overflow-auto max-h-[70vh] rounded-2xl shadow-md border border-gray-200 pt-8">
-      <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
-        <thead class="bg-gray-100 text-gray-700">
-          <tr>
-            <th class="px-4 py-3">Title</th>
-            <th class="px-4 py-3">Created</th>
-            <th class="px-4 py-3">Updated</th>
-            <th class="px-4 py-3"># pieces</th>
-          </tr>
-        </thead>
-        <tbody id="project-list" class="divide-y divide-gray-100 bg-white">
-        </tbody>
-      </table>
-    </div>
-  </div>
-  {{ template "footer" }}
-  <script defer>
-    document.body.addEventListener("htmx:afterRequest", function (evt) {
-      const path = evt.detail.requestConfig.path;
-      const method = evt.detail.requestConfig.verb;
+    {{ template "footer" }}
+    <script defer>
+      document.body.addEventListener("htmx:afterRequest", function (evt) {
+        const path = evt.detail.requestConfig.path;
+        const method = evt.detail.requestConfig.verb;
 
-      if (method.toLowerCase() === "delete" && path.includes("/projects/")) {
-        const match = path.match(/\/projects\/([^\/]+)\//);
-        const projectId = match ? match[1] : null
-        if (projectId) {
-          htmx.ajax("GET", `/projects/${projectId}`, '#page-content')
+        if (method.toLowerCase() === "delete" && path.includes("/projects/")) {
+          const match = path.match(/\/projects\/([^\/]+)\//);
+          const projectId = match ? match[1] : null;
+          if (projectId) {
+            htmx.ajax("GET", `/projects/${projectId}`, "#page-content");
+          }
         }
+      });
+
+      // function used by project_content.html
+      function getAllResourceIds() {
+        const rows = document.querySelectorAll('tr[id^="row-"]');
+        return Array.from(rows).map((row) => row.id.replace("row-", ""));
       }
-
-    });
-
-    // function used by project_content.html
-    function getAllResourceIds() {
-    	const rows = document.querySelectorAll('tr[id^="row-"]');
-	return Array.from(rows).map((row) => row.id.replace("row-", ""));
-	}
-  </script>
-</body>
-{{end}}
+    </script>
+  </body>
+  {{end}}
+</html>

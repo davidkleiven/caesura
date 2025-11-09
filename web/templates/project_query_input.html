@@ -1,13 +1,13 @@
 {{define "project-query-input"}}
 <input
-        type="text"
-        name="projectQuery"
-        placeholder="{{ T "project-modal.select-placeholder" }}"
-        hx-get="/projects/names"
-        hx-trigger="load, input changed delay:300ms"
-        hx-target="#project-list"
-        hx-params="projectQuery"
-        class="border p-2 w-full mb-3"
-        value="{{.}}"
-      />
-  {{end}}
+  type="text"
+  name="projectQuery"
+  placeholder='{{ T "project-modal.select-placeholder" }}'
+  hx-get="/projects/names"
+  hx-trigger="load, input changed delay:300ms"
+  hx-target="#project-list"
+  hx-params="projectQuery"
+  class="border p-2 w-full mb-3"
+  value="{{.}}"
+/>
+{{end}}

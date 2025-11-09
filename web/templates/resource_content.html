@@ -1,8 +1,10 @@
 <div class="p-4 flex">
-    {{range .Filenames }}
-    <a href="/resources/{{$.ResourceId}}?file={{.}}"
-        class="mr-2 cursor-pointer hover:text-blue-800 hover:underline transition">
+  {{range .Filenames }}
+  <a
+    href="/resources/{{$.ResourceId}}?file={{.}}"
+    class="mr-2 cursor-pointer hover:text-blue-800 hover:underline transition"
+  >
     {{.}}
-    </a>
-    {{end}}
+  </a>
+  {{end}}
 </div>

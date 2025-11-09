@@ -1,56 +1,111 @@
 {{range .MetaData }}
 <tr id="row-{{ .ResourceId }}" class="hover:bg-gray-50">
-    <td class="px-4 py-3 w-2/5 font-medium text-gray-900">
-        <label for="checkbox-{{.ResourceId}}">
-            <input name="pieceIds" id="checkbox-{{.ResourceId}}" type="checkbox"
-                class="mr-2 {{if not $.CheckboxVisible}}hidden{{end}}" value="{{ .ResourceId }}" />{{.Title}}
-        </label>
-    </td>
-    <td class="px-4 py-3">{{.Composer}}</td>
-    <td class="px-4 py-3">{{.Arranger}}</td>
-    <td class="px-4 py-3">{{.Duration}}</td>
-    <td class="px-4 py-3">{{.Genre}}</td>
-    <td class="px-4 py-3">{{.Tags}}</td>
-    <!-- 📥 Download column -->
-    <td class="px-4 py-3 text-right">
-        <button type="button" class="text-gray-600 hover:text-gray-800 hover:cursor-pointer"
-            onclick="toggleRowContent('{{.ResourceId}}')" title="Show content">
-            <svg xmlns="http://www.w3.org/2000/svg" class="inline h-5 w-5" fill="currentColor" viewBox="0 0 24 6"
-                stroke="none">
-                <circle cx="3" cy="3" r="3" />
-                <circle cx="12" cy="3" r="3" />
-                <circle cx="21" cy="3" r="3" />
-            </svg>
-        </button>
+  <td class="px-4 py-3 w-2/5 font-medium text-gray-900">
+    <label for="checkbox-{{.ResourceId}}">
+      <input
+        name="pieceIds"
+        id="checkbox-{{.ResourceId}}"
+        type="checkbox"
+        class="mr-2 {{if not $.CheckboxVisible}}hidden{{end}}"
+        value="{{ .ResourceId }}"
+      />{{.Title}}
+    </label>
+  </td>
+  <td class="px-4 py-3">{{.Composer}}</td>
+  <td class="px-4 py-3">{{.Arranger}}</td>
+  <td class="px-4 py-3">{{.Duration}}</td>
+  <td class="px-4 py-3">{{.Genre}}</td>
+  <td class="px-4 py-3">{{.Tags}}</td>
+  <!-- 📥 Download column -->
+  <td class="px-4 py-3 text-right">
+    <button
+      type="button"
+      class="text-gray-600 hover:text-gray-800 hover:cursor-pointer"
+      onclick="toggleRowContent('{{.ResourceId}}')"
+      title="Show content"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="inline h-5 w-5"
+        fill="currentColor"
+        viewBox="0 0 24 6"
+        stroke="none"
+      >
+        <circle cx="3" cy="3" r="3" />
+        <circle cx="12" cy="3" r="3" />
+        <circle cx="21" cy="3" r="3" />
+      </svg>
+    </button>
 
-        <a href="/resources/{{.ResourceId}}" class="text-blue-600 hover:text-blue-800"
-            onclick="event.stopPropagation();" title="Download file">
-            <svg xmlns="http://www.w3.org/2000/svg" class="inline h-5 w-5" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
-            </svg>
-        </a>
-        <a href="/resources/{{.ResourceId}}/submit-form"
-            class="text-green-600 hover:text-green-800 {{if not $.PatchVisible}}hidden{{end}}"
-            onclick="event.stopPropagation();" title="Add item">
-            <svg xmlns="http://www.w3.org/2000/svg" class="inline h-5 w-5" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M12 4v16m8-8H4" />
-            </svg>
-        </a>
-        <button type="button"
-            class="text-red-600 hover:text-red-800 {{if not $.RemoveFromProjectVisible}}hidden{{end}} hover:cursor-pointer"
-            title="Remove from project" hx-delete="/projects/{{$.ProjectId}}/{{.ResourceId}}" hx-swap="innerHTML" hx-target="#flashMessage">
-            <svg xmlns="http://www.w3.org/2000/svg" class="inline h-5 w-5" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-        </button>
-    </td>
+    <a
+      href="/resources/{{.ResourceId}}"
+      class="text-blue-600 hover:text-blue-800"
+      onclick="event.stopPropagation();"
+      title="Download file"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="inline h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4"
+        />
+      </svg>
+    </a>
+    <a
+      href="/resources/{{.ResourceId}}/submit-form"
+      class="text-green-600 hover:text-green-800 {{if not $.PatchVisible}}hidden{{end}}"
+      onclick="event.stopPropagation();"
+      title="Add item"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="inline h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="4"
+          d="M12 4v16m8-8H4"
+        />
+      </svg>
+    </a>
+    <button
+      type="button"
+      class="text-red-600 hover:text-red-800 {{if not $.RemoveFromProjectVisible}}hidden{{end}} hover:cursor-pointer"
+      title="Remove from project"
+      hx-delete="/projects/{{$.ProjectId}}/{{.ResourceId}}"
+      hx-swap="innerHTML"
+      hx-target="#flashMessage"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        class="inline h-5 w-5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="4"
+          d="M6 18L18 6M6 6l12 12"
+        />
+      </svg>
+    </button>
+  </td>
 </tr>
 
 <tr id="expand-{{ .ResourceId }}" class="bg-gray-100 hidden">
-    <td colspan="7" class="px-4 py-3"></td>
+  <td colspan="7" class="px-4 py-3"></td>
 </tr>
 {{end}}

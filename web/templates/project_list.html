@@ -1,8 +1,15 @@
 {{range . }}
-<tr id="{{ .Id }}" hx-get="/projects/{{ .Id }}" hx-target="#page-content" hx-swap="innerHTML" hx-trigger="click" class="hover:bg-gray-50">
-    <td class="px-4 py-3">{{.Name}}</td>
-    <td class="px-4 py-3">{{.CreatedAt}}</td>
-    <td class="px-4 py-3">{{.UpdatedAt}}</td>
-    <td class="px-4 py-3">{{.NumPieces}}</td>
+<tr
+  id="{{ .Id }}"
+  hx-get="/projects/{{ .Id }}"
+  hx-target="#page-content"
+  hx-swap="innerHTML"
+  hx-trigger="click"
+  class="hover:bg-gray-50"
+>
+  <td class="px-4 py-3">{{.Name}}</td>
+  <td class="px-4 py-3">{{.CreatedAt}}</td>
+  <td class="px-4 py-3">{{.UpdatedAt}}</td>
+  <td class="px-4 py-3">{{.NumPieces}}</td>
 </tr>
 {{end}}

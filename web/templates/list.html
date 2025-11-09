@@ -1,9 +1,16 @@
 <ul id="{{.Id}}" class="max-w-md space-y-2">
-    {{range .Items}}
-      <li hx-get="{{$.HxGet}}" hx-trigger="click" hx-target="{{$.HxTarget}}" hx-vals='{"item": "{{.}}"}'
-        hx-swap="innerHTML"
-        class="cursor-pointer hover:text-blue-800 hover:underline transition">{{.}}</li>
-    {{else}}
-    <li>{{.Fallback}}</li>
-    {{end}}
+  {{range .Items}}
+  <li
+    hx-get="{{$.HxGet}}"
+    hx-trigger="click"
+    hx-target="{{$.HxTarget}}"
+    hx-vals='{"item": "{{.}}"}'
+    hx-swap="innerHTML"
+    class="cursor-pointer hover:text-blue-800 hover:underline transition"
+  >
+    {{.}}
+  </li>
+  {{else}}
+  <li>{{.Fallback}}</li>
+  {{end}}
 </ul>

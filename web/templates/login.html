@@ -1,121 +1,149 @@
 {{define "login"}}
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="/css/output.css" />
-    <title>Caesura</title>
-    <script src="https://unpkg.com/htmx.org@{{ .Dependencies.HtmxVersion }}/dist/htmx.min.js"></script>
-  </head>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/css/output.css" />
+  <title>Caesura</title>
+  <script src="https://unpkg.com/htmx.org@{{ .Dependencies.HtmxVersion }}/dist/htmx.min.js"></script>
+</head>
 
-  <body class="bg-gray-100">
-    {{ template "header" . }}
-    <!-- Page Content Placeholder -->
-    <div id="page-content" class="flex pt-16">
-<div class="w-full max-w-md bg-white rounded-lg shadow-md p-8">
-	<h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">{{ T "login.header" }}</h2>
+<body class="bg-gray-100">
+  {{ template "header" . }}
+  <!-- Page Content Placeholder -->
+  <div id="page-content" class="flex pt-16">
+    <div class="w-full max-w-md bg-white rounded-lg shadow-md p-8">
+      <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">
+        {{ T "login.header" }}
+      </h2>
 
-    <!-- Sign in with Google -->
-    <a
-	href="/login/google"
-      class="w-full flex items-center justify-center gap-2 text-white bg-red-500 hover:bg-red-600 font-medium py-2 px-4 rounded mb-6"
-    >
-      <svg class="w-5 h-5" viewBox="0 0 533.5 544.3">
-        <path fill="#4285f4" d="M533.5 278.4c0-17.7-1.6-35-4.7-51.6H272v97.8h147.1c-6.4 34.5-25.8 63.7-55 83.3v68.9h88.9c52-47.9 80.5-118.6 80.5-198.4z"/>
-        <path fill="#34a853" d="M272 544.3c72.4 0 133.1-23.8 177.5-64.4l-88.9-68.9c-24.7 16.6-56.3 26.3-88.6 26.3-67.9 0-125.3-45.8-145.9-107.5h-91.6v67.3c44.3 87.3 134.7 147.2 237.5 147.2z"/>
-        <path fill="#fbbc04" d="M126.1 329.8c-10.1-29.9-10.1-61.8 0-91.7v-67.3H34.5c-28.4 55.5-28.4 120.7 0 176.2l91.6-67.2z"/>
-        <path fill="#ea4335" d="M272 214.2c37.6-.6 73.6 14 100.7 40.3l75.1-75.1c-44.1-41.1-103-63.6-175.8-63.6-102.8 0-193.2 59.9-237.5 147.2l91.6 67.3c20.6-61.7 78-107.5 145.9-107.5z"/>
-      </svg>
-	    {{ T "login.google" }}
-    </a>
-
-    <!-- OR separator -->
-    <div class="flex items-center my-4">
-      <div class="flex-grow border-t border-gray-300"></div>
-      <span class="mx-4 text-sm text-gray-500">{{ T "login.or" }}</span>
-      <div class="flex-grow border-t border-gray-300"></div>
-    </div>
-
-    <!-- Username/Password Form -->
-    <form hx-post="/login/basic" hx-target="#flashMessage" hx-swap="innerHTML" hx-on::after-request="document.body.dispatchEvent(new Event('loginEvent'))">
-      <div class="mb-4">
-        <label class="block text-gray-700 text-sm font-medium mb-2" for="email">
-		{{ T "email" }}
-        </label>
-        <input
-          type="text"
-          id="email"
-          name="email"
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:ring-blue-200"
-          placeholder='{{ T "email" }}'
-        />
-      </div>
-
-      <div class="mb-4">
-        <label class="block text-gray-700 text-sm font-medium mb-2" for="password">
-		{{ T "login.password" }}
-        </label>
-        <input
-          type="password"
-          id="password"
-          name="password"
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:ring-blue-200"
-	  placeholder='{{ T "login.password" }}'
-        />
-      </div>
-
-      <div id="retyped-password" class="mb-4 hidden">
-        <label class="block text-gray-700 text-sm font-medium mb-2" for="retyped">
-		{{ T "login.retype_password" }}
-        </label>
-        <input
-          type="password"
-          id="retyped"
-          name="retyped"
-          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:ring-blue-200"
-          placeholder='{{ T "login.retype_password" }}'
-        />
-      </div>
-
-      <!-- Submit button -->
-      <button
-        type="submit"
-	id="login-btn"
-        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded mt-2"
+      <!-- Sign in with Google -->
+      <a
+        href="/login/google"
+        class="w-full flex items-center justify-center gap-2 text-white bg-red-500 hover:bg-red-600 font-medium py-2 px-4 rounded mb-6"
       >
-      {{ T "login.login" }}
-      </button>
+        <svg class="w-5 h-5" viewBox="0 0 533.5 544.3">
+          <path
+            fill="#4285f4"
+            d="M533.5 278.4c0-17.7-1.6-35-4.7-51.6H272v97.8h147.1c-6.4 34.5-25.8 63.7-55 83.3v68.9h88.9c52-47.9 80.5-118.6 80.5-198.4z"
+          />
+          <path
+            fill="#34a853"
+            d="M272 544.3c72.4 0 133.1-23.8 177.5-64.4l-88.9-68.9c-24.7 16.6-56.3 26.3-88.6 26.3-67.9 0-125.3-45.8-145.9-107.5h-91.6v67.3c44.3 87.3 134.7 147.2 237.5 147.2z"
+          />
+          <path
+            fill="#fbbc04"
+            d="M126.1 329.8c-10.1-29.9-10.1-61.8 0-91.7v-67.3H34.5c-28.4 55.5-28.4 120.7 0 176.2l91.6-67.2z"
+          />
+          <path
+            fill="#ea4335"
+            d="M272 214.2c37.6-.6 73.6 14 100.7 40.3l75.1-75.1c-44.1-41.1-103-63.6-175.8-63.6-102.8 0-193.2 59.9-237.5 147.2l91.6 67.3c20.6-61.7 78-107.5 145.9-107.5z"
+          />
+        </svg>
+        {{ T "login.google" }}
+      </a>
 
-      <!-- Reset password -->
-      <div class="text-right mt-2">
-        <button
-          type="button"
-	  id="forgot-password-btn"
-          class="text-sm text-blue-600 hover:underline"
-          hx-post="/login/reset"
-	  hx-swap="innerHTML"
-	  hx-target="#flashMessage"
-        >
-	{{ T "login.forgot_password" }}
-        </button>
-        <button
-          type="button"
-	  id="register-new-btn"
-          class="text-sm text-blue-600 hover:underline"
-	  onclick="enterNewUserMode()"
-        >
-	{{ T "login.register_new" }}
-        </button>
+      <!-- OR separator -->
+      <div class="flex items-center my-4">
+        <div class="flex-grow border-t border-gray-300"></div>
+        <span class="mx-4 text-sm text-gray-500">{{ T "login.or" }}</span>
+        <div class="flex-grow border-t border-gray-300"></div>
       </div>
-    </form>
-  </div>
+
+      <!-- Username/Password Form -->
+      <form
+        hx-post="/login/basic"
+        hx-target="#flashMessage"
+        hx-swap="innerHTML"
+        hx-on::after-request="document.body.dispatchEvent(new Event('loginEvent'))"
+      >
+        <div class="mb-4">
+          <label
+            class="block text-gray-700 text-sm font-medium mb-2"
+            for="email"
+          >
+            {{ T "email" }}
+          </label>
+          <input
+            type="text"
+            id="email"
+            name="email"
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:ring-blue-200"
+            placeholder='{{ T "email" }}'
+          />
+        </div>
+
+        <div class="mb-4">
+          <label
+            class="block text-gray-700 text-sm font-medium mb-2"
+            for="password"
+          >
+            {{ T "login.password" }}
+          </label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:ring-blue-200"
+            placeholder='{{ T "login.password" }}'
+          />
+        </div>
+
+        <div id="retyped-password" class="mb-4 hidden">
+          <label
+            class="block text-gray-700 text-sm font-medium mb-2"
+            for="retyped"
+          >
+            {{ T "login.retype_password" }}
+          </label>
+          <input
+            type="password"
+            id="retyped"
+            name="retyped"
+            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:ring-blue-200"
+            placeholder='{{ T "login.retype_password" }}'
+          />
+        </div>
+
+        <!-- Submit button -->
+        <button
+          type="submit"
+          id="login-btn"
+          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded mt-2"
+        >
+          {{ T "login.login" }}
+        </button>
+
+        <!-- Reset password -->
+        <div class="text-right mt-2">
+          <button
+            type="button"
+            id="forgot-password-btn"
+            class="text-sm text-blue-600 hover:underline"
+            hx-post="/login/reset"
+            hx-swap="innerHTML"
+            hx-target="#flashMessage"
+          >
+            {{ T "login.forgot_password" }}
+          </button>
+          <button
+            type="button"
+            id="register-new-btn"
+            class="text-sm text-blue-600 hover:underline"
+            onclick="enterNewUserMode()"
+          >
+            {{ T "login.register_new" }}
+          </button>
+        </div>
+      </form>
     </div>
-    {{ template "footer" }}
-    <script>
-	    function enterNewUserMode() {
-		    const el = document.getElementById("retyped-password")
-		    if (!el) return;
-		    el.classList.toggle('hidden')
-	    }
-    </script>
-  </body>
-  {{end}}
+  </div>
+  {{ template "footer" }}
+  <script>
+    function enterNewUserMode() {
+      const el = document.getElementById("retyped-password");
+      if (!el) return;
+      el.classList.toggle("hidden");
+    }
+  </script>
+</body>
+{{end}}
