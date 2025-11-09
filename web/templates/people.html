@@ -1,81 +1,137 @@
 {{define "people"}}
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/css/output.css" />
+    <script src="https://unpkg.com/htmx.org@{{ .HtmxVersion }}/dist/htmx.min.js"></script>
+    <title>Caesura</title>
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="/css/output.css">
-  <script src="https://unpkg.com/htmx.org@{{ .HtmxVersion }}/dist/htmx.min.js"></script>
-  <title>Caesura</title>
-</head>
-
-<body class="bg-gray-100">
-  {{ template "header" . }}
-  <!-- Page Content Placeholder -->
-  <div id="page-content" class="flex-col pt-16">
-    <form id="recipent-form" class="max-w-4xl mx-auto p-6 bg-white rounded-md shadow-md">
-      <label for="recipent-form" class="block mb-4 text-sm font-medium text-gray-700">
-        Register recipent:
-        <span class="relative inline-block ml-1 group cursor-pointer align-middle">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor"
-            aria-hidden="true">
-            <path fill-rule="evenodd"
-              d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.75a.75.75 0 10-1.5 0v1a.75.75 0 001.5 0v-1zM9.25 9a.75.75 0 011.5 0v4a.75.75 0 01-1.5 0V9z"
-              clip-rule="evenodd" />
-          </svg>
-
+  <body class="bg-gray-100">
+    {{ template "header" . }}
+    <!-- Page Content Placeholder -->
+    <div id="page-content" class="flex-col pt-16">
+      <form
+        id="recipent-form"
+        class="max-w-4xl mx-auto p-6 bg-white rounded-md shadow-md"
+      >
+        <label
+          for="recipent-form"
+          class="block mb-4 text-sm font-medium text-gray-700"
+        >
+          Register recipent:
           <span
-            class="absolute z-10 bottom-full mb-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-           {{ T "people.nn-recipent" }}
+            class="relative inline-block ml-1 group cursor-pointer align-middle"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="w-4 h-4 text-gray-500"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fill-rule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.75a.75.75 0 10-1.5 0v1a.75.75 0 001.5 0v-1zM9.25 9a.75.75 0 011.5 0v4a.75.75 0 01-1.5 0V9z"
+                clip-rule="evenodd"
+              />
+            </svg>
+
+            <span
+              class="absolute z-10 bottom-full mb-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+            >
+              {{ T "people.nn-recipent" }}
+            </span>
           </span>
-        </span>
-      </label>
+        </label>
 
-      <div class="flex flex-wrap gap-4">
-        <input type="text" id="email" name="email" placeholder="Enter email"
-          class="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          required />
+        <div class="flex flex-wrap gap-4">
+          <input
+            type="text"
+            id="email"
+            name="email"
+            placeholder="Enter email"
+            class="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            required
+          />
 
-        <input type="text" id="name" name="name" placeholder="Enter name"
-          class="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+          <input
+            type="text"
+            id="name"
+            name="name"
+            placeholder="Enter name"
+            class="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
 
-        <select id="recipent-form-group-selector" class="flex-1" name="group" hx-get="/instruments"
-          hx-trigger="load" hx-target="this" hx-swap="innerHTML", hx-vals='{"format": "options"}'>
-        </select>
+          <select
+            id="recipent-form-group-selector"
+            class="flex-1"
+            name="group"
+            hx-get="/instruments"
+            hx-trigger="load"
+            hx-target="this"
+            hx-swap="innerHTML"
+            ,
+            hx-vals='{"format": "options"}'
+          ></select>
 
-        <button type="submit" id="register-recipent-btn"
-          class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors"
-          hx-post="/organizations/recipent" hx-swap="innerHTML" hx-target="#flashMessage"
-          hx-on::after-request="htmx.ajax('GET', '/organizations/users', {target: '#people-list', swap: 'innerHTML'})"
-          hx-on::401="Unauthorized: only admins can register a new recipent">
-          {{T "register" }}
-        </button>
+          <button
+            type="submit"
+            id="register-recipent-btn"
+            class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors"
+            hx-post="/organizations/recipent"
+            hx-swap="innerHTML"
+            hx-target="#flashMessage"
+            hx-on::after-request="htmx.ajax('GET', '/organizations/users', {target: '#people-list', swap: 'innerHTML'})"
+            hx-on::401="Unauthorized: only admins can register a new recipent"
+          >
+            {{T "register" }}
+          </button>
+        </div>
+      </form>
+
+      <div
+        class="mt-8 overflow-auto max-h-[70vh] rounded-2xl shadow-md border border-gray-200 pt-8"
+      >
+        <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
+          <thead class="bg-gray-100 text-gray-700">
+            <tr>
+              <th class="px-4 py-3">{{ T "org.name" }}</th>
+              <th class="px-4 py-3">{{ T "email" }}</th>
+              <th class="px-4 py-3">{{ T "role" }}</th>
+              <th class="px-4 py-3 w-1/5">{{ T "Groups" }}</th>
+              <th class="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody
+            id="people-list"
+            class="divide-y divide-gray-100 bg-white"
+            hx-get="/organizations/users"
+            hx-swap="innerHTML"
+            hx-trigger="load"
+            hx-target="this"
+          ></tbody>
+        </table>
       </div>
-    </form>
-
-    <div class="mt-8 overflow-auto max-h-[70vh] rounded-2xl shadow-md border border-gray-200 pt-8">
-      <table class="min-w-full divide-y divide-gray-200 text-sm text-left">
-        <thead class="bg-gray-100 text-gray-700">
-          <tr>
-            <th class="px-4 py-3">{{ T "org.name" }}</th>
-            <th class="px-4 py-3">{{ T "email" }}</th>
-            <th class="px-4 py-3">{{ T "role" }}</th>
-            <th class="px-4 py-3 w-1/5">{{ T "Groups" }}</th>
-            <th class="px-4 py-3"></th>
-          </tr>
-        </thead>
-        <tbody id="people-list" class="divide-y divide-gray-100 bg-white" hx-get="/organizations/users"
-          hx-swap="innerHTML" hx-trigger="load" hx-target="this">
-        </tbody>
-      </table>
     </div>
-  </div>
-  <svg xmlns="http://www.w3.org/2000/svg" class="hidden">
-    <symbol id="delete-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M6 18L18 6M6 6l12 12" />
-    </symbol>
-  </svg>
-{{ template "footer" }}
-</body>
-{{end}}
+    <svg xmlns="http://www.w3.org/2000/svg" class="hidden">
+      <symbol
+        id="delete-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="4"
+          d="M6 18L18 6M6 6l12 12"
+        />
+      </symbol>
+    </svg>
+    {{ template "footer" }}
+  </body>
+  {{end}}
+</html>

@@ -1,53 +1,72 @@
 {{ define "overview" }}
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/css/output.css" />
+    <script src="https://unpkg.com/htmx.org@{{ .HtmxVersion }}/dist/htmx.min.js"></script>
+    <script src="/js/expand-row-content.js"></script>
+    <script src="/js/downloadParts.js"></script>
+    <title>Caesura</title>
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="/css/output.css">
-  <script src="https://unpkg.com/htmx.org@{{ .HtmxVersion }}/dist/htmx.min.js"></script>
-  <script src="/js/expand-row-content.js"></script>
-  <script src="/js/downloadParts.js"></script>
-  <title>Caesura</title>
-</head>
-
-<body class="bg-gray-100">
-  {{ template "header" . }}
-  <!-- Page Content Placeholder -->
-  <div id="page-content" class="flex-col pt-16">
-    <div class="flex items-center justify-center">
-      <p class="mr-2 font-semibold">{{T "search"}}:</p>
-      <input type="text" name="resource-filter" hx-get="/overview/search" hx-trigger="load, keyup changed delay:500ms"
-        hx-target="#piece-list" placeholder="{{T "search-placholder"}}" />
+  <body class="bg-gray-100">
+    {{ template "header" . }}
+    <!-- Page Content Placeholder -->
+    <div id="page-content" class="flex-col pt-16">
+      <div class="flex items-center justify-center">
+        <p class="mr-2 font-semibold">{{T "search"}}:</p>
+        <input
+          type="text"
+          name="resource-filter"
+          hx-get="/overview/search"
+          hx-trigger="load, keyup changed delay:500ms"
+          hx-target="#piece-list"
+          placeholder='{{T "search-placholder"}}'
+        />
+      </div>
+      {{ template "resource_table" . }}
+      <button
+        type="button"
+        hx-get="/overview/project-selector"
+        hx-trigger="click"
+        hx-target="#project-selection-modal"
+        class="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+      >
+        {{T "overview.add-to-project" }}
+      </button>
+      <button
+        type="button"
+        id="distribute-btn"
+        onclick="downloadParts(document, getCheckedIds())"
+        class="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+      >
+        {{ T "distribute"}}
+      </button>
     </div>
-    {{ template "resource_table" . }}
-    <button type="button" hx-get="/overview/project-selector" hx-trigger="click" hx-target="#project-selection-modal"
-      class="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">
-      {{T "overview.add-to-project" }}
-    </button>
-    <button type="button" id="distribute-btn" onclick="downloadParts(document, getCheckedIds())"
-      class="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">
-      {{ T "distribute"}}
-    </button>
-  </div>
-  <div id="project-selection-modal"></div>
-  {{ template "footer" }}
-  <script>
-    document.body.addEventListener("htmx:afterRequest", function (evt) {
-      console.log(evt)
-      if (evt.target.id === 'create-new-project-btn') {
-        const modal = document.getElementById("project-selection-modal");
-        if (modal) {
-          modal.innerHTML = '';
+    <div id="project-selection-modal"></div>
+    {{ template "footer" }}
+    <script>
+      document.body.addEventListener("htmx:afterRequest", function (evt) {
+        console.log(evt);
+        if (evt.target.id === "create-new-project-btn") {
+          const modal = document.getElementById("project-selection-modal");
+          if (modal) {
+            modal.innerHTML = "";
+          }
         }
-      }
-    });
+      });
 
-    function getCheckedIds() {
-      const checked = Array.from(document.querySelectorAll('#resource-table input[type="checkbox"]:checked'));
-      return checked.map(cb => cb.value);
-    }
-  </script>
-</body>
-{{end}}
+      function getCheckedIds() {
+        const checked = Array.from(
+          document.querySelectorAll(
+            '#resource-table input[type="checkbox"]:checked',
+          ),
+        );
+        return checked.map((cb) => cb.value);
+      }
+    </script>
+  </body>
+  {{end}}
+</html>

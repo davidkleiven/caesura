@@ -1,34 +1,95 @@
 {{ define "header" }}
 <div class="bg-white shadow-md fixed top-0 left-0 right-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-        <!-- Logo / Brand -->
-        <div class="text-xl font-bold text-indigo-600">Caesura</div>
-        <div id="login-status" class="italic text-gray-500 hover:text-indigo-500" hx-get="/session/logged-in"
-            hx-target="this" hx-swap="innerHTML" hx-trigger="load, logoutEvent from:body, loginEvent from:body"></div>
-	<div id="logout" hx-post="/logout" hx-swap="innerHTML" hx-target="#flashMessage" class="cursor-pointer" hx-on::after-request="document.body.dispatchEvent(new Event('logoutEvent'))">
-		<svg viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="Sign out">
-		  <!-- door / doorway -->
-		  <rect x="3" y="4" width="12" height="16" rx="2"
-			fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-		  <!-- arrow shaft -->
-		  <path d="M15 12h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-		  <!-- arrow head -->
-		  <path d="M19 8l4 4-4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-		</svg>
-	</div>
-        <div id="active-organization" class="italic text-gray-700" hx-get="/session/active-organization/name"
-            hx-target="this" hx-swap="innerHTML" hx-trigger="load, logoutEvent from:body, loginEvent from:body"></div>
-
-        <!-- Navigation Links -->
-        <nav class="space-x-6 hidden md:flex">
-            <a href="/" class="text-gray-700 hover:text-indigo-500">{{ T "nav.home" }}</a>
-            <a href="/organizations/form" class="text-gray-700 hover:text-indigo-500">{{ T "nav.organizations" }}</a>
-            <a href="/overview" class="text-gray-700 hover:text-indigo-500">{{T "nav.overview" }}</a>
-            <a href="/upload" class="text-gray-700 hover:text-indigo-500">{{ T "nav.upload" }}</a>
-            <a href="/projects" class="text-gray-700 hover:text-indigo-500">{{ T "nav.projects" }}</a>
-            <a href="/people" class="text-gray-700 hover:text-indigo-500">{{ T "nav.people" }}</a>
-            <a href="/about" class="text-gray-700 hover:text-indigo-500">{{T "nav.about" }}</a>
-        </nav>
+  <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+    <!-- Logo / Brand -->
+    <div class="text-xl font-bold text-indigo-600">Caesura</div>
+    <div
+      id="login-status"
+      class="italic text-gray-500 hover:text-indigo-500"
+      hx-get="/session/logged-in"
+      hx-target="this"
+      hx-swap="innerHTML"
+      hx-trigger="load, logoutEvent from:body, loginEvent from:body"
+    ></div>
+    <div
+      id="logout"
+      hx-post="/logout"
+      hx-swap="innerHTML"
+      hx-target="#flashMessage"
+      class="cursor-pointer"
+      hx-on::after-request="document.body.dispatchEvent(new Event('logoutEvent'))"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        width="24"
+        height="24"
+        role="img"
+        aria-label="Sign out"
+      >
+        <!-- door / doorway -->
+        <rect
+          x="3"
+          y="4"
+          width="12"
+          height="16"
+          rx="2"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linejoin="round"
+        />
+        <!-- arrow shaft -->
+        <path
+          d="M15 12h6"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+        <!-- arrow head -->
+        <path
+          d="M19 8l4 4-4 4"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
     </div>
+    <div
+      id="active-organization"
+      class="italic text-gray-700"
+      hx-get="/session/active-organization/name"
+      hx-target="this"
+      hx-swap="innerHTML"
+      hx-trigger="load, logoutEvent from:body, loginEvent from:body"
+    ></div>
+
+    <!-- Navigation Links -->
+    <nav class="space-x-6 hidden md:flex">
+      <a href="/" class="text-gray-700 hover:text-indigo-500"
+        >{{ T "nav.home" }}</a
+      >
+      <a href="/organizations/form" class="text-gray-700 hover:text-indigo-500"
+        >{{ T "nav.organizations" }}</a
+      >
+      <a href="/overview" class="text-gray-700 hover:text-indigo-500"
+        >{{T "nav.overview" }}</a
+      >
+      <a href="/upload" class="text-gray-700 hover:text-indigo-500"
+        >{{ T "nav.upload" }}</a
+      >
+      <a href="/projects" class="text-gray-700 hover:text-indigo-500"
+        >{{ T "nav.projects" }}</a
+      >
+      <a href="/people" class="text-gray-700 hover:text-indigo-500"
+        >{{ T "nav.people" }}</a
+      >
+      <a href="/about" class="text-gray-700 hover:text-indigo-500"
+        >{{T "nav.about" }}</a
+      >
+    </nav>
+  </div>
 </div>
 {{ end }}
