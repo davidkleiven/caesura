@@ -22,3 +22,11 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version: 1.24
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 20
+
+    # Step 3: Run Prettier Check via npx
+    - name: Prettier Lint (check formatting)
+      run: npx prettier --check "**/*.{html,js,json,md}"
