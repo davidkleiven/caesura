@@ -46,3 +46,15 @@ jobs:
       - name: Push Docker image
         run: |
           docker push ghcr.io/${{ github.repository_owner }}/caesura:${{ needs.release.outputs.new_tag }}
+          docker push ghcr.io/${{ github.repository_owner }}/caesura:latest
+
+  deploy-test:
+    uses: davidkleiven/gh-workflows/.github/workflows/gcloud-deploy.yml@main
+    secrets: inherit
+    with:
+      cloud_run_service: caesura-test
+      region: europe-north1
+      workload_identity_provider: projects/602223566336/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+      service_account: caesura-test-sp@caesura-466820.iam.gserviceaccount.com
+      image: ghcr.io/${{ github.repository_owner }}/caesura:latest
+      env_vars: CAESURA_PROFILE=test
