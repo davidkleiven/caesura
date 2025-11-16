@@ -32,7 +32,7 @@ func LoginUserByPassword(params BasicAuthUserLoginParams) (pkg.UserInfo, bool) {
 		return user, false
 
 	} else if err != nil {
-		slog.Error("Error when retrieving user by email", "error", err)
+		slog.ErrorContext(params.Ctx, "Error when retrieving user by email", "error", err)
 		params.Writer.Write([]byte(err.Error()))
 		return user, false
 	}

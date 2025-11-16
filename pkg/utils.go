@@ -190,7 +190,7 @@ func LanguageFromReq(r *http.Request) string {
 	// Parse the Accept-Language header into a list of Tags
 	tags, _, err := language.ParseAcceptLanguage(accept)
 	if err != nil {
-		slog.Error("Invalid accept header", "error", err)
+		slog.ErrorContext(r.Context(), "Invalid accept header", "error", err)
 		return fallback
 	}
 

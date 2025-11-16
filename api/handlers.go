@@ -80,7 +80,7 @@ func DeleteMode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	checkBoxValue := r.FormValue("delete-mode")
-	slog.Info("Received value", "delete-mode", checkBoxValue)
+	slog.InfoContext(r.Context(), "Received value", "delete-mode", checkBoxValue)
 
 	if checkBoxValue == "1" {
 		w.Write([]byte("(Click to remove)"))
@@ -103,14 +103,14 @@ func SubmitHandler(submitter pkg.Submitter, timeout time.Duration, maxSize int) 
 			return
 		} else if err != nil {
 			http.Error(w, "Failed to parse form", http.StatusBadRequest)
-			slog.Error("Failed to parse form", "error", err)
+			slog.ErrorContext(r.Context(), "Failed to parse form", "error", err)
 			return
 		}
 
 		file, _, err := r.FormFile("document")
 		if err != nil {
 			http.Error(w, "Failed to retrieve file from form", http.StatusBadRequest)
-			slog.Error("Failed to retrieve file from form", "error", err)
+			slog.ErrorContext(r.Context(), "Failed to retrieve file from form", "error", err)
 			return
 		}
 		defer file.Close()
@@ -119,12 +119,12 @@ func SubmitHandler(submitter pkg.Submitter, timeout time.Duration, maxSize int) 
 		raw := r.MultipartForm.Value["assignments"]
 		if len(raw) == 0 {
 			http.Error(w, "No assignments provided", http.StatusBadRequest)
-			slog.Error("No assignments provided")
+			slog.ErrorContext(r.Context(), "No assignments provided")
 			return
 		}
 		if err := json.Unmarshal([]byte(raw[0]), &assignments); err != nil {
 			http.Error(w, "Failed to parse assignments", http.StatusBadRequest)
-			slog.Error("Failed to parse assignments", "error", err)
+			slog.ErrorContext(r.Context(), "Failed to parse assignments", "error", err)
 			return
 		}
 
@@ -133,21 +133,21 @@ func SubmitHandler(submitter pkg.Submitter, timeout time.Duration, maxSize int) 
 
 		if len(rawMeta) == 0 {
 			http.Error(w, "No metadata provided", http.StatusBadRequest)
-			slog.Error("No metadata provided")
+			slog.ErrorContext(r.Context(), "No metadata provided")
 			return
 		}
 
 		if err := json.Unmarshal([]byte(rawMeta[0]), &metaData); err != nil {
 			msg := "Failed to parse metadata (often related to the duration input). Check that the input confirms the format 3m20s"
 			http.Error(w, msg, http.StatusBadRequest)
-			slog.Error("Failed to parse metadata", "error", err)
+			slog.ErrorContext(r.Context(), "Failed to parse metadata", "error", err)
 			return
 		}
 
 		resourceId := metaData.ResourceId()
 		if resourceId == "" {
 			http.Error(w, "Filename is empty. Note that only alphanumeric characters are allowed", http.StatusBadRequest)
-			slog.Error("Filename cannot be empty.", "title", metaData.Title, "composer", metaData.Composer, "arranger", metaData.Arranger)
+			slog.ErrorContext(r.Context(), "Filename cannot be empty.", "title", metaData.Title, "composer", metaData.Composer, "arranger", metaData.Arranger)
 			return
 		}
 
@@ -158,10 +158,10 @@ func SubmitHandler(submitter pkg.Submitter, timeout time.Duration, maxSize int) 
 		orgId := MustGetOrgId(MustGetSession(r))
 		if err := submitter.Submit(ctx, orgId, &metaData, pdfIter); err != nil {
 			http.Error(w, "Failed to store file", http.StatusInternalServerError)
-			slog.Error("Failed to store file", "error", err)
+			slog.ErrorContext(ctx, "Failed to store file", "error", err)
 			return
 		}
-		slog.Info("File stored successfully", "filename", resourceId, "resourceId", resourceId, "orgId", orgId)
+		slog.InfoContext(ctx, "File stored successfully", "filename", resourceId, "resourceId", resourceId)
 		w.Write([]byte("File uploaded successfully!"))
 	}
 }
@@ -182,7 +182,7 @@ func OverviewSearchHandler(fetcher pkg.MetaByPatternFetcher, timeout time.Durati
 		meta, err := fetcher.MetaByPattern(ctx, orgId, pattern)
 		if err != nil {
 			http.Error(w, "Failed to fetch metadata", http.StatusInternalServerError)
-			slog.Error("Failed to fetch metadata", "error", err)
+			slog.ErrorContext(ctx, "Failed to fetch metadata", "error", err)
 			return
 		}
 		web.ResourceList(w, meta)
@@ -209,10 +209,10 @@ func SearchProjectHandler(store pkg.ProjectByNameGetter, timeout time.Duration) 
 
 		orgId := MustGetOrgId(MustGetSession(r))
 		project, err := store.ProjectsByName(ctx, orgId, projectName)
-		slog.Info("Searching for projects", "project_name", projectName, "num_results", len(project))
+		slog.InfoContext(ctx, "Searching for projects", "project_name", projectName, "num_results", len(project))
 		if err != nil {
 			http.Error(w, "Failed to fetch project", http.StatusInternalServerError)
-			slog.Error("Failed to fetch project", "error", err)
+			slog.ErrorContext(ctx, "Failed to fetch project", "error", err)
 			return
 		}
 
@@ -245,14 +245,14 @@ func ProjectSubmitHandler(submitter pkg.ProjectSubmitter, timeout time.Duration)
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "Failed to parse form", http.StatusBadRequest)
-			slog.Error("Failed to parse form", "error", err)
+			slog.ErrorContext(r.Context(), "Failed to parse form", "error", err)
 			return
 		}
 
 		projectName := r.FormValue("projectQuery")
 		if projectName == "" {
 			http.Error(w, "Project name cannot be empty", http.StatusBadRequest)
-			slog.Error("Project name cannot be empty")
+			slog.ErrorContext(r.Context(), "Project name cannot be empty")
 			return
 		}
 
@@ -270,10 +270,10 @@ func ProjectSubmitHandler(submitter pkg.ProjectSubmitter, timeout time.Duration)
 		orgId := MustGetOrgId(MustGetSession(r))
 		if err := submitter.SubmitProject(ctx, orgId, project); err != nil {
 			http.Error(w, "Failed to submit project", http.StatusInternalServerError)
-			slog.Error("Failed to submit project", "error", err)
+			slog.ErrorContext(r.Context(), "Failed to submit project", "error", err)
 			return
 		}
-		slog.Info("Project submitted successfully", "project_name", projectName, "num_resources", len(resourceIds))
+		slog.InfoContext(ctx, "Project submitted successfully", "project_name", projectName, "num_resources", len(resourceIds))
 		w.Write(fmt.Appendf(nil, "Added %d piece(s) to '%s'", len(resourceIds), projectName))
 	}
 }
@@ -289,7 +289,7 @@ func RemoveFromProject(remover pkg.ProjectResourceRemover, timeout time.Duration
 		orgId := MustGetOrgId(MustGetSession(r))
 		if err := remover.RemoveResource(ctx, orgId, projectId, resourceId); err != nil {
 			http.Error(w, "failed to remove resource", http.StatusInternalServerError)
-			slog.Error("Failed to remove resource", "project-id", projectId, "resource-id", resourceId, "host", r.Host)
+			slog.ErrorContext(ctx, "Failed to remove resource", "projectId", projectId, "resourceId", resourceId)
 			return
 		}
 
@@ -317,7 +317,7 @@ func SearchProjectListHandler(store pkg.ProjectByNameGetter, timeout time.Durati
 		projects, err := store.ProjectsByName(ctx, orgId, projectName)
 		if err != nil {
 			http.Error(w, "Failed to fetch projects", http.StatusInternalServerError)
-			slog.Error("Failed to fetch projects", "error", err)
+			slog.ErrorContext(ctx, "Failed to fetch projects", "error", err)
 			return
 		}
 
@@ -336,7 +336,7 @@ func ProjectByIdHandler(store pkg.ProjectMetaByIdGetter, timeout time.Duration) 
 		project, err := store.ProjectById(ctx, orgId, projectId)
 		if err != nil {
 			http.Error(w, "Failed to fetch project", http.StatusInternalServerError)
-			slog.Error("Failed to fetch project", "error", err)
+			slog.ErrorContext(ctx, "Failed to fetch project", "error", err)
 			return
 		}
 
@@ -344,7 +344,7 @@ func ProjectByIdHandler(store pkg.ProjectMetaByIdGetter, timeout time.Duration) 
 		for _, id := range project.ResourceIds {
 			meta, err := store.MetaById(ctx, orgId, id)
 			if err != nil {
-				slog.Error("Failed to fetch metadata for project", "error", err)
+				slog.ErrorContext(ctx, "Failed to fetch metadata for project", "error", err)
 			} else {
 				metaData = append(metaData, *meta)
 			}
@@ -366,7 +366,7 @@ func ResourceContentByIdHandler(s pkg.ResourceGetter, timeout time.Duration) htt
 
 		if downloader.Error != nil {
 			http.Error(w, "could not fetch resource", http.StatusInternalServerError)
-			slog.Error("Failed to fetch resource", "error", downloader.Error)
+			slog.ErrorContext(ctx, "Failed to fetch resource", "error", downloader.Error)
 		}
 
 		content := web.ResourceContentData{
@@ -419,12 +419,12 @@ func ResourceDownload(s pkg.ResourceGetter, timeout time.Duration) http.HandlerF
 
 		if err != nil {
 			http.Error(w, err.Error(), statusCode)
-			slog.Error("Error during download resource", "error", err, "id", resourceId, "file", filename)
+			slog.ErrorContext(ctx, "Error during download resource", "error", err, "id", resourceId, "file", filename)
 			return
 		}
 		w.Header().Set("Content-Type", contentType)
 		w.Header().Set("Content-Disposition", contentDisposition)
-		slog.Info("Resource downloaded")
+		slog.InfoContext(ctx, "Resource downloaded")
 	}
 }
 
@@ -439,7 +439,7 @@ func AddToResourceHandler(metaGetter pkg.MetaByIdGetter, timeout time.Duration) 
 		meta, err := metaGetter.MetaById(ctx, orgId, id)
 		if err != nil {
 			http.Error(w, "Error when fetching metadata", http.StatusInternalServerError)
-			slog.Error("Error when fetching metadata", "error", err, "id", id, "url", r.URL.Path)
+			slog.ErrorContext(ctx, "Error when fetching metadata", "error", err, "id", id, "url", r.URL.Path)
 			return
 		}
 
@@ -520,12 +520,12 @@ func HandleGoogleCallback(roleStore pkg.RoleStore, oauthConfig *oauth2.Config, t
 
 		if result.Error != nil {
 			http.Error(w, result.Error.Error(), result.ReturnCode)
-			slog.Error("Could not initialize user session", "error", result.Error, "host", r.Host)
+			slog.ErrorContext(ctx, "Could not initialize user session", "error", result.Error)
 			return
 		}
 
 		redirect := "/organizations"
-		slog.Info("Successfully logged in user")
+		slog.InfoContext(ctx, "Successfully logged in user")
 		http.Redirect(w, r, redirect, http.StatusSeeOther)
 	}
 }
@@ -561,7 +561,7 @@ func InviteLink(baseURL, signSecret string) http.HandlerFunc {
 		signedToken, err := token.SignedString([]byte(signSecret))
 		if err != nil {
 			http.Error(w, "Failed to sign token", http.StatusInternalServerError)
-			slog.Error("Failed to sign invite link token", "error", err, "host", r.Host)
+			slog.ErrorContext(r.Context(), "Failed to sign invite link token", "error", err)
 			return
 		}
 
@@ -609,10 +609,10 @@ func OrganizationRegisterHandler(store pkg.IAMStore, timeout time.Duration) http
 		registrationFlow.Register(&org).RegisterAdmin(userId, org.Id).RetrieveUserInfo(userId).UpdateSession(r, w, org.Id)
 		if err := registrationFlow.Error; err != nil {
 			http.Error(w, "Could not register organization: "+err.Error(), http.StatusInternalServerError)
-			slog.Error("Could not register organization", "error", err, "host", r.Host)
+			slog.ErrorContext(ctx, "Could not register organization", "error", err)
 			return
 		}
-		slog.Info("Successfully registered new organization", "name", org.Name, "id", org.Id)
+		slog.InfoContext(ctx, "Successfully registered new organization")
 	}
 }
 
@@ -634,7 +634,7 @@ func OptionsFromSessionHandler(orgGetter pkg.OrganizationGetter, timeout time.Du
 		for id := range roles.Roles {
 			org, err := orgGetter.GetOrganization(ctx, id)
 			if err != nil {
-				slog.Error("Could not fetch organization", "error", err, "organization-id", id)
+				slog.ErrorContext(ctx, "Could not fetch organization", "error", err)
 			} else {
 				options = append(options, org)
 			}
@@ -666,7 +666,7 @@ func DeleteOrganizationHandler(deleter pkg.OrganizationDeleter, timeout time.Dur
 
 		if err := deleter.DeleteOrganization(ctx, orgId); err != nil {
 			http.Error(w, "Could not delete organization", http.StatusInternalServerError)
-			slog.Error("Could not delete organization", "error", err, "organization-id", orgId, "host", r.Host)
+			slog.ErrorContext(ctx, "Could not delete organization", "error", err)
 			return
 		}
 
@@ -676,7 +676,7 @@ func DeleteOrganizationHandler(deleter pkg.OrganizationDeleter, timeout time.Dur
 		pkg.PopulateSessionWithRoles(session, info)
 		if err := session.Save(r, w); err != nil {
 			http.Error(w, "Could not update session", http.StatusInternalServerError)
-			slog.Error("Could not update session", "error", err, "host", r.Host, "organization-id", orgId)
+			slog.ErrorContext(ctx, "Could not update session", "error", err)
 			return
 		}
 	}
@@ -686,7 +686,7 @@ func ChosenOrganizationSessionHandler(w http.ResponseWriter, r *http.Request) {
 	orgId := r.URL.Query().Get("existing_org")
 	if orgId == "" {
 		http.Error(w, "No organization id passed", http.StatusBadRequest)
-		slog.Error("No organization id passed", "host", r.Host)
+		slog.ErrorContext(r.Context(), "No organization id passed")
 		return
 	}
 
@@ -694,7 +694,7 @@ func ChosenOrganizationSessionHandler(w http.ResponseWriter, r *http.Request) {
 	session.Values["orgId"] = orgId
 	if err := session.Save(r, w); err != nil {
 		http.Error(w, "Could not save session: "+err.Error(), http.StatusInternalServerError)
-		slog.Error("Coult not save session", "error", err, "host", r.Host)
+		slog.ErrorContext(r.Context(), "Could not save session", "error", err)
 		return
 	}
 }
@@ -716,7 +716,7 @@ func ActiveOrganization(getter pkg.OrganizationGetter, timeout time.Duration) ht
 
 		org, err := getter.GetOrganization(ctx, orgId)
 		if err != nil {
-			slog.Error("Could not get organization", "error", err, "host", r.Host)
+			slog.ErrorContext(ctx, "Could not get organization", "error", err)
 			w.Write([]byte(noOrg))
 			return
 		}
@@ -744,7 +744,7 @@ func AllUsers(store pkg.UserGetter, timeout time.Duration) http.HandlerFunc {
 			users, err = store.GetUsersInOrg(ctx, orgId)
 			if err != nil {
 				http.Error(w, "Error when fething users "+err.Error(), http.StatusInternalServerError)
-				slog.Error("Error when fething users ", "error", err, "host", r.Host)
+				slog.ErrorContext(ctx, "Error when fething users ", "error", err)
 				return
 			}
 		} else {
@@ -752,7 +752,7 @@ func AllUsers(store pkg.UserGetter, timeout time.Duration) http.HandlerFunc {
 			userInfoFromStore, err := store.GetUserInfo(ctx, userInfo.Id)
 			if err != nil {
 				http.Error(w, "Could not fetch user info: "+err.Error(), http.StatusInternalServerError)
-				slog.Error("Could not fetch user info", "error", err, "host", r.Host, "userId", userInfo.Id)
+				slog.ErrorContext(ctx, "Could not fetch user info", "error", err)
 				return
 			}
 			users = append(users, *userInfoFromStore)
@@ -789,7 +789,7 @@ func AssignRoleHandler(store pkg.RoleRegisterer, timeout time.Duration) http.Han
 		userIdFromPath := r.PathValue("id")
 		if userId == userIdFromPath {
 			http.Error(w, "It is not possible to change your own role", http.StatusForbidden)
-			slog.Info("User tried to change his own role", "host", r.Host)
+			slog.InfoContext(r.Context(), "User tried to change his own role")
 			return
 		}
 
@@ -797,14 +797,14 @@ func AssignRoleHandler(store pkg.RoleRegisterer, timeout time.Duration) http.Han
 		code, err := parseForm(r)
 		if err != nil {
 			http.Error(w, err.Error(), code)
-			slog.Error("Failed to parse form", "error", err, "host", r.Host)
+			slog.ErrorContext(r.Context(), "Failed to parse form", "error", err)
 			return
 		}
 
 		role, err := strconv.Atoi(r.FormValue("role"))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
-			slog.Error("Could not convert role into int", "error", err, "host", r.Host)
+			slog.ErrorContext(r.Context(), "Could not convert role into int", "error", err)
 			return
 		}
 		if role > pkg.RoleAdmin {
@@ -817,7 +817,7 @@ func AssignRoleHandler(store pkg.RoleRegisterer, timeout time.Duration) http.Han
 		err = store.RegisterRole(ctx, userIdFromPath, orgId, pkg.RoleKind(role))
 		if err != nil {
 			http.Error(w, "Failed to register new role: "+err.Error(), http.StatusInternalServerError)
-			slog.Error("Failed to register new role", "error", err, "userId", userId, "targetUser", userIdFromPath, "orgId", orgId)
+			slog.ErrorContext(ctx, "Failed to register new role", "error", err, "targetUser", userIdFromPath)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
@@ -834,7 +834,7 @@ func RegisterRecipent(store pkg.UserRegisterer, timeout time.Duration) http.Hand
 		code, err := parseForm(r)
 		if err != nil {
 			http.Error(w, err.Error(), code)
-			slog.Error("Failed to parse form", "error", err, "host", r.Host)
+			slog.ErrorContext(r.Context(), "Failed to parse form", "error", err)
 			return
 		}
 
@@ -853,7 +853,7 @@ func RegisterRecipent(store pkg.UserRegisterer, timeout time.Duration) http.Hand
 
 		if err := store.RegisterUser(ctx, &user); err != nil {
 			http.Error(w, "Failed to register recipent "+err.Error(), http.StatusInternalServerError)
-			slog.Error("Failed to register recipent", "error", err, "host", r.Host, "orgId", orgId)
+			slog.ErrorContext(ctx, "Failed to register recipent", "error", err)
 			return
 		}
 
@@ -871,7 +871,7 @@ func DeleteUserFromOrg(store pkg.DeleteRole, timeout time.Duration) http.Handler
 		userIdFromPath := r.PathValue("id")
 		if userIdFromPath == userId {
 			http.Error(w, "It is not possible to delete yourself", http.StatusForbidden)
-			slog.Info("User tried to delete himself", "host", r.Host)
+			slog.InfoContext(r.Context(), "User tried to delete himself")
 			return
 		}
 
@@ -880,7 +880,7 @@ func DeleteUserFromOrg(store pkg.DeleteRole, timeout time.Duration) http.Handler
 
 		if err := store.DeleteRole(ctx, userIdFromPath, orgId); err != nil {
 			http.Error(w, "Could not delete role: "+err.Error(), http.StatusInternalServerError)
-			slog.Error("Could not delete role", "error", err, "host", r.Host, "userId", userId, "orgId", orgId, "targetUser", userIdFromPath)
+			slog.ErrorContext(ctx, "Could not delete role", "error", err, "targetUser", userIdFromPath)
 			return
 		}
 
@@ -897,7 +897,7 @@ func GroupHandler(store pkg.GroupStore, timeout time.Duration) http.HandlerFunc 
 		code, err := parseForm(r)
 		if err != nil {
 			http.Error(w, err.Error(), code)
-			slog.Error("Failed to parse form", "error", err)
+			slog.ErrorContext(r.Context(), "Failed to parse form", "error", err)
 			return
 		}
 
@@ -908,7 +908,7 @@ func GroupHandler(store pkg.GroupStore, timeout time.Duration) http.HandlerFunc 
 		userIdFromPath := r.PathValue("id")
 		if role < pkg.RoleAdmin && userIdFromPath != userInfo.Id {
 			http.Error(w, "Only admins can edit groups of others", http.StatusUnauthorized)
-			slog.Warn("Non-admin tried to edit group of another user", "orgId", orgId, "userId", userInfo.Id, "host", r.Host)
+			slog.WarnContext(r.Context(), "Non-admin tried to edit group of another user")
 			return
 		}
 
@@ -926,7 +926,7 @@ func GroupHandler(store pkg.GroupStore, timeout time.Duration) http.HandlerFunc 
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
-			slog.Error("Failed to edit group", "error", err, "orgId", orgId, "userId", userInfo.Id, "host", r.Host, "targetUser", userIdFromPath)
+			slog.ErrorContext(ctx, "Failed to edit group", "error", err, "targetUser", userIdFromPath)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
@@ -954,7 +954,7 @@ func DownloadUserParts(store pkg.ResourceGetter, config *pkg.Config) http.Handle
 		code, err := parseForm(r)
 		if err != nil {
 			http.Error(w, "Failed to parse form: "+err.Error(), code)
-			slog.Error("Failed to parse form", "error", err, "host", r.Host)
+			slog.ErrorContext(r.Context(), "Failed to parse form", "error", err)
 			return
 		}
 		s := MustGetSession(r)
@@ -1000,11 +1000,11 @@ func DownloadUserParts(store pkg.ResourceGetter, config *pkg.Config) http.Handle
 		)
 
 		if err != nil {
-			slog.Error("Failed to collect resources", "error", err)
+			slog.ErrorContext(ctx, "Failed to collect resources", "error", err)
 			return
 		}
 
-		slog.Info("Resource downloaded", "numPieces", len(ids), "numFilesInZipArchive", numFilesInZip)
+		slog.InfoContext(ctx, "Resource downloaded", "numPieces", len(ids), "numFilesInZipArchive", numFilesInZip)
 	}
 }
 
@@ -1018,7 +1018,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err := session.Save(r, w); err != nil {
 		http.Error(w, "Could not save session", http.StatusInternalServerError)
-		slog.Error("Could not save session", "error", err, "host", r.Host)
+		slog.ErrorContext(r.Context(), "Could not save session", "error", err)
 		return
 	}
 	web.LoginForm(w, language)
@@ -1031,7 +1031,7 @@ func LoginByPassword(store pkg.BasicAuthRoleStore, signSecret string, timeout ti
 		code, err := parseForm(r)
 		if err != nil {
 			http.Error(w, err.Error(), code)
-			slog.Error("Error parsing form", "error", err, "host", r.Host)
+			slog.ErrorContext(r.Context(), "Error parsing form", "error", err)
 			return
 		}
 
@@ -1088,7 +1088,7 @@ func LoginByPassword(store pkg.BasicAuthRoleStore, signSecret string, timeout ti
 		result := InitializeUserSession(params)
 		if result.Error != nil {
 			http.Error(w, result.Error.Error(), result.ReturnCode)
-			slog.Error("Error while initializing user by password", "error", result.Error, "host", r.Host)
+			slog.ErrorContext(ctx, "Error while initializing user by password", "error", result.Error)
 		}
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(web.SuccessfulLogin(language)))
@@ -1102,7 +1102,7 @@ func ResetPasswordEmail(config *pkg.Config) http.HandlerFunc {
 		code, err := parseForm(r)
 		if err != nil {
 			fmt.Fprintf(w, "Status: %d. Message: %s", code, err)
-			slog.Error("Error parsing form", "error", err, "host", r.Host)
+			slog.ErrorContext(r.Context(), "Error parsing form", "error", err)
 			return
 		}
 
@@ -1159,7 +1159,7 @@ func ResetPasswordForm(w http.ResponseWriter, r *http.Request) {
 	session := MustGetSession(r)
 	session.Values[resetPasswordToken] = token
 	if err := session.Save(r, w); err != nil {
-		slog.Error("Could not save session", "error", err)
+		slog.ErrorContext(r.Context(), "Could not save session", "error", err)
 		fmt.Fprintf(w, "Internal server error: %s", err)
 		return
 	}
@@ -1173,14 +1173,14 @@ func UpdatePassword(store pkg.BasicAuthPasswordResetter, signSecret string, time
 		jwtToken, ok := session.Values[resetPasswordToken].(string)
 		if !ok {
 			fmt.Fprintf(w, "Invalid reset token: could not convert into string")
-			slog.Error("Invalid reset token: could not convert into string")
+			slog.ErrorContext(r.Context(), "Invalid reset token: could not convert into string")
 			return
 		}
 
 		email, err := emailFromResetPasswordJwt(jwtToken, signSecret)
 		if err != nil {
 			fmt.Fprintf(w, "Invalid JWT token: %s", err)
-			slog.Warn("Invalid JWT token", "error", err)
+			slog.WarnContext(r.Context(), "Invalid JWT token", "error", err)
 			return
 		}
 
