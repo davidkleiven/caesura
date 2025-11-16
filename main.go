@@ -20,6 +20,9 @@ import (
 
 func main() {
 	cfgFile := os.Getenv("CAESURA_CONFIG")
+	handler := pkg.NewHandler(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{}))
+	ctxLogger := slog.New(handler)
+	slog.SetDefault(ctxLogger)
 
 	config, err := pkg.LoadConfig(cfgFile)
 	if err != nil {

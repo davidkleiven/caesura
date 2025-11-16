@@ -68,10 +68,10 @@ func checkoutSessionHandler(config *pkg.Config) http.HandlerFunc {
 		s, err := session.New(items)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
-			slog.Error("Failed to create stripe session", "error", err, "host", r.Host)
+			slog.ErrorContext(r.Context(), "Failed to create stripe session", "error", err)
 			return
 		}
-		slog.Info("Redirecting to stripe", "orgId", orgId, "host", r.Host)
+		slog.InfoContext(r.Context(), "Redirecting to stripe")
 		w.Header().Set("HX-Redirect", s.URL)
 		w.WriteHeader(http.StatusOK)
 	}
@@ -108,7 +108,7 @@ func stripeWebhookHandler(store pkg.SubscriptionStorer, config *pkg.Config) http
 
 		event, err := webhook.ConstructEvent(payload, sigHeader, config.StripeWebhookSignSecret)
 		if err != nil {
-			slog.Error("Signature verification failed", "error", err)
+			slog.ErrorContext(r.Context(), "Signature verification failed", "error", err)
 			http.Error(w, "Invalid signature", http.StatusBadRequest)
 			return
 		}
@@ -131,12 +131,12 @@ func stripeWebhookHandler(store pkg.SubscriptionStorer, config *pkg.Config) http
 			)
 
 			if err != nil {
-				slog.Error("Could not interpret request", "error", err)
+				slog.ErrorContext(r.Context(), "Could not interpret request", "error", err)
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
 
-			slog.Info("Checkout session completed", "sessionId", session.ID)
+			slog.InfoContext(r.Context(), "Checkout session completed", "sessionId", session.ID)
 			ctx, cancel := context.WithTimeout(r.Context(), config.Timeout)
 			defer cancel()
 
@@ -150,13 +150,13 @@ func stripeWebhookHandler(store pkg.SubscriptionStorer, config *pkg.Config) http
 
 			err = store.StoreSubscription(ctx, metadata.OrgId, &subscription)
 			if err != nil {
-				slog.Error("Failed to store subscription", "error", err, "sesisonId", session.ID)
+				slog.ErrorContext(r.Context(), "Failed to store subscription", "error", err, "sesisonId", session.ID)
 				w.WriteHeader(http.StatusServiceUnavailable)
 				return
 			}
 
 		default:
-			slog.Info("Unhandled event type", "eventType", event.Type)
+			slog.InfoContext(r.Context(), "Unhandled event type", "eventType", event.Type)
 		}
 		w.WriteHeader(http.StatusOK)
 	}
@@ -189,7 +189,7 @@ func Subscription(store pkg.SubscriptionValidator, timeout time.Duration) http.H
 		})
 
 		if err := g.Wait(); err != nil {
-			slog.Error("Could not get subscription", "error", err, "orgId", orgId, "host", r.Host)
+			slog.ErrorContext(r.Context(), "Could not get subscription", "error", err)
 			http.Error(w, "Could not get subscription: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -210,7 +210,7 @@ func Subscription(store pkg.SubscriptionValidator, timeout time.Duration) http.H
 		s.Values[SubscriptionWriteAllowed] = true
 		s.Values["subscriptionExpires"] = subscription.Expires.Format(time.RFC3339)
 		if err := s.Save(r, w); err != nil {
-			slog.Error("Failed to save session", "error", err, "orgId", orgId, "host", r.Host)
+			slog.ErrorContext(r.Context(), "Failed to save session", "error", err)
 			http.Error(w, "Failed to save session", http.StatusInternalServerError)
 			return
 		}

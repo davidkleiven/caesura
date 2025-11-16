@@ -18,11 +18,16 @@ func LogRequest(handler http.Handler) http.Handler {
 
 		acceptEncoding := r.Header.Get("Accept-Encoding")
 		acceptHeaders := r.Header.Get("Accept")
+
+		// Populate context with meta information
+		ctx := context.WithValue(r.Context(), pkg.ReqIdKey, pkg.RandomInsecureID())
+		ctx = context.WithValue(ctx, pkg.HostKey, r.Host)
+
 		// You can replace this with your logging mechanism
-		slog.Info("Received request", "method", method, "url", url, "accept", acceptHeaders, "accept-encoding", acceptEncoding, "host", r.Host)
+		slog.InfoContext(ctx, "Received request", "method", method, "url", url, "accept", acceptHeaders, "accept-encoding", acceptEncoding)
 
 		// Call the next handler in the chain
-		handler.ServeHTTP(w, r)
+		handler.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
@@ -32,7 +37,7 @@ func RequireSession(cookieStore *sessions.CookieStore, name string, opts *sessio
 			session, err := cookieStore.Get(r, name)
 			if err != nil || session == nil {
 				http.Error(w, "Could not get session "+err.Error(), http.StatusInternalServerError)
-				slog.Info("Could not get session", "error", err, "host", r.Host)
+				slog.InfoContext(r.Context(), "Could not get session", "error", err)
 				return
 			}
 
@@ -50,30 +55,35 @@ func RequireMinimumRole(cookieStore *sessions.CookieStore, minimumRole pkg.RoleK
 			data, ok := session.Values["role"].([]byte)
 			if !ok {
 				http.Error(w, "Value is not slice of bytes", http.StatusBadRequest)
-				slog.Info("Role value is not slice of bytes", "host", r.Host)
+				slog.InfoContext(r.Context(), "Role value is not slice of bytes")
 				return
 			}
 
 			var role pkg.UserInfo
 			if err := json.Unmarshal(data, &role); err != nil {
 				http.Error(w, "Could not unmarshal role info", http.StatusBadRequest)
-				slog.Info("Could not unmarshal role info", "error", err, "host", r.Host)
+				slog.InfoContext(r.Context(), "Could not unmarshal role info", "error", err)
 				return
 			}
 
 			orgId, ok := session.Values["orgId"].(string)
 			if !ok {
 				http.Error(w, "Could not convert orgId to string", http.StatusBadRequest)
-				slog.Info("Could not convert orgId to string", "host", r.Host)
+				slog.InfoContext(r.Context(), "Could not convert orgId to string")
 				return
 			}
 
+			// Provide context
+			ctx := context.WithValue(r.Context(), pkg.UserIdKey, role.Id)
+			ctx = context.WithValue(ctx, pkg.OrgIdKey, orgId)
+
 			if orgRole, ok := role.Roles[orgId]; !ok || orgRole < minimumRole {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				slog.Info("User is unauthorized", "host", r.Host, "user", role.Id, "role", orgRole, "required-role", minimumRole, "role-provided", ok, "organization-id", orgId)
+				slog.InfoContext(ctx, "User is unauthorized", "role", orgRole, "required-role", minimumRole, "role-provided", ok)
 				return
 			}
-			next.ServeHTTP(w, r)
+
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
@@ -85,7 +95,7 @@ func RequireUserId(cookieStore *sessions.CookieStore) func(http.Handler) http.Ha
 			_, ok := session.Values["userId"].(string)
 			if !ok {
 				http.Error(w, "User id is not present", http.StatusBadRequest)
-				slog.Info("User id is not present", "host", r.Host)
+				slog.InfoContext(r.Context(), "User id is not present")
 				return
 			}
 			next.ServeHTTP(w, r)
@@ -100,14 +110,14 @@ func ValidateUserInfo(cookieStore *sessions.CookieStore) func(http.Handler) http
 			data, ok := session.Values["role"].([]byte)
 			if !ok {
 				http.Error(w, "User role is not present", http.StatusBadRequest)
-				slog.Info("User role is not present", "host", r.Host)
+				slog.InfoContext(r.Context(), "User role is not present")
 				return
 			}
 
 			var info pkg.UserInfo
 			if err := json.Unmarshal(data, &info); err != nil {
 				http.Error(w, "Could not interpret role data", http.StatusBadRequest)
-				slog.Error("Could not interpret role data", "error", err, "host", r.Host)
+				slog.ErrorContext(r.Context(), "Could not interpret role data", "error", err)
 				return
 			}
 			next.ServeHTTP(w, r)
