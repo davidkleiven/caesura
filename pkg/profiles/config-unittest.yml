@@ -1,0 +1,16 @@
+brevo_api_key: ENC[AES256_GCM,data:S1YTQ3WoZvqatPLWU5eg,iv:ALXSG0vkXY0g7aEKU3/jf5rL0fqRo+TUNf9MwhuS37s=,tag:Qi0++wASgbd/5l55T07SLQ==,type:str]
+sops:
+    age:
+        - recipient: age1c44428zkhhkqhtfh8r7qwf7y000hyvcsskue8nm22g3j5pqwmapq6pcpqy
+          enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBMTU95d3RyM3MxSGlRN203
+            U3VzamszL2loVitjTHdmS0pPSFNTa2Y4RWs4Clkxd0c4aWhzRDBiN1czM3hmdUdO
+            V0ZyaXpydEkrV2syTEMrK21YRGpOUFEKLS0tIFpTNDJOREhieDJIcGp3c2NhaFdi
+            cmk5TlV5aDhQMnJvZUVwN1lXeXBxVmsKsyk4c2k1DlzY2n019Dlm0bITaDaWDPX2
+            25G1DzwjekHaPVlJjVGUTF9bJaZ1SkWqp7ICNIHoDBggOPH1V6HK6w==
+            -----END AGE ENCRYPTED FILE-----
+    lastmodified: "2025-11-20T17:59:39Z"
+    mac: ENC[AES256_GCM,data:DtTxgVFHxyzH6Doa9uQibctU7p2rCv+ooywfaKkq/Lkfj9hShhw2aepSfi8jXLxwX14Bqy4soZ+zx4Keqbz1R+WwcknmyCfxfL2eH0Sxjf5s9No/7m0NP7bpJYAOeP9uqlCypZhH6sUfFXSZYZoukfNsUkCAp6xTWNEl/LFlHdk=,iv:D5NBkim3EFJhEsAFNwsqROJvv/Kt72O3YlDekf/M3tY=,tag:JkPR+MjJRV1NTxa+0sS8Ow==,type:str]
+    unencrypted_suffix: _unencrypted
+    version: 3.11.0

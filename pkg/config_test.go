@@ -220,3 +220,40 @@ func TestOverrideEmailDeliveryService(t *testing.T) {
 	testutils.AssertEqual(t, config.EmailSender, "noreply@caesura.no")
 	testutils.AssertEqual(t, config.SmtpConfig.Host, "smtp-relay.brevo.com")
 }
+
+func TestLoadProfileNonExistent(t *testing.T) {
+	_, err := LoadProfile("no-profile")
+	if err == nil {
+		t.Fatal("Wanted error")
+	}
+	testutils.AssertContains(t, err.Error(), "file does not")
+}
+
+func TestLoadProfile(t *testing.T) {
+	// config-unittest require a special key see TestSuccessFullDecryption
+	res, err := LoadProfile("config-unittest.yml")
+	if err == nil {
+		t.Fatal("Wanted error because no decryption key exists")
+	}
+	testutils.AssertContains(t, err.Error(), "decrypt")
+	testutils.AssertEqual(t, res.BrevoApiKey, "")
+}
+
+func TestSuccessFullDecryption(t *testing.T) {
+	key := "SOPS_AGE_KEY"
+	orig, ok := os.LookupEnv(key)
+	defer func() {
+		if ok {
+			os.Setenv(key, orig)
+		} else {
+			os.Unsetenv(key)
+		}
+	}()
+
+	// Dummy key used to encrypt a test config file (not used for real files)
+	testKey := "AGE-SECRET-KEY-1RXUZPSPY9VRV52XE867Q92DVL4C9YQWC2CXSSG224A5HJHRAKD6S2T3XH2"
+	os.Setenv(key, testKey)
+	res, err := LoadProfile("config-unittest.yml")
+	testutils.AssertNil(t, err)
+	testutils.AssertEqual(t, res.BrevoApiKey, "very-secret-key")
+}
