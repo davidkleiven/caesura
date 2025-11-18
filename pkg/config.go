@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"embed"
 	"fmt"
 	"io"
 	"log/slog"
@@ -15,6 +16,7 @@ import (
 	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/storage"
 	"github.com/davidkleiven/caesura/utils"
+	"github.com/getsops/sops/v3/decrypt"
 	"github.com/gorilla/sessions"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -23,6 +25,9 @@ import (
 
 const GoogleCloud = "google-cloud"
 
+//go:embed profiles/*
+var configProfiles embed.FS
+
 type LocalFSStoreConfig struct {
 	Directory string `yaml:"directory"`
 	Database  string `yaml:"database"`
@@ -30,9 +35,9 @@ type LocalFSStoreConfig struct {
 
 type Smtp struct {
 	Auth   smtp.Auth
-	Host   string `yaml:"host"`
-	Port   string `yaml:"port"`
-	SendFn SendFunc
+	Host   string   `yaml:"host"`
+	Port   string   `yaml:"port"`
+	SendFn SendFunc `yaml:"-"`
 }
 
 func NewBrevo(password string) *Smtp {
@@ -51,28 +56,28 @@ type GoogleClientContainer struct {
 }
 
 type Config struct {
-	StoreType                string             `yaml:"store_type" env:"CAESURA_STORE_TYPE"`
-	LocalFS                  LocalFSStoreConfig `yaml:"local_fs"`
-	Timeout                  time.Duration      `yaml:"timeout" env:"CAESURA_TIMEOUT"`
-	Port                     int                `yaml:"port" env:"CAESURA_PORT"`
-	SecretsPath              string             `yaml:"secrets_path" env:"CAESURA_SECRETS_PATH"`
-	MaxRequestSizeMb         uint               `yaml:"max_request_size_mb" env:"CAESURA_MAX_REQUEST_SIZE_MB"`
-	GoogleAuthClientId       string             `yaml:"google_auth_client_id" env:"CAESURA_GOOGLE_AUTH_CLIENT_ID"`
-	GoogleAuthClientSecretId string             `yaml:"google_auth_client_secret_id" env:"CAESURA_GOOGLE_AUTH_CLIENT_SECRET_ID"`
-	GoogleAuthRedirectURL    string             `yaml:"google_auth_rederict_url" env:"CAESURA_GOOGLE_AUTH_REDIRECT_URL"`
-	CookieSecretSignKey      string             `yaml:"cookie_secret_sign_key" env:"CAESURA_COOKIE_SECRET_SIGN_KEY"`
-	BaseURL                  string             `yaml:"base_url" env:"CAESURA_BASE_URL"`
-	SessionMaxAge            int                `yaml:"session_max_age" env:"CAESURA_SESSION_MAX_AGE"`
-	SmtpConfig               Smtp               `yaml:"smtp"`
-	EmailSender              string             `yaml:"email_sender" env:"CAESURA_EMAIL_SENDER"`
-	StripeSecretKey          string             `yaml:"stripe_secret_key" env:"CAESURA_STRIPE_SECRET_KEY"`
-	StripeWebhookSignSecret  string             `yaml:"stripe_webhook_sign_secret" env:"CAESURA_STRIPE_WEBHOOK_SIGN_SECRET"`
-	RequireSubscription      bool               `yaml:"require_subscription" env:"CAUSURA_REQUIRE_SUBSCRIPTION"`
-	BrevoApiKey              string             `yaml:"brevo_api_key" env:"CAESURA_BREVO_API_KEY"`
-	EmailDeliveryService     string             `yaml:"email_delivery_service" env:"CAESURA_EMAIL_DELIVERY_SERVICE"`
-	GoogleCfg                GoogleConfig       `yaml:"google_config"`
-	Transport                http.RoundTripper
-	GoogleClients            GoogleClientContainer
+	StoreType                string                `yaml:"store_type" env:"CAESURA_STORE_TYPE"`
+	LocalFS                  LocalFSStoreConfig    `yaml:"local_fs"`
+	Timeout                  time.Duration         `yaml:"timeout" env:"CAESURA_TIMEOUT"`
+	Port                     int                   `yaml:"port" env:"CAESURA_PORT"`
+	SecretsPath              string                `yaml:"secrets_path" env:"CAESURA_SECRETS_PATH"`
+	MaxRequestSizeMb         uint                  `yaml:"max_request_size_mb" env:"CAESURA_MAX_REQUEST_SIZE_MB"`
+	GoogleAuthClientId       string                `yaml:"google_auth_client_id" env:"CAESURA_GOOGLE_AUTH_CLIENT_ID"`
+	GoogleAuthClientSecretId string                `yaml:"google_auth_client_secret_id" env:"CAESURA_GOOGLE_AUTH_CLIENT_SECRET_ID"`
+	GoogleAuthRedirectURL    string                `yaml:"google_auth_rederict_url" env:"CAESURA_GOOGLE_AUTH_REDIRECT_URL"`
+	CookieSecretSignKey      string                `yaml:"cookie_secret_sign_key" env:"CAESURA_COOKIE_SECRET_SIGN_KEY"`
+	BaseURL                  string                `yaml:"base_url" env:"CAESURA_BASE_URL"`
+	SessionMaxAge            int                   `yaml:"session_max_age" env:"CAESURA_SESSION_MAX_AGE"`
+	SmtpConfig               Smtp                  `yaml:"smtp"`
+	EmailSender              string                `yaml:"email_sender" env:"CAESURA_EMAIL_SENDER"`
+	StripeSecretKey          string                `yaml:"stripe_secret_key" env:"CAESURA_STRIPE_SECRET_KEY"`
+	StripeWebhookSignSecret  string                `yaml:"stripe_webhook_sign_secret" env:"CAESURA_STRIPE_WEBHOOK_SIGN_SECRET"`
+	RequireSubscription      bool                  `yaml:"require_subscription" env:"CAUSURA_REQUIRE_SUBSCRIPTION"`
+	BrevoApiKey              string                `yaml:"brevo_api_key" env:"CAESURA_BREVO_API_KEY"`
+	EmailDeliveryService     string                `yaml:"email_delivery_service" env:"CAESURA_EMAIL_DELIVERY_SERVICE"`
+	GoogleCfg                GoogleConfig          `yaml:"google_config"`
+	Transport                http.RoundTripper     `yaml:"-"`
+	GoogleClients            GoogleClientContainer `yaml:"-"`
 }
 
 func (c *Config) Validate() error {
@@ -240,4 +245,19 @@ func GetStore(config *Config) Store {
 		slog.Info(msg, key, "empty-store")
 		return NewMultiOrgInMemoryStore()
 	}
+}
+
+func LoadProfile(name string) (*Config, error) {
+	config := NewDefaultConfig()
+	data, err := configProfiles.ReadFile(fmt.Sprintf("profiles/%s", name))
+	if err != nil {
+		return config, fmt.Errorf("Could not open file %s: %w", name, err)
+	}
+
+	cleartext, err := decrypt.Data(data, "yaml")
+	if err != nil {
+		return config, fmt.Errorf("Could not decrypt config file %s: %w", name, err)
+	}
+	err = yaml.Unmarshal(cleartext, config)
+	return config, err
 }

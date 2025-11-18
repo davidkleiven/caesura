@@ -1,6 +1,6 @@
 COVEROUT ?= coverage.html
 
-.PHONY: unittest uitest build css
+.PHONY: unittest uitest build css reencrypt
 
 unittest:
 	go list ./... | grep -v web_test | xargs go test -failfast -coverprofile=coverage.out -covermode=atomic
@@ -18,3 +18,5 @@ css:
 
 run: build
 	./caesura
+reencrypt:
+	bash cmd/reencrypt.sh

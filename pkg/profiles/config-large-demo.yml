@@ -1,0 +1,39 @@
+store_type: large-demo
+timeout: 10s
+port: 8080
+max_request_size_mb: 100
+google_auth_client_id: 602223566336-77ugev7r0br5k1j8rc8i407kb0et34al.apps.googleusercontent.com
+google_auth_client_secret_id: ENC[AES256_GCM,data:4lkgqKXmsUAUxF3288Cy9NlK9i4omgu143Whvtv5wMfzkBs=,iv:mkTcOoQsptMHnoSBN3LUTy+q4Y09z64l/GgJZYzhW5U=,tag:ZgA1Z6/Y8TFcaB71RGoKVQ==,type:str]
+google_auth_rederict_url: http://localhost:8080/auth/callback
+cookie_secret_sign_key: ENC[AES256_GCM,data:AvY9B7se4RrgV7QUxR5Aekl9X2mUHGL+EwFcA1koqSOTdjT2P0gLHKQQBosNjRYpxY+yJOzBvbTJSn4=,iv:WLovn6XOSbTGm3htYFZ8STNeMz3DWNul4L77G92IY5Y=,tag:jrabBhNqwdwruBmPWHIUUw==,type:str]
+base_url: http://localhost:8080
+session_max_age: 3600
+email_sender: noreply@caesura.no
+stripe_secret_key: ENC[AES256_GCM,data:YZiRU3za5VGTfZ5oTxZ9JeHixHuYbNUkLvnHHMVUf4jfwFW2D5ilGc//K7XJaBBfgp1AOXQUc2zVLRAdB4xTIy7zqsHqyjNCD274WYcD1Jcbd6OOJpAiytC6qihni4KuGpmDvvnv7n3CSGU=,iv:QAYXITHs2UZizy6uvfoBiMYtXCp8yHSbKw9m5nnoQAk=,tag:SR4R9v6EFxr5juaRdrpDXQ==,type:str]
+stripe_webhook_sign_secret: ENC[AES256_GCM,data:fectnPoBFYTZ5CltXYpMop3ro2q/Sh5H6xmJCVy0qPpdlqKBXacfrOmTdE7b6Ir5bMPHCOgsbM38YA==,iv:r4x0BOo9R7VnrI0p/y8Gor74Zdjyn9wwet/p23T1NF4=,tag:C66yw7B5d5sqEAduMjLTJw==,type:str]
+require_subscription: false
+brevo_api_key: ENC[AES256_GCM,data:9dwUG4ACGJ80VUA69vS/3rjzFem7YtJGy2tX/N5K9hIF40Poj7UkAMA5vhKpPqxNlZEpHhPiv3dxea+J+bd3zhA3ILuL/6NpzOKypQwokpXjwNeLb9Lx5zvq,iv:agDmWMhzJLeNIB8MgtouDIe7GfwR7DhtYMHnP3AAWI8=,tag:4c8oP5JeazqRyYboHggeAg==,type:str]
+email_delivery_service: brevo
+google_config:
+    bucket: caesura-test
+    projectId: caesura-466820
+    environment: test
+sops:
+    gcp_kms:
+        - resource_id: projects/caesura-466820/locations/global/keyRings/caesura-ring/cryptoKeys/sops-key
+          created_at: "2025-11-20T17:59:38Z"
+          enc: CiQAa0YgtOV+hVwK5Nf0nifnRf2mHY8TXdTe1wSnuOqwFaNHPJESSQAi5luS5Cp20h55mgCN4Fv1a3Q0IbTMRKR45MxvAGpau+vrpzuGnjz02GcRiM5P8s4+tvW3rVR5q0DxjT938k6fLgR9vnA0KhI=
+    age:
+        - recipient: age1rekch73u43q89fq4ajvq4utud2dp3jvvc4eefer42us4kgjal9vs2juvx7
+          enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBwOCtGNlhyS0pLclhtdWtY
+            WFBrRXlJTnR2b0RiMnh4N3NuSG1BOUZVQVE4Ck82dCtWY2pubDBlbmxFMW9DOE9J
+            MGJXdmtaWHY5UGEvZ0twcjVvYXlJdjAKLS0tIFFoZ0k1SVhycVIrOFl3OXphcTh4
+            YnVua1NKcHdNNExMZk1UOGQ5OVZHOG8KlkFWIMBAcbZLlRFEujD2kHgpr/bMyowy
+            DbShda5w8giXVHUV5Kol2GR4nOYzen9RpMvvTc7tnNJbceXuZUZKAw==
+            -----END AGE ENCRYPTED FILE-----
+    lastmodified: "2025-11-20T17:59:39Z"
+    mac: ENC[AES256_GCM,data:vESyri6x1Rk5rHxqMCdw8lSRENYaGSzYBjeir/Qeny8tKR5kMAThrWtCYaM+jUCMOlNtuoeyt6+iND8HTE9jzaA9LdEifGnK7vLy3MSy4IeIzpIl3nDrE5vmijmqIucPnk+BwE3eCf7mgTWulfk8rTaKQdqJUINTt0GTWZirZSU=,iv:x+ryxwAfa8x6XdUMylVQjf2VCEKjPi/AtD+ikKOPqWM=,tag:zuEv3EboYAVAoVoGhW1j6Q==,type:str]
+    encrypted_regex: (api_key|secret|password)
+    version: 3.11.0

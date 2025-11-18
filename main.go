@@ -19,12 +19,12 @@ import (
 )
 
 func main() {
-	cfgFile := os.Getenv("CAESURA_CONFIG")
+	profile := os.Getenv("CAESURA_PROFILE") // test
 	handler := pkg.NewHandler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{}))
 	ctxLogger := slog.New(handler)
 	slog.SetDefault(ctxLogger)
 
-	config, err := pkg.LoadConfig(cfgFile)
+	config, err := pkg.LoadProfile(fmt.Sprintf("config-%s.yml", profile))
 	if err != nil {
 		slog.Error("Failed to load configuration", "error", err)
 		os.Exit(1)
