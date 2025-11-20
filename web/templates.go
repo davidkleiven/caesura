@@ -53,7 +53,7 @@ func Index(language string) []byte {
 	tmpl := template.Must(
 		template.New("index-template").
 			Funcs(template.FuncMap{"T": translateFunc(language)}).
-			ParseFS(templatesFS, "templates/index.html", "templates/header.html"),
+			ParseFS(templatesFS, "templates/index.html", "templates/header.html", "templates/footer.html"),
 	)
 
 	var buf bytes.Buffer
