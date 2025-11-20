@@ -610,3 +610,16 @@ func TestAssignByPressingPlussBtn(t *testing.T) {
 	}, uploadPage)(t)
 
 }
+
+func TestSignOutFromFrontPage(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		logout := page.Locator("#logout")
+		count, err := logout.Count()
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, count, 1)
+
+		timeout := playwright.PageExpectResponseOptions{Timeout: playwright.Float(1000.0)}
+		_, err = page.ExpectResponse("**/logout", func() error { return logout.Click() }, timeout)
+		testutils.AssertNil(t, err)
+	}, "/")(t)
+}
