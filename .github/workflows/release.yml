@@ -15,6 +15,15 @@ jobs:
     uses: davidkleiven/gh-workflows/.github/workflows/semantic-gh-release.yml@main
     secrets: inherit
 
+  summarize-release:
+    needs: release
+    steps:
+     - name: Debug release outputs
+       run: |
+         echo "release_created: ${{ needs.release.outputs.release_created }}"
+         echo "new_tag: ${{ needs.release.outputs.new_tag }}"
+         echo "release_notes: ${{ needs.release.outputs.release_notes }}"
+
   build-and-push:
     needs: release
     if: ${{ needs.release.outputs.release_created == 'true' }}
