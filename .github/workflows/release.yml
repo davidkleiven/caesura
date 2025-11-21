@@ -58,3 +58,4 @@ jobs:
       service_account: caesura-test-sp@caesura-466820.iam.gserviceaccount.com
       image: ghcr.io/${{ github.repository_owner }}/caesura:latest
       env_vars: CAESURA_PROFILE=test
+      port: 8080
