@@ -50,6 +50,9 @@ jobs:
           docker push ghcr.io/${{ github.repository_owner }}/caesura:latest
 
   deploy-test:
+    permissions:
+      id-token: write
+      contents: read
     uses: davidkleiven/gh-workflows/.github/workflows/gcloud-deploy.yml@main
     secrets: inherit
     with:
