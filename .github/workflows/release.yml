@@ -59,7 +59,6 @@ jobs:
       - name: Push Docker image
         run: |
           docker push ghcr.io/${{ github.repository_owner }}/caesura:${{ needs.release.outputs.new_tag }}
-          docker push ghcr.io/${{ github.repository_owner }}/caesura:latest
 
   deploy-test:
     permissions:
