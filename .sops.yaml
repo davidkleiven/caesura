@@ -7,6 +7,7 @@ creation_rules:
   - age:
       - age1rekch73u43q89fq4ajvq4utud2dp3jvvc4eefer42us4kgjal9vs2juvx7 # Gunstein Desktop
       - age1gvqc0qnsz7s4sfyffda6ctda4aah2drae0lvkug499hy6ckgxyvqsqcqh6 # Gunstein Laptop
+      - age12paymur3df5x5qdger8t80a7t2y87gklvlafq0jcmau5cm2hjcgq3tm5sd # cc
     gcp_kms:
       - projects/caesura-466820/locations/global/keyRings/caesura-ring/cryptoKeys/sops-key
     encrypted_regex: "(api_key|secret|password)"
