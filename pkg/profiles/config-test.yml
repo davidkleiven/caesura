@@ -1,13 +1,13 @@
 store_type: google-cloud
 timeout: 10s
 port: 8080
-max_request_size_mb: 100
+max_request_size_mb: 150
 google_auth_client_id: 602223566336-77ugev7r0br5k1j8rc8i407kb0et34al.apps.googleusercontent.com
 google_auth_client_secret_id: ENC[AES256_GCM,data:fzTzsZd8Z7uc7s1HN11tOGLkxlTIF63tNX5jcM0C5rMEdcg=,iv:eMK0bMMeo2EZmz0m/5Dgw6YX7vxu1TaQxjZj0muwbB4=,tag:ufe7NXjzFbzI9MPNCz11bA==,type:str]
-google_auth_rederict_url: http://localhost:8080/auth/callback
+google_auth_rederict_url: https://test.caesura.no/auth/callback
 cookie_secret_sign_key: ENC[AES256_GCM,data:roKXu5GGtF3jmh2BFsSZCNckNdGsSffbK95Ia5KcpA827P2lKfZ/M4Qj291ebI/hP8If8iFZoPK5vwE=,iv:WAqxsMFxgUp0kkzldntO+No8z8uKw5Yuep3aqNzxSa0=,tag:dAV44eBBFEXsrYqCXrQTkQ==,type:str]
 base_url: https://test.caesura.no
-session_max_age: 3600
+session_max_age: 1200
 email_sender: noreply@caesura.no
 stripe_secret_key: ENC[AES256_GCM,data:zi30ekfRNlo2yEs7upF96WD+a0tGWMHGA8utfHrPCF22SJXfAE0PUhCOn72QSsmDMg2HjymEQ0xES5WARdLkWtkcoMHXATqcPZ8QdMEeGAExehvQ/1QrZh21jyNvxatIxFreautXSLQMl8Q=,iv:HlgvJzK9WLreWBurlbHB+g4BdhcmfJyZPU1A+mLsR1M=,tag:2oEnt6jN2J4WZMGcLz5zyA==,type:str]
 stripe_webhook_sign_secret: ENC[AES256_GCM,data:Gg0HH2wfiWDR6iMpBZWPv8vNbonvE+eX2RxIv9QTnsG1pupbkIOxP/iVRt4ZKNj7LOhBl5Re6+t/QA==,iv:EFGYh4g/VuMPfGFx4LNYyxLC2ufeSAgKZ9AiBLQiJG4=,tag:I9sKzwP3ySy54/L1D4ZhTA==,type:str]
@@ -42,7 +42,7 @@ sops:
             MFlWUjJaTGxuMjMyL2s3QU5zclZwUzQKAKpO4i3GgL5ekJvF+XM/+fmUxla1cuwt
             jj4HFC8vhL8bDrpftk607Gxr7ahOsjyT0qkKdYjWNGTaZx8ZFQnnew==
             -----END AGE ENCRYPTED FILE-----
-    lastmodified: "2025-11-20T20:37:34Z"
-    mac: ENC[AES256_GCM,data:n/hs0gRkltSXSKFB0JyR+aLOCUhulHp0fSypoedZwWvy1Ilqew0hwfF8JMQHPstYOJJKWMfJ7iRsQV6DM2luSb0GZr1ypbTrJkGd0SmfjjT1J5Bz9vbu2mCn0MLa3xjDV449qqTzAZSqeNLkNFzAOSLxyIgPBRjjMcT1B4Nu0k0=,iv:NESu2++9DSiwWgCCYEbedwhHdnSmjz+E2gZyMPPtynQ=,tag:00N4mGqN6kLajA/Lqjo1Qw==,type:str]
+    lastmodified: "2025-11-22T11:16:11Z"
+    mac: ENC[AES256_GCM,data:3Y7Lw0z3sh9TgpX5ICZt3SXwIUbcjzroOjrit/zxFCuLeOVBPEEOswJFUIq5EwifGHd6NcH9IMnYgTuXGd37YStk7P1BY0rVrTw6egDfpF82iDXu4jVAWsYcis5PPLs+CYEuUwJ4q+tFDuy25APA6h/VUaMX5wRhbyjstdIOj68=,iv:w1Anmnj6OQXopL/Dv0PiXPf7pw5Rx1KDBYwgQWPLdvM=,tag:4NDiQp+7Ne/el3eBQVAA3w==,type:str]
     encrypted_regex: (api_key|secret|password)
     version: 3.11.0
