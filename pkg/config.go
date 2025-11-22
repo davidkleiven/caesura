@@ -82,7 +82,7 @@ type Config struct {
 
 func (c *Config) Validate() error {
 	switch c.StoreType {
-	case "in-memory":
+	case "in-memory", GoogleCloud:
 		// No additional validation needed for in-memory store
 	case "small-demo":
 		// No additional validation
