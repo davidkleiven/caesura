@@ -3,16 +3,16 @@ timeout: 10s
 port: 8080
 max_request_size_mb: 150
 google_auth_client_id: 602223566336-77ugev7r0br5k1j8rc8i407kb0et34al.apps.googleusercontent.com
-google_auth_client_secret_id: ENC[AES256_GCM,data:fzTzsZd8Z7uc7s1HN11tOGLkxlTIF63tNX5jcM0C5rMEdcg=,iv:eMK0bMMeo2EZmz0m/5Dgw6YX7vxu1TaQxjZj0muwbB4=,tag:ufe7NXjzFbzI9MPNCz11bA==,type:str]
+google_auth_client_secret_id: ENC[AES256_GCM,data:r6N7ytlzk3yBllf27IMrcJjxWKNr+QW9z85ZJjgVm0tAPrA=,iv:0pxiXNcCpoTJmQ5cRBCgwABuOG7UQbxgdEvujP3Oegg=,tag:RVRXRO9f4AzCj5py9a9MNg==,type:str]
 google_auth_rederict_url: https://test.caesura.no/auth/callback
-cookie_secret_sign_key: ENC[AES256_GCM,data:roKXu5GGtF3jmh2BFsSZCNckNdGsSffbK95Ia5KcpA827P2lKfZ/M4Qj291ebI/hP8If8iFZoPK5vwE=,iv:WAqxsMFxgUp0kkzldntO+No8z8uKw5Yuep3aqNzxSa0=,tag:dAV44eBBFEXsrYqCXrQTkQ==,type:str]
+cookie_secret_sign_key: ENC[AES256_GCM,data:+1qdVv/wXkmAh982Q0cCxNCq61zLhM7xIdrclN4gBmXqRCmgoyFvH3uylQiS/TeECSrjeOjABpFiqaY=,iv:ZGWs0wtTDgRNlr4aC2BLi5NDfOjZXO/wdiOUffbWSfs=,tag:oIR6ut2CMZUAf6/FsOPWjw==,type:str]
 base_url: https://test.caesura.no
 session_max_age: 1200
 email_sender: noreply@caesura.no
-stripe_secret_key: ENC[AES256_GCM,data:zi30ekfRNlo2yEs7upF96WD+a0tGWMHGA8utfHrPCF22SJXfAE0PUhCOn72QSsmDMg2HjymEQ0xES5WARdLkWtkcoMHXATqcPZ8QdMEeGAExehvQ/1QrZh21jyNvxatIxFreautXSLQMl8Q=,iv:HlgvJzK9WLreWBurlbHB+g4BdhcmfJyZPU1A+mLsR1M=,tag:2oEnt6jN2J4WZMGcLz5zyA==,type:str]
-stripe_webhook_sign_secret: ENC[AES256_GCM,data:Gg0HH2wfiWDR6iMpBZWPv8vNbonvE+eX2RxIv9QTnsG1pupbkIOxP/iVRt4ZKNj7LOhBl5Re6+t/QA==,iv:EFGYh4g/VuMPfGFx4LNYyxLC2ufeSAgKZ9AiBLQiJG4=,tag:I9sKzwP3ySy54/L1D4ZhTA==,type:str]
+stripe_secret_key: ENC[AES256_GCM,data:O8i1hRhyZ7HbaFPJOqE3rRJ/a7PnoU3kyhrtF4OK48LMlH13FMPxW2MT6YM0ktW3qmNVjCO90IQHTlFmdSqjcPnoeei1vJZvhcRXAxx0eWTVEJ5bvOqvx64DxW540jm/D93E//4HB+dYTeI=,iv:FQzOZX8m4IurLrvMcXKbqQUMUy4AP7LPFSCdLN4fmKg=,tag:SJG8NAWbn5udtwEduUsJfA==,type:str]
+stripe_webhook_sign_secret: ENC[AES256_GCM,data:NBQRkna7BNRW3aq3Ye+izYaHNVfg1fujPa4FaVNxGPG6qxbCfoSgpo7Yo5ZWWW5Ht8hcZ6fcDH3XIA==,iv:OR21qtLeWQYI6tJ4PLZfrv0XuXXI5lSC1PYv1ujYhys=,tag:Z8w5bpMdm0LYPTT70S4wcA==,type:str]
 require_subscription: true
-brevo_api_key: ENC[AES256_GCM,data:wmpT6dTlnHYMBBE/AJE2YxTIQeAvZUjo7jCo+QzwEOVK/MjnUoTN+l6cQJ7aiTkttH0N/yr9bxHcvkVj0AkVBgRbAZrP0MWqxAPFjyYhJQlPY+Iva+pvN0jX,iv:wME/fP2dwsqWt5AElAyNmqcOompmLfhjZ/nVGChzLCc=,tag:f/y8DmUi46h4AIlqWvuG0Q==,type:str]
+brevo_api_key: ENC[AES256_GCM,data:PylUnK8wWuN2SPV319EqgKZyAxzSDmTzdzsGp3l50+BOZqbr9DrB8v5NlCgDiue+IaRCuDIOwSkgl7B2vtseeZDkb+L7qDPKmhVas0DmO19spe9l26SYPMtF,iv:OzRE6FhqO+AJDrBUod9FtQregBTlAt5vs6Z/fJQh/po=,tag:R+oUI/Tr81JiTPnHLmMOpA==,type:str]
 email_delivery_service: brevo
 google_config:
     bucket: caesura-test
@@ -21,28 +21,37 @@ google_config:
 sops:
     gcp_kms:
         - resource_id: projects/caesura-466820/locations/global/keyRings/caesura-ring/cryptoKeys/sops-key
-          created_at: "2025-11-20T20:37:33Z"
-          enc: CiQAa0YgtOAwZu1VB/Da+AQsH0W11ZoxCerEYIQEXRAyVs04Im8SSQAi5luSpr6JiizNaOs+vLt8ShxJKiljqCbQRJ6LmJ2b1WjZySQh24757DEdqfzaCa+Ao3fefBF5GAQTUylBhVm5pDoTPCj6bl0=
+          created_at: "2025-11-22T16:35:54Z"
+          enc: CiQAa0YgtLCDjxZsEJuPHsTDs3sqHc4CkC6P19h1ixc/HYZsMfwSSQAi5luS92rEODVF+QCtwrbOB9Rb/qtTEyXdeNOn5kDutT2MlmjJSxtcMqhkFFhmlJU2LaCfqTdCgsyLsTzAzwaMJj+tw1Sq90M=
     age:
         - recipient: age1rekch73u43q89fq4ajvq4utud2dp3jvvc4eefer42us4kgjal9vs2juvx7
           enc: |
             -----BEGIN AGE ENCRYPTED FILE-----
-            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBLQzY3cUZIbTdoN0lNaHIw
-            VFVIcUVzNDhQYlo3a1FuZ2JkUjk2MmhtQm13Ckw4RGttNlI0MTUvaWRSUGdDVXhX
-            MDNTNUFsbVZMYW8wS251SVhHTEUvYWsKLS0tIERlMDVEaEJxVDc5dWNaTVR5dFJS
-            NDZqbjJDWTlBTlJCbHZTaWtYV21pOWMKjG5qLL2n1jP3NUWENHCyvUa0xkLo8JIt
-            x8R45o0clXjpxQVsBX2ZVZiU7QnuoihyOwLeTF25pujgW1T7MlFVLA==
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBIUVd4NE5oTzJzQnA1OUhX
+            YmZhcmYwUE54bWttQWlQRk83TTBnb3NQQno4CjIyWWZSMmJOMzh2dXlhQVhIbWlh
+            RUtIZVY5VTVESkFNbWxMOVl0eXk2NVkKLS0tICtlVUszZnVGbnJqa1owVEQ2aUVD
+            UVdVbG0xTmI5V1VsMWZLQ3IxcklHWnMKsss7g4Gcf6YPjqn+IOqAZItPfzfkOZ60
+            z2OND+1NTfYV7qfSUorMTVmM1gVBNqR+O8vzOsMnyyGCe0fOj4vc0A==
             -----END AGE ENCRYPTED FILE-----
         - recipient: age1gvqc0qnsz7s4sfyffda6ctda4aah2drae0lvkug499hy6ckgxyvqsqcqh6
           enc: |
             -----BEGIN AGE ENCRYPTED FILE-----
-            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBVay9HK24wUlhiR28vTWdI
-            T1cxVEtoNUpUejVOWlliOG5ZdXc4S1RvSzJzCnFDckF2dWVqNkxCY0tZZFZyRXFG
-            aDZySGtHUnF6QnZET2NSUDR0ZEtrQzgKLS0tIG5tSzJxdG1BSCt2d01LS1hrQWZN
-            MFlWUjJaTGxuMjMyL2s3QU5zclZwUzQKAKpO4i3GgL5ekJvF+XM/+fmUxla1cuwt
-            jj4HFC8vhL8bDrpftk607Gxr7ahOsjyT0qkKdYjWNGTaZx8ZFQnnew==
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBaaGdqcUpjMEdRcFpBTTJ1
+            RGg3dlVWbitsckNtanQvSFlFTFc4VVd3ZlNjCmE2UDVYRUdxRjNBYi9hRm5mRm01
+            UUxSV0xNRS8rbC9zZnpQMXhDTzkwcDQKLS0tIFJFTkJkM1NsMFdIVzdhdDhNaytP
+            RXMrRDl5V0JIREw0alhtaHBtOTBpN1EKqgvaEznLpKKJRb/mR0Nv2KV65ee0235y
+            BNkXRO1T1uxT6zEFUnOgl60q5fTqub1d3u9KhpAKYz9yxVF8TfM0gQ==
             -----END AGE ENCRYPTED FILE-----
-    lastmodified: "2025-11-22T11:16:11Z"
-    mac: ENC[AES256_GCM,data:3Y7Lw0z3sh9TgpX5ICZt3SXwIUbcjzroOjrit/zxFCuLeOVBPEEOswJFUIq5EwifGHd6NcH9IMnYgTuXGd37YStk7P1BY0rVrTw6egDfpF82iDXu4jVAWsYcis5PPLs+CYEuUwJ4q+tFDuy25APA6h/VUaMX5wRhbyjstdIOj68=,iv:w1Anmnj6OQXopL/Dv0PiXPf7pw5Rx1KDBYwgQWPLdvM=,tag:4NDiQp+7Ne/el3eBQVAA3w==,type:str]
+        - recipient: age12paymur3df5x5qdger8t80a7t2y87gklvlafq0jcmau5cm2hjcgq3tm5sd
+          enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBZNVZsUnViTDhqekw1UHFV
+            b2UvVzUzcnVQaWpQMEp5eVk0SnlZdHU0ZlFzCkVkUXY1aFRJWDlsc05BdU9KelVy
+            dHUrM0JnaVUzQm5tV2pEaTZxOUtjK2cKLS0tIHozOVdtSjZzK2VFdzBNZlJSQWZW
+            MGJMYXlidGVTS25VYkxDVnBzUDI1UWMKgVRopvV+eZvZ9t4814HMfgpKz/sXgMvg
+            kqmQg+BwQGrqfS2EqWAAhEAC4wic5+6f5i8aPG1vx/Y6UeR1rLuNcg==
+            -----END AGE ENCRYPTED FILE-----
+    lastmodified: "2025-11-22T16:35:55Z"
+    mac: ENC[AES256_GCM,data:NuwjT3n/EAFAnz55/2QvqHahqyh+IImHCBHf5DKHRjVyiBoraLpTFG8iOMwpQbI36hM7YCAGrnDZcuNME2FYCqx/xjJwDSk29y8iMQ8/eS3e2W5kc4nm/2hEh3yMDjrdOmc6Na6JXpAlWVAVBj9JxAzMSREbgpUV16bBvDHhnGc=,iv:xr0ufpeapnbSl62glh4M9gzdxwnHXudE4D+WqRj123s=,tag:LTXpGRlE3g2U5pEaIy1Flg==,type:str]
     encrypted_regex: (api_key|secret|password)
     version: 3.11.0
