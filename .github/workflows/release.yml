@@ -31,6 +31,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      image_name: ${{ steps.docker_build.outputs.image_name }}
 
     steps:
       - name: Checkout code
@@ -53,12 +55,17 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker image
+        id: docker_build
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/caesura:${{ needs.release.outputs.new_tag }} .
+          IMAGE_NAME=${{ github.repository_owner }}/caesura:${{ needs.release.outputs.new_tag }}
+          GHCR_LOCATION=ghcr.io/$IMAGE_NAME
+          docker build -t $GHCR_LOCATION
+          echo "image_name=$IMAGE_NAME" >> $GITHUB_OUTPUT
+          echo "ghcr_location=$GHCR_LOCATION" >> $GITHUB_OUTPUT
 
       - name: Push Docker image
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/caesura:${{ needs.release.outputs.new_tag }}
+          docker push ${{ steps.docker_build.outputs.ghcr_location }}
 
   deploy-test:
     permissions:
@@ -72,6 +79,6 @@ jobs:
       region: europe-north1
       workload_identity_provider: projects/602223566336/locations/global/workloadIdentityPools/github-pool/providers/github-provider
       service_account: caesura-test-sp@caesura-466820.iam.gserviceaccount.com
-      image: ghcr.io/${{ github.repository_owner }}/caesura:latest
+      image: europe-north1-docker.pkg.dev/caesura-466820/ghcr-cache/${{ needs.build-and-push.outputs.image_name }}
       env_vars: CAESURA_PROFILE=test
       port: 8080
