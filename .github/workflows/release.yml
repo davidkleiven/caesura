@@ -23,7 +23,6 @@ jobs:
        run: |
          echo "release_created: ${{ needs.release.outputs.release_created }}"
          echo "new_tag: ${{ needs.release.outputs.new_tag }}"
-         echo "release_notes: ${{ needs.release.outputs.release_notes }}"
 
   build-and-push:
     needs: release
