@@ -11,6 +11,3 @@ COPY caesura /caesura
 COPY LICENSE /LICENSE
 
 ENTRYPOINT ["/caesura"]
-COPY caesura /caesura
-COPY LICENSE /LICENSE
-ENTRYPOINT ["/caesura"]
