@@ -1,4 +1,4 @@
-store_type: in-memory
+store_type: google-cloud
 timeout: 10s
 port: 8080
 max_request_size_mb: 100
@@ -6,12 +6,12 @@ google_auth_client_id: 602223566336-77ugev7r0br5k1j8rc8i407kb0et34al.apps.google
 google_auth_client_secret_id: ENC[AES256_GCM,data:fzTzsZd8Z7uc7s1HN11tOGLkxlTIF63tNX5jcM0C5rMEdcg=,iv:eMK0bMMeo2EZmz0m/5Dgw6YX7vxu1TaQxjZj0muwbB4=,tag:ufe7NXjzFbzI9MPNCz11bA==,type:str]
 google_auth_rederict_url: http://localhost:8080/auth/callback
 cookie_secret_sign_key: ENC[AES256_GCM,data:roKXu5GGtF3jmh2BFsSZCNckNdGsSffbK95Ia5KcpA827P2lKfZ/M4Qj291ebI/hP8If8iFZoPK5vwE=,iv:WAqxsMFxgUp0kkzldntO+No8z8uKw5Yuep3aqNzxSa0=,tag:dAV44eBBFEXsrYqCXrQTkQ==,type:str]
-base_url: http://localhost:8080
+base_url: https://test.caesura.no
 session_max_age: 3600
 email_sender: noreply@caesura.no
 stripe_secret_key: ENC[AES256_GCM,data:zi30ekfRNlo2yEs7upF96WD+a0tGWMHGA8utfHrPCF22SJXfAE0PUhCOn72QSsmDMg2HjymEQ0xES5WARdLkWtkcoMHXATqcPZ8QdMEeGAExehvQ/1QrZh21jyNvxatIxFreautXSLQMl8Q=,iv:HlgvJzK9WLreWBurlbHB+g4BdhcmfJyZPU1A+mLsR1M=,tag:2oEnt6jN2J4WZMGcLz5zyA==,type:str]
 stripe_webhook_sign_secret: ENC[AES256_GCM,data:Gg0HH2wfiWDR6iMpBZWPv8vNbonvE+eX2RxIv9QTnsG1pupbkIOxP/iVRt4ZKNj7LOhBl5Re6+t/QA==,iv:EFGYh4g/VuMPfGFx4LNYyxLC2ufeSAgKZ9AiBLQiJG4=,tag:I9sKzwP3ySy54/L1D4ZhTA==,type:str]
-require_subscription: false
+require_subscription: true
 brevo_api_key: ENC[AES256_GCM,data:wmpT6dTlnHYMBBE/AJE2YxTIQeAvZUjo7jCo+QzwEOVK/MjnUoTN+l6cQJ7aiTkttH0N/yr9bxHcvkVj0AkVBgRbAZrP0MWqxAPFjyYhJQlPY+Iva+pvN0jX,iv:wME/fP2dwsqWt5AElAyNmqcOompmLfhjZ/nVGChzLCc=,tag:f/y8DmUi46h4AIlqWvuG0Q==,type:str]
 email_delivery_service: brevo
 google_config:
