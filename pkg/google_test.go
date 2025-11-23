@@ -501,6 +501,13 @@ func TestGoogleRegisterUser(t *testing.T) {
 		testutils.AssertContains(t, err.Error(), "LocalDocument")
 		testutils.AssertEqual(t, receivedUser.Id, "")
 	})
+
+	t.Run("empty user id", func(t *testing.T) {
+		_, err := store.GetUserInfo(ctx, "")
+		if !errors.Is(err, ErrUserNotFound) {
+			t.Fatalf("Wanted 'ErrUserNotFound' got %s", err)
+		}
+	})
 }
 
 func TestGoogleGroupRegistration(t *testing.T) {

@@ -316,6 +316,10 @@ func (g *GoogleStore) RegisterUser(ctx context.Context, userInfo *UserInfo) erro
 }
 
 func (g *GoogleStore) GetUserInfo(ctx context.Context, userId string) (*UserInfo, error) {
+	if userId == "" {
+		return &UserInfo{}, fmt.Errorf("Empty userId provided: %w", ErrUserNotFound)
+	}
+
 	doc, err := g.FsClient.GetDoc(ctx, userCollection, userInfoDoc, userId)
 	if err != nil && status.Code(err) == codes.NotFound {
 		return &UserInfo{}, errors.Join(ErrUserNotFound, err)
