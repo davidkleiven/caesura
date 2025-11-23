@@ -15,6 +15,8 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const maxUtf8 = "\uf8ff"
@@ -97,8 +99,9 @@ func (l *LocalFirestoreClient) GetDoc(ctx context.Context, dataset, orgId, itemI
 	loc := path.Join(dataset, orgId, itemId)
 	item, ok := l.data[loc]
 	if !ok {
-		return nil, fmt.Errorf("Could not find document %s", loc)
+		return nil, status.Errorf(codes.NotFound, "%s/%s not found", dataset, loc)
 	}
+
 	return &LocalDocument{data: item}, nil
 }
 

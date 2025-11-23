@@ -489,7 +489,7 @@ func TestGoogleRegisterUser(t *testing.T) {
 		if err == nil {
 			t.Fatal("Wanted error")
 		}
-		testutils.AssertContains(t, err.Error(), "not find")
+		testutils.AssertContains(t, err.Error(), "not found", "rpc")
 		testutils.AssertEqual(t, receivedUser.Id, "")
 	})
 
