@@ -531,3 +531,39 @@ func TestResetPassword(t *testing.T) {
 		testutils.AssertEqual(t, receivedUser.Password, "new-password")
 	})
 }
+
+func TestErrorOnEmptyStripeId(t *testing.T) {
+	store := NewMultiOrgInMemoryStore()
+	err := store.StoreSubscription(context.Background(), "", &Subscription{})
+	if err == nil {
+		t.Fatal("Wanted error")
+	}
+}
+
+func TestMatchOrganizationByStripeId(t *testing.T) {
+	orgs := []Organization{
+		{
+			Id:       "org1",
+			StripeId: "stripeId1",
+		},
+		{
+			Id:       "org2",
+			StripeId: "stripeId2",
+		},
+	}
+	store := NewMultiOrgInMemoryStore()
+	store.Organizations = orgs
+
+	err := store.StoreSubscription(context.Background(), "stripeId2", &Subscription{Id: "sub1"})
+	testutils.AssertNil(t, err)
+	_, ok := store.Subscriptions["org2"]
+	testutils.AssertEqual(t, ok, true)
+}
+
+func TestOrgNotFoundOnNoMatch(t *testing.T) {
+	store := NewMultiOrgInMemoryStore()
+	err := store.StoreSubscription(context.Background(), "stripedId", &Subscription{})
+	if !errors.Is(err, ErrOrganizationNotFound) {
+		t.Fatalf("Wanted 'ErrOrganizationNotFound' got %s", err)
+	}
+}

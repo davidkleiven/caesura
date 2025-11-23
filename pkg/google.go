@@ -262,7 +262,16 @@ func (g *GoogleStore) Item(ctx context.Context, path string) ([]byte, error) {
 	return io.ReadAll(content)
 }
 
-func (g *GoogleStore) StoreSubscription(ctx context.Context, orgId string, subscription *Subscription) error {
+func (g *GoogleStore) StoreSubscription(ctx context.Context, stripeId string, subscription *Subscription) error {
+	collector := NewValidCollector[Organization]()
+	for item := range g.FsClient.GetDocByPrefix(ctx, organizationCollection, organizationInfo, "stripeId", stripeId) {
+		collector.Push(item)
+	}
+
+	if len(collector.Items) == 0 {
+		return fmt.Errorf("Could not find any organization for stripe id %s: %w", stripeId, ErrOrganizationNotFound)
+	}
+	orgId := collector.Items[0].Id
 	return g.FsClient.StoreDocument(ctx, organizationCollection, subscriptionCollection, orgId, subscription)
 }
 

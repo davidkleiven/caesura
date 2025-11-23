@@ -114,21 +114,9 @@ func stripeWebhookHandler(store pkg.SubscriptionStorer, config *pkg.Config) http
 		}
 
 		switch event.Type {
-		case "checkout.session.completed":
-			var (
-				session      stripe.CheckoutSession
-				metadata     StripeMetadata
-				metadataJson []byte
-			)
-			err := pkg.ReturnOnFirstError(
-				func() error { return json.Unmarshal(event.Data.Raw, &session) },
-				func() error {
-					var marshalErr error
-					metadataJson, marshalErr = json.Marshal(session.Metadata)
-					return marshalErr
-				},
-				func() error { return json.Unmarshal(metadataJson, &metadata) },
-			)
+		case "invoice.payment_succeeded":
+			var invoice stripe.Invoice
+			err := json.Unmarshal(event.Data.Raw, &invoice)
 
 			if err != nil {
 				slog.ErrorContext(r.Context(), "Could not interpret request", "error", err)
@@ -136,21 +124,30 @@ func stripeWebhookHandler(store pkg.SubscriptionStorer, config *pkg.Config) http
 				return
 			}
 
-			slog.InfoContext(r.Context(), "Checkout session completed", "sessionId", session.ID)
+			slog.InfoContext(r.Context(), "Payment succeeded", "sessionId", invoice.ID)
 			ctx, cancel := context.WithTimeout(r.Context(), config.Timeout)
 			defer cancel()
 
+			priceId := priceIdFromInvoice(&invoice)
+
 			subscription := pkg.Subscription{
-				Id:        session.ID,
-				PriceId:   string(metadata.PriceId),
+				Id:        invoice.ID,
+				PriceId:   string(priceId),
 				Created:   time.Now(),
-				Expires:   time.Unix(session.ExpiresAt, 0),
-				MaxScores: MaxNumScores[metadata.PriceId],
+				Expires:   time.Unix(invoice.PeriodEnd, 0),
+				MaxScores: getMaxNumScores(priceId),
 			}
 
-			err = store.StoreSubscription(ctx, metadata.OrgId, &subscription)
+			customer := invoice.Customer
+			if customer == nil {
+				slog.ErrorContext(r.Context(), "Received incoive with no customer", "invoice", invoice)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			err = store.StoreSubscription(ctx, customer.ID, &subscription)
 			if err != nil {
-				slog.ErrorContext(r.Context(), "Failed to store subscription", "error", err, "sesisonId", session.ID)
+				slog.ErrorContext(r.Context(), "Failed to store subscription", "error", err, "sesisonId", invoice.ID)
 				w.WriteHeader(http.StatusServiceUnavailable)
 				return
 			}
@@ -218,4 +215,41 @@ func Subscription(store pkg.SubscriptionValidator, timeout time.Duration) http.H
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "%s %s", web.SubscriptionExpires(lang), subscription.Expires.Format(time.RFC3339))
 	}
+}
+
+func priceIdFromInvoice(invoice *stripe.Invoice) StripePriceId {
+	lines := invoice.Lines
+	if lines == nil {
+		slog.Error("Received invoice with no lines", "invoice", invoice)
+		return AnnualPriceId
+	}
+	items := lines.Data
+	if len(items) == 0 {
+		slog.Error("Received invoice with no content", "invoice", invoice)
+
+		// We are nice, so we offer the customers experiencing the error an annual subscription
+		return AnnualPriceId
+	}
+	item := items[0]
+	pricing := item.Pricing
+	if pricing == nil {
+		slog.Error("Received invoice with no pricing information", "invoice", invoice)
+		return AnnualPriceId
+	}
+
+	details := pricing.PriceDetails
+	if details == nil {
+		slog.Error("Received invoice with no PriceDetails information", "invoice", invoice)
+		return AnnualPriceId
+	}
+	return StripePriceId(details.Price)
+}
+
+func getMaxNumScores(priceId StripePriceId) int {
+	value, ok := MaxNumScores[priceId]
+	if !ok {
+		slog.Error("Invalid price id", "priceId", value)
+		return MaxNumScores[AnnualPriceId]
+	}
+	return value
 }
