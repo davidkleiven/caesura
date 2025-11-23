@@ -80,5 +80,6 @@ jobs:
       workload_identity_provider: projects/602223566336/locations/global/workloadIdentityPools/github-pool/providers/github-provider
       service_account: caesura-test-sp@caesura-466820.iam.gserviceaccount.com
       image: europe-north1-docker.pkg.dev/caesura-466820/ghcr-cache/${{ needs.build-and-push.outputs.image_name }}
-      env_vars: CAESURA_PROFILE=test,SOPS_AGE_KEY=${{ secrets.cc_secret }}
+      env_vars: CAESURA_PROFILE=test,SOPS_AGE_KEY_FILE=/etc/keys/sops-key
+      secret_mounts: "/etc/keys/sops-key=projects/602223566336/secrets/sops-key:latest"
       port: 8080
