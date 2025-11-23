@@ -557,6 +557,19 @@ func TestGoogleRegisterRole(t *testing.T) {
 	testutils.AssertEqual(t, receivedUser.Roles["org1"], RoleAdmin)
 }
 
+func TestGoogleRegisterRoleWithNewOrganization(t *testing.T) {
+	store := GoogleStore{FsClient: NewLocalFirestoreClient()}
+	user := UserInfo{Id: "user1", Roles: make(map[string]RoleKind)}
+	ctx := context.Background()
+	err := store.RegisterUser(ctx, &user)
+	testutils.AssertNil(t, err)
+	err = store.RegisterRole(ctx, "user1", "org1", RoleAdmin)
+
+	receivedUser, err := store.GetUserInfo(ctx, "user1")
+	testutils.AssertNil(t, err)
+	testutils.AssertEqual(t, receivedUser.Roles["org1"], RoleAdmin)
+}
+
 func TestGoogleDeleteRole(t *testing.T) {
 	store := GoogleStore{FsClient: NewLocalFirestoreClient()}
 	user := UserInfo{

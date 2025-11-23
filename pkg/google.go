@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"iter"
+	"log/slog"
 	"os"
 	"path"
 	"path/filepath"
@@ -364,13 +365,25 @@ func (g *GoogleStore) RemoveGroup(ctx context.Context, userId, orgId, group stri
 }
 
 func (g *GoogleStore) RegisterRole(ctx context.Context, userId string, organizationId string, role RoleKind) error {
-	return g.FsClient.Update(
+	docId := linkId(userId, organizationId)
+	err := g.FsClient.Update(
 		ctx,
 		userCollection,
 		userOrgLinkDoc,
-		linkId(userId, organizationId),
+		docId,
 		[]firestore.Update{{Path: "role", Value: role}},
 	)
+
+	if err != nil && status.Code(err) == codes.NotFound {
+		slog.InfoContext(ctx, "Tried to update role before a link to organization was creaated. Establishing link...")
+		userOrgLink := UserOrganizationLink{
+			UserId: userId,
+			OrgId:  organizationId,
+			Role:   role,
+		}
+		err = g.FsClient.StoreDocument(ctx, userCollection, userOrgLinkDoc, docId, userOrgLink)
+	}
+	return err
 }
 
 func (g *GoogleStore) DeleteRole(ctx context.Context, userId, orgId string) error {
