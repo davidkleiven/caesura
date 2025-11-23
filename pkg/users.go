@@ -146,6 +146,7 @@ type Organization struct {
 	Name      string `json:"name" firestore:"name"`
 	Deleted   bool   `json:"deleted" firestore:"deleted"`
 	NumScores int    `json:"numScores" firestore:"numScores"`
+	StripeId  string `json:"stripeId" firestore:"stripeId"`
 }
 
 type RoleKind int

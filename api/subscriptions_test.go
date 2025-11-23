@@ -6,14 +6,16 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"html/template"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -101,36 +103,25 @@ func TestWebhookSubscriptionLargeRequest(t *testing.T) {
 	testutils.AssertEqual(t, rec.Code, http.StatusServiceUnavailable)
 }
 
-type PayloadParams struct {
-	ApiVersion      string
-	EventType       string
-	OrganizationKey string
-}
-
-func stripePayload(params *PayloadParams, w io.Writer) error {
-	payloadTempl := `{
-		"id": "evt_test_webhook",
-		"object": "event",
-		"type": "{{ .EventType }}",
-		"api_version": "{{ .ApiVersion }}",
-		"data": {
-			"object": {
-				"id": "cs_test_123",
-				"object": "checkout.session",
-				"metadata": {
-					"{{ .OrganizationKey }}": "my-band",
-					"priceId": "price-id"
-				}
-			}
-		}
-	}`
-
-	tmpl, err := template.New("payload").Parse(payloadTempl)
-	if err != nil {
-		return err
+func stripePayload(w io.Writer) error {
+	event := map[string]any{
+		"id":          "event-id",
+		"object":      "event",
+		"type":        testutils.CustomerUpdated,
+		"api_version": stripe.APIVersion,
+		"data": map[string]any{
+			"object": map[string]any{
+				"id":     "cus_123",
+				"object": "customer",
+			},
+		},
 	}
-
-	return tmpl.Execute(w, params)
+	content, err := json.Marshal(event)
+	if err != nil {
+		panic(err)
+	}
+	_, err = w.Write(content)
+	return err
 }
 
 func stripeSignedRequest(payload []byte) *http.Request {
@@ -145,30 +136,139 @@ func stripeSignedRequest(payload []byte) *http.Request {
 	return req
 }
 
+type MonitorRequestMiddleware struct {
+	numPaymentCalls int
+	responses       []RespBodyWithCode
+	mu              sync.Mutex
+}
+
+type RespBodyWithCode struct {
+	Body string
+	Code int
+}
+
+type RecordingResponseWriter struct {
+	Writer http.ResponseWriter
+	Body   bytes.Buffer
+	Code   int
+}
+
+func (r *RecordingResponseWriter) Write(b []byte) (int, error) {
+	n, err := r.Writer.Write(b)
+	r.Body.Write(b)
+	return n, err
+}
+
+func (r *RecordingResponseWriter) WriteHeader(statusCode int) {
+	r.Writer.WriteHeader(statusCode)
+	r.Code = statusCode
+}
+
+func (r *RecordingResponseWriter) Header() http.Header {
+	return r.Writer.Header()
+}
+
+func (m *MonitorRequestMiddleware) CreateHandler(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains("/payment", r.URL.String()) {
+			m.mu.Lock()
+			m.numPaymentCalls += 1
+			m.mu.Unlock()
+		}
+
+		recWriter := RecordingResponseWriter{Writer: w}
+		handler.ServeHTTP(&recWriter, r)
+
+		m.mu.Lock()
+		if m.responses == nil {
+			m.responses = []RespBodyWithCode{}
+		}
+		m.responses = append(m.responses, RespBodyWithCode{
+			Body: recWriter.Body.String(),
+			Code: recWriter.Code,
+		})
+		m.mu.Unlock()
+	})
+}
+
+func (m *MonitorRequestMiddleware) GetNumPaymentCalls() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.numPaymentCalls
+}
+
+type KeepUnknownSubsStore struct {
+	pkg.MultiOrgInMemoryStore
+}
+
+func (k *KeepUnknownSubsStore) StoreSubscription(ctx context.Context, stripeId string, subscription *pkg.Subscription) error {
+	k.Subscriptions[pkg.RandomInsecureID()] = *subscription
+	return nil
+}
+
 func TestStripeWebhookHandlerSuccess(t *testing.T) {
-	params := PayloadParams{
-		EventType:       "checkout.session.completed",
-		ApiVersion:      stripe.APIVersion,
-		OrganizationKey: "orgId",
+	_, ci := os.LookupEnv("CI")
+	hasStripe := testutils.HasStripe()
+	if !hasStripe && !ci {
+		t.Skip("Stripe CLI is not installed")
+	} else if !hasStripe {
+		t.Fatal("Stipe not installed. Test can not be skipped in CI pipeline")
 	}
-	var buf bytes.Buffer
-	err := stripePayload(&params, &buf)
+
+	config, err := pkg.LoadProfile("config-ci.yml")
 	testutils.AssertNil(t, err)
 
-	payload := buf.Bytes()
+	monitor := MonitorRequestMiddleware{}
 
-	req := stripeSignedRequest(payload)
-	rec := httptest.NewRecorder()
+	stripeListener := testutils.StripeListener{
+		ApiKey: config.StripeSecretKey,
+	}
 
-	store := pkg.NewMultiOrgInMemoryStore()
-	config := pkg.NewDefaultConfig()
-	config.StripeWebhookSignSecret = webhookSecret
+	signSecret, err := stripeListener.SignSecret()
+	testutils.AssertNil(t, err)
 
-	handler := stripeWebhookHandler(store, config)
-	handler(rec, req)
-	testutils.AssertEqual(t, rec.Code, http.StatusOK)
-	_, ok := store.Subscriptions["my-band"]
-	testutils.AssertEqual(t, ok, true)
+	port := ":42195"
+	t.Log("Starting stripe forwarder...")
+	cancel := stripeListener.MustLaunchStripe(fmt.Sprintf("localhost%s/payment", port))
+	defer cancel()
+
+	store := KeepUnknownSubsStore{*pkg.NewMultiOrgInMemoryStore()}
+	config.StripeWebhookSignSecret = signSecret
+
+	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
+	mux := Setup(&store, config, cookieStore)
+
+	server := &http.Server{Addr: port, Handler: monitor.CreateHandler(mux)}
+
+	testutils.AssertEqual(t, len(store.Subscriptions), 0)
+	defer func() {
+		ctx, cancelCtx := context.WithTimeout(context.Background(), time.Second)
+		defer cancelCtx()
+		server.Shutdown(ctx)
+	}()
+
+	t.Log("Starting Go server")
+	go func() {
+		server.ListenAndServe()
+	}()
+	t.Log("Triggering webhook")
+	err = stripeListener.TriggerEvent(testutils.InvoicePaymentSucceeded)
+	testutils.AssertNil(t, err)
+
+	for range 50 {
+		// invoice.payment_succeeded triggers 13 events
+		if monitor.GetNumPaymentCalls() == 13 {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	testutils.AssertEqual(t, monitor.GetNumPaymentCalls(), 13)
+
+	for _, item := range monitor.responses {
+		testutils.AssertEqual(t, item.Code, http.StatusOK)
+	}
+
+	testutils.AssertEqual(t, len(store.Subscriptions), 1)
 }
 
 // computeStripeSignature creates a valid v1 signature for Stripe's webhook verification
@@ -177,28 +277,6 @@ func computeStripeSignature(payload []byte, timestamp int64, secret string) stri
 	mac := hmac.New(sha256.New, []byte(secret))
 	mac.Write([]byte(signedPayload))
 	return hex.EncodeToString(mac.Sum(nil))
-}
-
-func TestStripeWebhookMissingSignature(t *testing.T) {
-	params := PayloadParams{
-		ApiVersion:      stripe.APIVersion,
-		EventType:       "checkout.session.completed",
-		OrganizationKey: "wrong-key",
-	}
-
-	var buf bytes.Buffer
-	err := stripePayload(&params, &buf)
-	testutils.AssertNil(t, err)
-
-	req := stripeSignedRequest(buf.Bytes())
-	rec := httptest.NewRecorder()
-	config := pkg.NewDefaultConfig()
-	config.StripeWebhookSignSecret = webhookSecret
-
-	store := pkg.NewMultiOrgInMemoryStore()
-	handler := stripeWebhookHandler(store, config)
-	handler(rec, req)
-	testutils.AssertEqual(t, rec.Code, http.StatusServiceUnavailable)
 }
 
 func TestBadRequestOnBadSignature(t *testing.T) {
@@ -213,14 +291,9 @@ func TestBadRequestOnBadSignature(t *testing.T) {
 
 func TestOkOnUnhandledEventtype(t *testing.T) {
 	store := pkg.NewMultiOrgInMemoryStore()
-	params := PayloadParams{
-		ApiVersion:      stripe.APIVersion,
-		EventType:       "unhandled.event",
-		OrganizationKey: "orgId",
-	}
-
 	var buf bytes.Buffer
-	stripePayload(&params, &buf)
+	stripePayload(&buf)
+
 	req := stripeSignedRequest(buf.Bytes())
 	rec := httptest.NewRecorder()
 
@@ -239,15 +312,8 @@ func (f *failingSubscriptionStore) StoreSubscription(ctx context.Context, orgId 
 
 func TestServiceUnavailableOnUnavailableStore(t *testing.T) {
 	store := failingSubscriptionStore{}
-	params := PayloadParams{
-		ApiVersion:      stripe.APIVersion,
-		EventType:       "checkout.session.completed",
-		OrganizationKey: "orgId",
-	}
-
-	var buf bytes.Buffer
-	stripePayload(&params, &buf)
-	req := stripeSignedRequest(buf.Bytes())
+	body := testutils.MustJsonify(testutils.NewInvoiceResponse())
+	req := stripeSignedRequest(body)
 	rec := httptest.NewRecorder()
 
 	config := pkg.NewDefaultConfig()
@@ -255,6 +321,20 @@ func TestServiceUnavailableOnUnavailableStore(t *testing.T) {
 	handler := stripeWebhookHandler(&store, config)
 	handler(rec, req)
 	testutils.AssertEqual(t, rec.Code, http.StatusServiceUnavailable)
+}
+
+func TestBadRequestOnMissingCustomerId(t *testing.T) {
+	store := pkg.NewMultiOrgInMemoryStore()
+
+	body := testutils.MustJsonify(testutils.NewInvoiceResponse(testutils.WithoutCustomer()))
+	req := stripeSignedRequest(body)
+	rec := httptest.NewRecorder()
+
+	config := pkg.NewDefaultConfig()
+	config.StripeWebhookSignSecret = webhookSecret
+	handler := stripeWebhookHandler(store, config)
+	handler(rec, req)
+	testutils.AssertEqual(t, rec.Code, http.StatusBadRequest)
 }
 
 type brokenSessionStore struct{}
@@ -363,4 +443,46 @@ func TestSubscriptions(t *testing.T) {
 		handler(recorder, req.WithContext(context.WithValue(req.Context(), sessionKey, sCookie)))
 		testutils.AssertEqual(t, recorder.Code, http.StatusInternalServerError)
 	})
+}
+
+func TestPriceIdFromInvoice(t *testing.T) {
+	invoice := stripe.Invoice{}
+	testutils.AssertEqual(t, priceIdFromInvoice(&invoice), AnnualPriceId)
+
+	invoice.Lines = &stripe.InvoiceLineItemList{}
+	testutils.AssertEqual(t, priceIdFromInvoice(&invoice), AnnualPriceId)
+
+	invoice.Lines.Data = []*stripe.InvoiceLineItem{{}}
+	testutils.AssertEqual(t, priceIdFromInvoice(&invoice), AnnualPriceId)
+
+	invoice.Lines.Data[0].Pricing = &stripe.InvoiceLineItemPricing{}
+	testutils.AssertEqual(t, priceIdFromInvoice(&invoice), AnnualPriceId)
+
+	invoice.Lines.Data[0].Pricing.PriceDetails = &stripe.InvoiceLineItemPricingPriceDetails{Price: string(MonthlyPriceId)}
+	testutils.AssertEqual(t, priceIdFromInvoice(&invoice), MonthlyPriceId)
+}
+
+func TestGetMaxNumScoresUnknownPriceId(t *testing.T) {
+	testutils.AssertEqual(t, getMaxNumScores("unknown-price-id"), 500)
+}
+
+func TestGetMaxNumScores(t *testing.T) {
+	testutils.AssertEqual(t, getMaxNumScores(FreePriceId), 10)
+}
+
+func TestGetCustomerIdFromStripe(t *testing.T) {
+	config, err := pkg.LoadProfile("config-ci.yml")
+	config.StripeIdProvider = "stripe"
+	testutils.AssertNil(t, err)
+	idProvider := config.GetStripeIdProvider()
+	params := stripe.CustomerCreateParams{
+		Email: stripe.String("peter@example.com"),
+		Name:  stripe.String("Peter"),
+	}
+
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	customerId, err := idProvider.GetId(timeout, &params)
+	testutils.AssertNil(t, err)
+	testutils.AssertContains(t, customerId, "cus_")
 }

@@ -392,11 +392,18 @@ func TestGoogleItem(t *testing.T) {
 
 func TestGoogleSubscriptions(t *testing.T) {
 	store := GoogleStore{FsClient: NewLocalFirestoreClient()}
+	org := Organization{
+		Id:       "org",
+		StripeId: "stripeId",
+	}
 	sub := Subscription{Id: "my-sub"}
 	ctx := context.Background()
 
+	err := store.RegisterOrganization(ctx, &org)
+	testutils.AssertNil(t, err)
+
 	t.Run("success", func(t *testing.T) {
-		err := store.StoreSubscription(ctx, "org", &sub)
+		err := store.StoreSubscription(ctx, "stripeId", &sub)
 		testutils.AssertNil(t, err)
 
 		res, err := store.GetSubscription(ctx, "org")
@@ -405,7 +412,7 @@ func TestGoogleSubscriptions(t *testing.T) {
 	})
 
 	t.Run("failure", func(t *testing.T) {
-		err := store.StoreSubscription(ctx, "org", &sub)
+		err := store.StoreSubscription(ctx, "stripeId", &sub)
 		testutils.AssertNil(t, err)
 
 		res, err := store.GetSubscription(ctx, "non-existent")

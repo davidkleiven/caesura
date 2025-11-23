@@ -359,9 +359,20 @@ func (m *MultiOrgInMemoryStore) GetSubscription(ctx context.Context, orgId strin
 	return &subs, nil
 }
 
-func (m *MultiOrgInMemoryStore) StoreSubscription(ctx context.Context, orgId string, subscription *Subscription) error {
-	if orgId == "" {
+func (m *MultiOrgInMemoryStore) StoreSubscription(ctx context.Context, stripeId string, subscription *Subscription) error {
+	if stripeId == "" {
 		return errors.New("organization id can not be an empty string")
+	}
+
+	var orgId string
+	for _, org := range m.Organizations {
+		if org.StripeId == stripeId {
+			orgId = org.Id
+			break
+		}
+	}
+	if orgId == "" {
+		return ErrOrganizationNotFound
 	}
 	m.Subscriptions[orgId] = *subscription
 	return nil

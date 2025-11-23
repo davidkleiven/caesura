@@ -72,6 +72,7 @@ type Config struct {
 	EmailSender              string                `yaml:"email_sender" env:"CAESURA_EMAIL_SENDER"`
 	StripeSecretKey          string                `yaml:"stripe_secret_key" env:"CAESURA_STRIPE_SECRET_KEY"`
 	StripeWebhookSignSecret  string                `yaml:"stripe_webhook_sign_secret" env:"CAESURA_STRIPE_WEBHOOK_SIGN_SECRET"`
+	StripeIdProvider         string                `yaml:"stripe_id_provider" env:"CAESURA_STRIPE_ID_PROVIDER"`
 	RequireSubscription      bool                  `yaml:"require_subscription" env:"CAUSURA_REQUIRE_SUBSCRIPTION"`
 	BrevoApiKey              string                `yaml:"brevo_api_key" env:"CAESURA_BREVO_API_KEY"`
 	EmailDeliveryService     string                `yaml:"email_delivery_service" env:"CAESURA_EMAIL_DELIVERY_SERVICE"`
@@ -112,6 +113,17 @@ func (c *Config) SessionOpts() *sessions.Options {
 	return &sessions.Options{
 		Path:   "/",
 		MaxAge: c.SessionMaxAge,
+	}
+}
+
+func (c *Config) GetStripeIdProvider() StripeCustomerIdProvider {
+	switch c.StripeIdProvider {
+	case "stripe":
+		slog.Info("Using 'stripe' as provider of customer ids")
+		return &PaymentSystemCusteromIdProvider{ApiKey: c.StripeSecretKey}
+	default:
+		slog.Info("Using local stripe provider. Should not be used in production!")
+		return &LocalStripeCustomerIdProvider{}
 	}
 }
 

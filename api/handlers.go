@@ -22,6 +22,7 @@ import (
 	"github.com/davidkleiven/caesura/web"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/sessions"
+	"github.com/stripe/stripe-go/v82"
 	"golang.org/x/oauth2"
 )
 
@@ -578,7 +579,7 @@ func InviteLink(baseURL, signSecret string) http.HandlerFunc {
 	}
 }
 
-func OrganizationRegisterHandler(store pkg.IAMStore, timeout time.Duration) http.HandlerFunc {
+func OrganizationRegisterHandler(store pkg.IAMStore, stripeIdProvider pkg.StripeCustomerIdProvider, timeout time.Duration) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		const maxSize = 4096
 		r.Body = http.MaxBytesReader(w, r.Body, maxSize)
@@ -594,13 +595,27 @@ func OrganizationRegisterHandler(store pkg.IAMStore, timeout time.Duration) http
 			return
 		}
 
-		org := pkg.Organization{
-			Id:   pkg.RandomInsecureID(),
-			Name: name,
+		orgId := pkg.RandomInsecureID()
+		customerParams := stripe.CustomerCreateParams{
+			Email: stripe.String(fmt.Sprintf("%s@example.com", orgId)),
+			Name:  stripe.String(orgId),
 		}
 
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
 		defer cancel()
+
+		stripeId, err := stripeIdProvider.GetId(ctx, &customerParams)
+		if err != nil {
+			slog.ErrorContext(r.Context(), "Could not create stripe id", "error", err)
+			http.Error(w, "Could not retrieve stripe id: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		org := pkg.Organization{
+			Id:       orgId,
+			Name:     name,
+			StripeId: stripeId,
+		}
 
 		session := MustGetSession(r)
 		userId := MustGetUserId(session)
@@ -1292,7 +1307,7 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("/auth/callback", requireAuthSession(HandleGoogleCallback(store, oauthCfg, config.Timeout, config.CookieSecretSignKey, config.Transport)))
 
 	mux.HandleFunc("GET /organizations/form", OrganizationsHandler)
-	mux.Handle("POST /organizations", signedInRoute(OrganizationRegisterHandler(store, config.Timeout)))
+	mux.Handle("POST /organizations", signedInRoute(OrganizationRegisterHandler(store, config.GetStripeIdProvider(), config.Timeout)))
 	mux.Handle("DELETE /organizations", adminRoute(DeleteOrganizationHandler(store, config.Timeout)))
 	mux.Handle("GET /organizations/{id}/invite", adminRoute(InviteLink(config.BaseURL, config.CookieSecretSignKey)))
 	mux.Handle("GET /organizations/options", userInfoRoute(OptionsFromSessionHandler(store, config.Timeout)))

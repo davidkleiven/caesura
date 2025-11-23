@@ -1714,7 +1714,7 @@ func TestOrganizationRegisterFormErrors(t *testing.T) {
 
 			recorder := httptest.NewRecorder()
 			store := pkg.NewMultiOrgInMemoryStore()
-			handler := OrganizationRegisterHandler(store, time.Second)
+			handler := OrganizationRegisterHandler(store, &pkg.LocalStripeCustomerIdProvider{}, time.Second)
 			handler(recorder, req)
 			testutils.AssertEqual(t, recorder.Code, test.code)
 		})
@@ -1759,7 +1759,7 @@ func TestOrganizationHandlerSuccess(t *testing.T) {
 			ctx := context.WithValue(req.Context(), sessionKey, session)
 
 			recorder := httptest.NewRecorder()
-			handler := OrganizationRegisterHandler(test.store, time.Second)
+			handler := OrganizationRegisterHandler(test.store, &pkg.LocalStripeCustomerIdProvider{}, time.Second)
 			handler(recorder, req.WithContext(ctx))
 			testutils.AssertEqual(t, recorder.Code, test.code)
 		})
