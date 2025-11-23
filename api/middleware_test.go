@@ -47,10 +47,7 @@ func TestLogHandler(t *testing.T) {
 
 func TestHandleGoogleLoginInternalErrorWrongSession(t *testing.T) {
 	cookie := sessions.NewCookieStore([]byte("some-secret-key"))
-	called := false
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		called = true
-	})
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {})
 
 	recorder := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/login", nil)
@@ -63,13 +60,17 @@ func TestHandleGoogleLoginInternalErrorWrongSession(t *testing.T) {
 	middleware := RequireSession(cookie, AuthSession, &opt)
 	middleware(handler).ServeHTTP(recorder, request)
 
-	if recorder.Code != http.StatusInternalServerError {
-		t.Fatalf("Wanted '%d' got '%d'", http.StatusInternalServerError, recorder.Code)
+	setCookie := recorder.Header().Get("Set-Cookie")
+	testutils.AssertContains(t, setCookie, AuthSession, "=")
+
+	if strings.Contains(setCookie, "Corrputed") {
+		t.Fatalf("%s contains 'Corrputed'", setCookie)
 	}
 
-	if called {
-		t.Fatal("Handler should not be called")
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("Wanted '%d' got '%d'", http.StatusOK, recorder.Code)
 	}
+
 }
 
 func TestRequireminimumRoleNoBytes(t *testing.T) {
@@ -426,4 +427,34 @@ func TestRequireWriteSubscription(t *testing.T) {
 		h.ServeHTTP(rec, req.WithContext(ctx))
 		testutils.AssertEqual(t, rec.Code, http.StatusOK)
 	})
+}
+
+func TestNewSessionOnChangedSignKey(t *testing.T) {
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		session := MustGetSession(r)
+		if err := session.Save(r, w); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	cookieStore := sessions.NewCookieStore([]byte("sign-key-1"))
+	wrappedHandler := RequireSession(cookieStore, AuthSession, &sessions.Options{})(http.HandlerFunc(handler))
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/endpoint", nil)
+	wrappedHandler.ServeHTTP(rec, req)
+	testutils.AssertEqual(t, rec.Code, http.StatusOK)
+	cookies := rec.Result().Cookies()
+	testutils.AssertEqual(t, len(cookies), 1)
+
+	// Server has rotated the sign key
+	cookieStore = sessions.NewCookieStore([]byte("sign-key-2"))
+	wrappedHandler = RequireSession(cookieStore, AuthSession, &sessions.Options{})(http.HandlerFunc(handler))
+
+	req = httptest.NewRequest("GET", "/endpoint", nil)
+	req.AddCookie(cookies[0])
+
+	rec = httptest.NewRecorder()
+	wrappedHandler.ServeHTTP(rec, req)
+	testutils.AssertEqual(t, rec.Code, http.StatusOK)
 }
