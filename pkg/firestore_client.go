@@ -172,7 +172,7 @@ func (l *LocalFirestoreClient) Update(ctx context.Context, dataset, orgId, itemI
 		case "role":
 			item, ok := l.data[location].(UserOrganizationLink)
 			if !ok {
-				return errors.New("could not convert to 'UserOrganizationLink'")
+				return status.Errorf(codes.NotFound, "Could not find %s", location)
 			}
 
 			role, ok := u.Value.(RoleKind)
