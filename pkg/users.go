@@ -249,7 +249,7 @@ func GetUserOrRegisterNewUser(store RoleStore, ctx context.Context, info *UserIn
 		// After registration "existingUser" will be the new suer
 		existingUser = info
 	} else if err != nil {
-		return info, err
+		return info, fmt.Errorf("GetUserInfo failed for user %s: %w", info.Id, err)
 	}
 	return existingUser, nil
 }

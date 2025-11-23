@@ -198,7 +198,9 @@ func InitializeUserSession(p SessionInitParams) SessionInitResult {
 		AssignViewRoleIfNoRole(inviteTokenOrg)
 
 	if roleUpdater.Error != nil {
-		return SessionInitResult{Error: roleUpdater.Error, ReturnCode: http.StatusInternalServerError}
+		return SessionInitResult{
+			Error:      fmt.Errorf("Role update pipeline failed %s: %w", p.User.Id, roleUpdater.Error),
+			ReturnCode: http.StatusInternalServerError}
 	}
 
 	userInfoWithRoles := roleUpdater.User
