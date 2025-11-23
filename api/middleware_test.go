@@ -96,7 +96,7 @@ func TestRequireminimumRoleNoBytes(t *testing.T) {
 			sessionModifier: func(s *sessions.Session) {
 				s.Values["role"] = []byte("not a valid json")
 			},
-			desc: "Wrong type",
+			desc: "Invalid role",
 			code: http.StatusBadRequest,
 		},
 		{
