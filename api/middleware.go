@@ -35,10 +35,18 @@ func RequireSession(cookieStore *sessions.CookieStore, name string, opts *sessio
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			session, err := cookieStore.Get(r, name)
-			if err != nil || session == nil {
-				http.Error(w, "Could not get session "+err.Error(), http.StatusInternalServerError)
-				slog.InfoContext(r.Context(), "Could not get session", "error", err)
+			if err != nil && session == nil {
+				slog.ErrorContext(r.Context(), "Could not get session", "error", err)
+				http.Error(w, "Failed to create fresh cookie: "+err.Error(), http.StatusInternalServerError)
 				return
+			} else if err != nil {
+				// Session is not nil
+				slog.InfoContext(r.Context(), "New session created", "error", err)
+				if err := session.Save(r, w); err != nil {
+					slog.ErrorContext(r.Context(), "Failed to save new session", "error", err)
+					http.Error(w, "Failed to save session", http.StatusInternalServerError)
+					return
+				}
 			}
 
 			session.Options = opts
