@@ -16,6 +16,8 @@ import (
 	"cloud.google.com/go/firestore"
 	"cloud.google.com/go/storage"
 	"golang.org/x/sync/errgroup"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -315,8 +317,10 @@ func (g *GoogleStore) RegisterUser(ctx context.Context, userInfo *UserInfo) erro
 
 func (g *GoogleStore) GetUserInfo(ctx context.Context, userId string) (*UserInfo, error) {
 	doc, err := g.FsClient.GetDoc(ctx, userCollection, userInfoDoc, userId)
-	if err != nil {
-		return &UserInfo{}, err
+	if err != nil && status.Code(err) == codes.NotFound {
+		return &UserInfo{}, errors.Join(ErrUserNotFound, err)
+	} else if err != nil {
+		return &UserInfo{}, fmt.Errorf("Could not get document %w", err)
 	}
 
 	var user User
