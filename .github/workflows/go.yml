@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       CAESURA_STRIPE_SECRET_KEY: ${{ secrets.CAESURA_STRIPE_SECRET_TEST_KEY }}
+      SOPS_AGE_KEY: ${{ secrets.SOPS_AGE_KEY }}
     services:
       mailpit:
         image: axllent/mailpit:v1.27.5
