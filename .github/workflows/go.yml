@@ -21,7 +21,7 @@ jobs:
           - 1025:1025    # SMTP
           - 8025:8025    # Web UI & API
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Set up Go
       uses: actions/setup-go@v6
