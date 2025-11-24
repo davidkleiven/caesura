@@ -1,0 +1,27 @@
+brevo_api_key: ENC[AES256_GCM,data:f0jpjCSPPo6kHRqLUAZOerpr6QNaXH2eYOF/nFbIt72qz1kPKrstWoJelFFNuMuxktCDqiDKZ7/sdCpZecZFAhAzYzLgeSsDDi6ahf2V69XGOU2Vwwpgcbpg,iv:NcCdYsqeqpQR7rjddRAh2flGRmr/0KMy6hxrMorTrX0=,tag:dOcxBIfxOMsrQdYtYMGYgw==,type:str]
+stripe_secret_key: ENC[AES256_GCM,data:R6epj4bigacgygDGlgXd3o1AfbeBqUfUVO9eNAYP5yqxFngmEvk9brF1gWL+6Yvzif2HD9VBLM6So0jiEfAjNfeJRfOVtGcD9CDA8IUGA9L7V6JdArmZpPg36j6LASSVHHz7yQ73xgP8PWc=,iv:W3kP5yjWNF/gvw0zi4abvtp4OY0NWUSm4xsOZmYFXV8=,tag:RlLzsVej1MhTBnaUP6fQWA==,type:str]
+stripe_webhook_sign_secret: ENC[AES256_GCM,data:4i8JNtkfRMExpq8Qoyqr48EZCHPBTJLPejoYWjd0sm9yTj77D6oWxF9f1dXYzQFMJI6MFwV87VcJYA==,iv:n+ah2pmeL7/Wp8Mtw9Q03mtx+5ww4anl/0DeZAoPYG8=,tag:wBVqB/ToHfggdrwlJefe6w==,type:str]
+sops:
+    age:
+        - recipient: age14ssykmwx4h2vgxz7avy0mme6mnqdgmlx9u7ez2tx5tt2c65v6cdqef4tk2
+          enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBDQWI1SEVQR3FjaUxEb2g2
+            WUQ1ZjJoZitDN1piTHFOSnZtaDIxZGovUEJzCjVId3hHdFJkN1BxcFdwcmpRTzk3
+            SmRDRnV3VWk1bjFiTWxVY1A1amV0REUKLS0tIEkyVnJmalliOGhtWHRBVlY2TWtw
+            VlQ5UEdMTHZqRG4ySXJsOUp6aWovZlEKHdMo/4J2hwItWTsQ1GxEx1m5QXaIIDrR
+            AX3HXJbcAXqePURmtvv/ypUCiwAOgE3pS81MqTSlVd5HHARGH2O82g==
+            -----END AGE ENCRYPTED FILE-----
+        - recipient: age1rekch73u43q89fq4ajvq4utud2dp3jvvc4eefer42us4kgjal9vs2juvx7
+          enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBhNlJEZ1VTZjlmR016MnRQ
+            R1FJYU5qeW5qVi9zYlp5N2IwTWVkTW1IZDBFCnJUc0JubDlDSEswUUdmaHVnY3dY
+            bUVJK25mU2M1QWdKaFRZQitqemxxMVUKLS0tIHFtQlIwOWtyNUtsVXZybXJFMU0v
+            SVlTblJ1YkhRWWNuSloybjJzK2t5ZVEKePXXo7iLURzNauKMmcLF3p1K11sAzNyc
+            rFRfgspo1TC4aEAk+TVlv304AgMbZmwiRchiCVUnvtrWCNW6nBNbeg==
+            -----END AGE ENCRYPTED FILE-----
+    lastmodified: "2025-11-24T22:22:33Z"
+    mac: ENC[AES256_GCM,data:1ZczwzS/RmryUnmX+vd0skawFClgPO2TAwhsJBAK/QNK8CLUY8aQjnfJsm/WyhOICuAw/0dVJqSFUXmnPBPFoG7RCXjQ4VWO5Adm5mevMedOBmNCDkcJsLoIk7DVAhQtQ7kCd+8VZQtS6VbhCi8HO1bTThjsXjfc3JQ3ZoCs8vw=,iv:PbBty61evnUzMYRYLX+B20oq1lf6aFsEJFzgpSABY7I=,tag:FHy5o1ah3byHzyKUVLSNLg==,type:str]
+    encrypted_regex: (api_key|secret|password)
+    version: 3.11.0

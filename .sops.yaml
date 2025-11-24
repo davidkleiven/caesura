@@ -5,6 +5,12 @@ creation_rules:
     encrypted_regex: ""
 
   - age:
+    - age14ssykmwx4h2vgxz7avy0mme6mnqdgmlx9u7ez2tx5tt2c65v6cdqef4tk2 # Github CI/CD
+    - age1rekch73u43q89fq4ajvq4utud2dp3jvvc4eefer42us4kgjal9vs2juvx7 # Gunstein Desktop
+    path_regex: ".*config-ci.yml$"
+    encrypted_regex: "(api_key|secret|password)"
+
+  - age:
       - age1rekch73u43q89fq4ajvq4utud2dp3jvvc4eefer42us4kgjal9vs2juvx7 # Gunstein Desktop
       - age1gvqc0qnsz7s4sfyffda6ctda4aah2drae0lvkug499hy6ckgxyvqsqcqh6 # Gunstein Laptop
       - age1s5m5e78an6dp9sxlyjqknzx2slazw604fdw2l6jzump5w6samv5qypc5hw # Cloud
