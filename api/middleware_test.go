@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
 	"github.com/davidkleiven/caesura/testutils"
@@ -164,6 +165,16 @@ func TestAccessMiddleware(t *testing.T) {
 		return RequireAdminWithoutSubscription(cookie, opts)
 	}
 
+	writeWithStore := func(config *pkg.Config, cookie *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
+		store := pkg.NewMultiOrgInMemoryStore()
+		return RequireWrite(store, config, cookie, opts)
+	}
+
+	adminWithStore := func(config *pkg.Config, cookie *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
+		store := pkg.NewMultiOrgInMemoryStore()
+		return RequireAdmin(store, config, cookie, opts)
+	}
+
 	for _, test := range []struct {
 		middleware func(config *pkg.Config, cookie *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler
 		role       pkg.RoleKind
@@ -189,37 +200,37 @@ func TestAccessMiddleware(t *testing.T) {
 			desc:       "Reader read, have admin",
 		},
 		{
-			middleware: RequireWrite,
+			middleware: writeWithStore,
 			role:       pkg.RoleViewer,
 			code:       http.StatusUnauthorized,
 			desc:       "Require write, have read",
 		},
 		{
-			middleware: RequireWrite,
+			middleware: writeWithStore,
 			role:       pkg.RoleEditor,
 			code:       http.StatusOK,
 			desc:       "Reader write, have write",
 		},
 		{
-			middleware: RequireWrite,
+			middleware: writeWithStore,
 			role:       pkg.RoleAdmin,
 			code:       http.StatusOK,
 			desc:       "Reader write, have admin",
 		},
 		{
-			middleware: RequireAdmin,
+			middleware: adminWithStore,
 			role:       pkg.RoleViewer,
 			code:       http.StatusUnauthorized,
 			desc:       "Require admin, have read",
 		},
 		{
-			middleware: RequireAdmin,
+			middleware: adminWithStore,
 			role:       pkg.RoleEditor,
 			code:       http.StatusUnauthorized,
 			desc:       "Reader admin, have write",
 		},
 		{
-			middleware: RequireAdmin,
+			middleware: adminWithStore,
 			role:       pkg.RoleAdmin,
 			code:       http.StatusOK,
 			desc:       "Reader admin, have admin",
@@ -293,10 +304,11 @@ func TestAccessMiddlewareBadRequestOnMissingSession(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 	config := pkg.NewDefaultConfig()
+	store := pkg.NewMultiOrgInMemoryStore()
 	for i, middleware := range []func(http.Handler) http.Handler{
 		RequireRead(cookie, &opt),
-		RequireWrite(config, cookie, &opt),
-		RequireAdmin(config, cookie, &opt),
+		RequireWrite(store, config, cookie, &opt),
+		RequireAdmin(store, config, cookie, &opt),
 	} {
 		t.Run(fmt.Sprintf("Test: #%d", i), func(t *testing.T) {
 			recorder := httptest.NewRecorder()
@@ -390,9 +402,16 @@ func TestValidateUserInfo(t *testing.T) {
 }
 
 func TestRequireWriteSubscription(t *testing.T) {
+	store := pkg.NewMultiOrgInMemoryStore()
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
+
+	store.Organizations = []pkg.Organization{{Id: "org1"}, {Id: "org2"}, {Id: "org3"}}
+	store.Subscriptions = map[string]pkg.Subscription{
+		"org1": {Id: "sub1", MaxScores: 10, Expires: time.Now().Add(20 * time.Minute)},
+		"org2": {Id: "sub2", MaxScores: 10, Expires: time.Now().Add(-20 * time.Minute)},
+	}
 
 	configNotRequire := pkg.NewDefaultConfig()
 	configRequire := pkg.NewDefaultConfig()
@@ -406,22 +425,58 @@ func TestRequireWriteSubscription(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), sessionKey, session)
 
+	clearSessionVals := func() {
+		for k := range session.Values {
+			delete(session.Values, k)
+		}
+	}
+
 	t.Run("config-not-require", func(t *testing.T) {
-		h := RequireWriteSubscription(configNotRequire)(handler)
+		defer clearSessionVals()
+		h := RequireWriteSubscription(store, configNotRequire)(handler)
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, req.WithContext(ctx))
 		testutils.AssertEqual(t, rec.Code, http.StatusOK)
 	})
 
 	t.Run("config-require-missing-value", func(t *testing.T) {
-		h := RequireWriteSubscription(configRequire)(handler)
+		defer clearSessionVals()
+		h := RequireWriteSubscription(store, configRequire)(handler)
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, req.WithContext(ctx))
 		testutils.AssertEqual(t, rec.Code, http.StatusForbidden)
 	})
 
+	t.Run("config-org-without-sub-should-equal-free-tier", func(t *testing.T) {
+		defer clearSessionVals()
+		h := RequireWriteSubscription(store, configRequire)(handler)
+		session.Values["orgId"] = "org3"
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req.WithContext(ctx))
+		testutils.AssertEqual(t, rec.Code, http.StatusOK)
+	})
+
+	t.Run("config-expired-subscription-forbidden", func(t *testing.T) {
+		defer clearSessionVals()
+		h := RequireWriteSubscription(store, configRequire)(handler)
+		session.Values["orgId"] = "org2"
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req.WithContext(ctx))
+		testutils.AssertEqual(t, rec.Code, http.StatusForbidden)
+	})
+
+	t.Run("config-org-with-subscription-ok", func(t *testing.T) {
+		defer clearSessionVals()
+		h := RequireWriteSubscription(store, configRequire)(handler)
+		session.Values["orgId"] = "org1"
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, req.WithContext(ctx))
+		testutils.AssertEqual(t, rec.Code, http.StatusOK)
+	})
+
 	t.Run("config-require-valid", func(t *testing.T) {
-		h := RequireWriteSubscription(configRequire)(handler)
+		defer clearSessionVals()
+		h := RequireWriteSubscription(store, configRequire)(handler)
 		session.Values[SubscriptionWriteAllowed] = true
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, req.WithContext(ctx))
@@ -457,4 +512,13 @@ func TestNewSessionOnChangedSignKey(t *testing.T) {
 	rec = httptest.NewRecorder()
 	wrappedHandler.ServeHTTP(rec, req)
 	testutils.AssertEqual(t, rec.Code, http.StatusOK)
+}
+
+func TestNoErrorOnFailedSubscriptionSessionSave(t *testing.T) {
+	store := brokenSessionStore{}
+	req := httptest.NewRequest("GET", "/subscription", nil)
+	session, err := store.Get(req, AuthSession)
+	testutils.AssertNil(t, err)
+	rec := httptest.NewRecorder()
+	trySaveSession(session, req, rec)
 }

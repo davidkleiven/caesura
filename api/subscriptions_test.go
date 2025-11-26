@@ -352,9 +352,7 @@ func (b *brokenSessionStore) New(r *http.Request, name string) (*sessions.Sessio
 }
 
 func TestSubscriptions(t *testing.T) {
-	sessionCookie := sessions.Session{
-		Values: make(map[any]any),
-	}
+	cookieStore := sessions.NewCookieStore([]byte("top-secret"))
 
 	store := pkg.NewMultiOrgInMemoryStore()
 	store.Subscriptions = map[string]pkg.Subscription{
@@ -378,45 +376,53 @@ func TestSubscriptions(t *testing.T) {
 		{Id: "org3", NumScores: 5},
 	}
 
-	ctx := context.WithValue(context.Background(), sessionKey, &sessionCookie)
+	handler := SubscriptionHandler{store: store, timeout: time.Second}
 
-	handler := Subscription(store, 1*time.Second)
+	// Helper function to create a cookie associated with the request
+	cookieAndCtx := func(req *http.Request) (*sessions.Session, context.Context) {
+		sCookie, err := cookieStore.Get(req, AuthSession)
+		if err != nil {
+			panic(err)
+		}
+		return sCookie, context.WithValue(req.Context(), sessionKey, sCookie)
+	}
 
 	t.Run("non existing org", func(t *testing.T) {
-		sessionCookie.Values["orgId"] = "unknown-org"
 		recorder := httptest.NewRecorder()
 		req := httptest.NewRequest("GET", "/subscription", nil)
-		handler(recorder, req.WithContext(ctx))
-		testutils.AssertEqual(t, recorder.Code, http.StatusInternalServerError)
+		sessionCookie, ctx := cookieAndCtx(req)
+		sessionCookie.Values["orgId"] = "unknown-org"
+		handler.ServeHTTP(recorder, req.WithContext(ctx))
+		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
 	})
 
 	t.Run("expired-supscription", func(t *testing.T) {
-		sessionCookie.Values["orgId"] = "org1"
 		recorder := httptest.NewRecorder()
 		req := httptest.NewRequest("GET", "/subscription", nil)
-		handler(recorder, req.WithContext(ctx))
+		sessionCookie, ctx := cookieAndCtx(req)
+		sessionCookie.Values["orgId"] = "org1"
+		handler.ServeHTTP(recorder, req.WithContext(ctx))
 		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
 		testutils.AssertContains(t, recorder.Body.String(), "expired")
 	})
 
 	t.Run("too-many-scores", func(t *testing.T) {
-		sessionCookie.Values["orgId"] = "org2"
 		recorder := httptest.NewRecorder()
 		req := httptest.NewRequest("GET", "/subscription", nil)
-		handler(recorder, req.WithContext(ctx))
+		sessionCookie, ctx := cookieAndCtx(req)
+		sessionCookie.Values["orgId"] = "org2"
+		handler.ServeHTTP(recorder, req.WithContext(ctx))
 		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
 		testutils.AssertContains(t, recorder.Body.String(), "Subscription", "permit")
 	})
 
 	t.Run("valid-subscription", func(t *testing.T) {
-		cookieStore := sessions.NewCookieStore([]byte("top-secret"))
 		recorder := httptest.NewRecorder()
 		req := httptest.NewRequest("GET", "/subscription", nil)
-		sCookie, err := cookieStore.Get(req, AuthSession)
+		sCookie, ctx := cookieAndCtx(req)
 		sCookie.Values["orgId"] = "org3"
 
-		testutils.AssertNil(t, err)
-		handler(recorder, req.WithContext(context.WithValue(req.Context(), sessionKey, sCookie)))
+		handler.ServeHTTP(recorder, req.WithContext(ctx))
 		testutils.AssertEqual(t, recorder.Code, http.StatusOK)
 
 		resp := recorder.Result()
@@ -440,7 +446,7 @@ func TestSubscriptions(t *testing.T) {
 		sCookie, err := cookieStore.Get(req, AuthSession)
 		sCookie.Values["orgId"] = "org3"
 		testutils.AssertNil(t, err)
-		handler(recorder, req.WithContext(context.WithValue(req.Context(), sessionKey, sCookie)))
+		handler.ServeHTTP(recorder, req.WithContext(context.WithValue(req.Context(), sessionKey, sCookie)))
 		testutils.AssertEqual(t, recorder.Code, http.StatusInternalServerError)
 	})
 }
