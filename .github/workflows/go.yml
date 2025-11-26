@@ -46,6 +46,14 @@ jobs:
     - name: Install playwright
       run: go run github.com/playwright-community/playwright-go/cmd/playwright install chromium-headless-shell
 
+    - name: Install Stripe CLI from GitHub Releases
+      run: |
+        VERSION=$(curl -s https://api.github.com/repos/stripe/stripe-cli/releases/latest | grep tag_name | cut -d '"' -f4)
+        curl -L -o stripe.tar.gz https://github.com/stripe/stripe-cli/releases/download/${VERSION}/stripe_${VERSION#v}_linux_x86_64.tar.gz
+        tar -xzf stripe.tar.gz
+        sudo mv stripe /usr/local/bin/
+        stripe version
+
     - name: Test
       run: go test -failfast -tags=integration ./... -coverprofile=./cover.out -covermode=atomic -coverpkg=./...
 
