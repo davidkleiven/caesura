@@ -22,7 +22,7 @@ import (
 	"github.com/davidkleiven/caesura/pkg"
 	"github.com/davidkleiven/caesura/testutils"
 	"github.com/gorilla/sessions"
-	"github.com/stripe/stripe-go/v82"
+	"github.com/stripe/stripe-go/v84"
 )
 
 const webhookSecret = "whsec_test_123456"

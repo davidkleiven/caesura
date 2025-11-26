@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/stripe/stripe-go/v82"
+	"github.com/stripe/stripe-go/v84"
 )
 
 type Subscription struct {
@@ -35,7 +35,9 @@ func (l *LocalStripeCustomerIdProvider) GetId(ctx context.Context, params *strip
 	return RandomInsecureID(), nil
 }
 
-type PaymentSystemCusteromIdProvider struct{}
+type PaymentSystemCusteromIdProvider struct {
+	ApiKey string
+}
 
 func (p *PaymentSystemCusteromIdProvider) GetId(ctx context.Context, params *stripe.CustomerCreateParams) (string, error) {
 	stripeClient := stripe.NewClient(p.ApiKey)

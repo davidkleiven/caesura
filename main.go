@@ -15,7 +15,7 @@ import (
 	"github.com/davidkleiven/caesura/api"
 	"github.com/davidkleiven/caesura/pkg"
 	"github.com/gorilla/sessions"
-	"github.com/stripe/stripe-go/v82"
+	"github.com/stripe/stripe-go/v84"
 )
 
 func main() {

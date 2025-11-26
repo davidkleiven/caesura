@@ -3,7 +3,7 @@ package testutils
 import (
 	"encoding/json"
 
-	"github.com/stripe/stripe-go/v82"
+	"github.com/stripe/stripe-go/v84"
 )
 
 // Object that mimics the response we get from stripe. Useful for testing. Note that there
