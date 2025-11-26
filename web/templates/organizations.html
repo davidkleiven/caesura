@@ -31,7 +31,7 @@
             hx-get="/organizations/active/session"
             hx-trigger="change"
             hx-swap="none"
-            hx-on::after-request="htmx.ajax('GET', '/session/active-organization/name', {target: '#active-organization', swap: 'innerHTML'})"
+            hx-on::after-request="onOrganizationChange()"
           ></select>
           <form
             class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 gap-2 flex-wrap"
@@ -185,6 +185,17 @@
               alert("Invite link copied to clipboard!");
             });
           });
+      }
+
+      function onOrganizationChange() {
+        htmx.ajax("GET", "/session/active-organization/name", {
+          target: "#active-organization",
+          swap: "innerHTML",
+        });
+        htmx.ajax("GET", "/subscription", {
+          target: "#expiry-date",
+          swap: "innerHTML",
+        });
       }
     </script>
   </body>
