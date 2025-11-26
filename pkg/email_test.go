@@ -2,6 +2,7 @@ package pkg
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"io"
 	"iter"
@@ -12,6 +13,7 @@ import (
 	"net/smtp"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/davidkleiven/caesura/testutils"
 )
@@ -200,9 +202,18 @@ func TestUsersWithNoGroupsNotIncluded(t *testing.T) {
 }
 
 func TestEmailOpts(t *testing.T) {
-	called := false
+	var (
+		called      bool
+		recipents   []string
+		emailSender string
+		message     []byte
+	)
+
 	sendFn := func(addr string, auth smtp.Auth, sender string, recipent []string, msg []byte) error {
 		called = true
+		recipents = recipent
+		emailSender = sender
+		message = msg
 		return nil
 	}
 
@@ -215,11 +226,15 @@ func TestEmailOpts(t *testing.T) {
 		WithAuth(smtp.PlainAuth("me", "myname", "password", "host")),
 	)
 
-	email.SendFn("hey", nil, "hey", []string{"df"}, []byte("kjd"))
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	err := email.Send(timeout, []byte("kjd"))
+	testutils.AssertNil(t, err)
 	testutils.AssertEqual(t, called, true)
 	testutils.AssertEqual(t, email.SmtpHost, "myhost")
 	testutils.AssertEqual(t, email.SmtpPort, "2000")
-	testutils.AssertEqual(t, len(email.Recipents), 1)
-	testutils.AssertEqual(t, email.Recipents[0], "rec")
-	testutils.AssertEqual(t, email.Sender, "me")
+	testutils.AssertEqual(t, len(recipents), 1)
+	testutils.AssertEqual(t, recipents[0], "rec")
+	testutils.AssertEqual(t, emailSender, "me")
+	testutils.AssertEqual(t, string(message), "kjd")
 }
