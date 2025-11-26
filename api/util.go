@@ -86,6 +86,14 @@ func MustGetUserInfo(session *sessions.Session) *pkg.UserInfo {
 	return &data
 }
 
+func MustGetCanWrite(session *sessions.Session) bool {
+	canWrite, ok := session.Values[SubscriptionWriteAllowed].(bool)
+	if !ok {
+		panic(fmt.Sprintf("Session does not have %s", SubscriptionWriteAllowed))
+	}
+	return canWrite
+}
+
 func CodeAndMessage(err error, code int) (string, int) {
 	var msg string
 	if err != nil {

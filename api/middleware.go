@@ -133,13 +133,39 @@ func ValidateUserInfo(cookieStore *sessions.CookieStore) func(http.Handler) http
 	}
 }
 
-func RequireWriteSubscription(config *pkg.Config) func(http.Handler) http.Handler {
+func trySaveSession(session *sessions.Session, r *http.Request, w http.ResponseWriter) {
+	// Update session with subscription information
+	if err := session.Save(r, w); err != nil {
+		slog.ErrorContext(r.Context(), "Failed to store subscription information in session. Proceeding with request anyways", "error", err)
+	}
+}
+
+func RequireWriteSubscription(store pkg.SubscriptionValidator, config *pkg.Config) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if config.RequireSubscription {
 				session := MustGetSession(r)
 				canWrite, ok := session.Values[SubscriptionWriteAllowed].(bool)
-				if !canWrite || !ok {
+				if !ok {
+					slog.InfoContext(r.Context(), "No subscription info in context. Attempting to collect information")
+					// No information about subscriptions, try to collect subscription information
+					subCollector := SubscriptionHandler{store: store, timeout: config.Timeout}
+					orgId, hasOrgId := session.Values["orgId"].(string)
+					if !hasOrgId || orgId == "" {
+						slog.InfoContext(r.Context(), "Attempted to request subscription without having an organization")
+						http.Error(w, "No information about organization available", http.StatusForbidden)
+						return
+					}
+
+					ctx, cancel := context.WithTimeout(r.Context(), config.Timeout)
+					defer cancel()
+
+					result := subCollector.GetInfo(ctx, orgId)
+					result.PopulateSession(session)
+					canWrite = MustGetCanWrite(session)
+					trySaveSession(session, r, w)
+				}
+				if !canWrite {
 					http.Error(w, "Subscription expired", http.StatusForbidden)
 					return
 				}
@@ -156,18 +182,18 @@ func RequireRead(cookieStore *sessions.CookieStore, opts *sessions.Options) func
 	)
 }
 
-func RequireWrite(config *pkg.Config, cookieStore *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
+func RequireWrite(store pkg.SubscriptionValidator, config *pkg.Config, cookieStore *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
 	return Chain(
 		RequireSession(cookieStore, AuthSession, opts),
-		RequireWriteSubscription(config),
+		RequireWriteSubscription(store, config),
 		RequireMinimumRole(cookieStore, pkg.RoleEditor),
 	)
 }
 
-func RequireAdmin(config *pkg.Config, cookieStore *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
+func RequireAdmin(store pkg.SubscriptionValidator, config *pkg.Config, cookieStore *sessions.CookieStore, opts *sessions.Options) func(http.Handler) http.Handler {
 	return Chain(
 		RequireSession(cookieStore, AuthSession, opts),
-		RequireWriteSubscription(config),
+		RequireWriteSubscription(store, config),
 		RequireMinimumRole(cookieStore, pkg.RoleAdmin),
 	)
 }

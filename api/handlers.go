@@ -1259,8 +1259,8 @@ func AboutUs(w http.ResponseWriter, r *http.Request) {
 func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
 	sessionOpt := config.SessionOpts()
 	readRoute := RequireRead(cookieStore, sessionOpt)
-	writeRoute := RequireWrite(config, cookieStore, sessionOpt)
-	adminRoute := RequireAdmin(config, cookieStore, sessionOpt)
+	writeRoute := RequireWrite(store, config, cookieStore, sessionOpt)
+	adminRoute := RequireAdmin(store, config, cookieStore, sessionOpt)
 	adminWithoutSubscription := RequireAdminWithoutSubscription(cookieStore, sessionOpt)
 
 	signedInRoute := RequireSignedIn(cookieStore, sessionOpt) // Require user to be signed in, but not to have a role
@@ -1324,7 +1324,9 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 
 	mux.HandleFunc("GET /people", PeoplePage)
 	mux.Handle("POST /subscription-page", adminWithoutSubscription(checkoutSessionHandler(config)))
-	mux.Handle("GET /subscription", readRoute(Subscription(store, config.Timeout)))
+
+	subscriptionHandler := SubscriptionHandler{store: store, timeout: config.Timeout}
+	mux.Handle("GET /subscription", readRoute(&subscriptionHandler))
 	mux.Handle("POST /payment", stripeWebhookHandler(store, config))
 
 	mux.Handle("GET /about", http.HandlerFunc(AboutUs))

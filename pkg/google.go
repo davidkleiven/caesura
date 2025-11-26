@@ -279,7 +279,7 @@ func (g *GoogleStore) GetSubscription(ctx context.Context, orgId string) (*Subsc
 	doc, err := g.FsClient.GetDoc(ctx, organizationCollection, subscriptionCollection, orgId)
 	var sub Subscription
 	if err != nil {
-		return &sub, err
+		return &sub, errors.Join(ErrSubscriptionNotFound, err)
 	}
 	err = doc.DataTo(&sub)
 	return &sub, err

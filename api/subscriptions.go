@@ -11,6 +11,7 @@ import (
 
 	"github.com/davidkleiven/caesura/pkg"
 	"github.com/davidkleiven/caesura/web"
+	"github.com/gorilla/sessions"
 	"github.com/stripe/stripe-go/v84"
 	"github.com/stripe/stripe-go/v84/checkout/session"
 	"github.com/stripe/stripe-go/v84/webhook"
@@ -159,61 +160,112 @@ func stripeWebhookHandler(store pkg.SubscriptionStorer, config *pkg.Config) http
 	}
 }
 
-func Subscription(store pkg.SubscriptionValidator, timeout time.Duration) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		s := MustGetSession(r)
-		orgId := MustGetOrgId(s)
+type SubscriptionState int
 
-		ctx, cancel := context.WithTimeout(r.Context(), timeout)
-		defer cancel()
+const (
+	SubscriptionStateExpired = iota
+	SubscriptionStateTooManyScores
+	SubscriptionStateValid
+)
 
-		var (
-			subscription *pkg.Subscription
-			organization pkg.Organization
-		)
+type SubscriptionInfo struct {
+	CanWrite            bool
+	SuggestedReturnCode int
+	Expires             time.Time
+	State               SubscriptionState
+	MaxScores           int
+}
 
-		g, ctx := errgroup.WithContext(ctx)
-		g.Go(func() error {
-			var subsErr error
-			subscription, subsErr = store.GetSubscription(ctx, orgId)
-			return subsErr
-		})
+func (si *SubscriptionInfo) PopulateSession(session *sessions.Session) {
+	session.Values[SubscriptionWriteAllowed] = si.CanWrite
+	expire := si.Expires.Format(time.RFC3339)
+	session.Values["subscriptionExpires"] = expire
+}
 
-		g.Go(func() error {
-			var orgErr error
-			organization, orgErr = store.GetOrganization(ctx, orgId)
-			return orgErr
-		})
+type SubscriptionHandler struct {
+	store   pkg.SubscriptionValidator
+	timeout time.Duration
+}
 
-		if err := g.Wait(); err != nil {
-			slog.ErrorContext(r.Context(), "Could not get subscription", "error", err)
-			http.Error(w, "Could not get subscription: "+err.Error(), http.StatusInternalServerError)
-			return
+func (s *SubscriptionHandler) GetInfo(ctx context.Context, orgId string) SubscriptionInfo {
+	var (
+		subscription *pkg.Subscription
+		organization pkg.Organization
+	)
+
+	g, ctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		var subsErr error
+		subscription, subsErr = s.store.GetSubscription(ctx, orgId)
+		return subsErr
+	})
+
+	g.Go(func() error {
+		var orgErr error
+		organization, orgErr = s.store.GetOrganization(ctx, orgId)
+		return orgErr
+	})
+
+	err := g.Wait()
+
+	if err != nil {
+		slog.InfoContext(ctx, "Providing default free tier", "error", err)
+		subscription = pkg.NewFreeTier()
+	}
+
+	if subscription.Expires.Before(time.Now()) {
+		return SubscriptionInfo{
+			SuggestedReturnCode: http.StatusOK,
+			State:               SubscriptionStateExpired,
+			Expires:             subscription.Expires,
 		}
+	}
 
-		lang := pkg.LanguageFromReq(r)
-		if subscription.Expires.Before(time.Now()) {
-			w.WriteHeader(http.StatusOK)
-			fmt.Fprintf(w, "%s %s", web.SubscriptionExpired(lang), subscription.Expires.Format(time.RFC3339))
-			return
+	if organization.NumScores > subscription.MaxScores {
+		return SubscriptionInfo{
+			SuggestedReturnCode: http.StatusOK,
+			State:               SubscriptionStateTooManyScores,
+			Expires:             subscription.Expires,
+			MaxScores:           subscription.MaxScores,
 		}
+	}
 
-		if organization.NumScores > subscription.MaxScores {
-			w.WriteHeader(http.StatusOK)
-			fmt.Fprintf(w, "%s (%d)", web.MaxNumScoresReached(lang), subscription.MaxScores)
-			return
-		}
+	return SubscriptionInfo{
+		SuggestedReturnCode: http.StatusOK,
+		State:               SubscriptionStateValid,
+		Expires:             subscription.Expires,
+		CanWrite:            true,
+		MaxScores:           subscription.MaxScores,
+	}
+}
 
-		s.Values[SubscriptionWriteAllowed] = true
-		s.Values["subscriptionExpires"] = subscription.Expires.Format(time.RFC3339)
-		if err := s.Save(r, w); err != nil {
-			slog.ErrorContext(r.Context(), "Failed to save session", "error", err)
-			http.Error(w, "Failed to save session", http.StatusInternalServerError)
-			return
-		}
+func (s *SubscriptionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	session := MustGetSession(r)
+	orgId := MustGetOrgId(session)
 
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, "%s %s", web.SubscriptionExpires(lang), subscription.Expires.Format(time.RFC3339))
+	ctx, cancel := context.WithTimeout(r.Context(), s.timeout)
+	defer cancel()
+
+	result := s.GetInfo(ctx, orgId)
+	result.PopulateSession(session)
+
+	if err := session.Save(r, w); err != nil {
+		slog.ErrorContext(r.Context(), "Failed to save session", "error", err)
+		http.Error(w, "Failed to save session", http.StatusInternalServerError)
+		return
+	}
+
+	lang := pkg.LanguageFromReq(r)
+	expire := result.Expires.Format(time.RFC3339)
+	switch result.State {
+	case SubscriptionStateExpired:
+		fmt.Fprintf(w, "%s %s", web.SubscriptionExpired(lang), expire)
+		return
+	case SubscriptionStateTooManyScores:
+		fmt.Fprintf(w, "%s (%d)", web.MaxNumScoresReached(lang), result.MaxScores)
+		return
+	default:
+		fmt.Fprintf(w, "%s %s", web.SubscriptionExpires(lang), expire)
 	}
 }
 

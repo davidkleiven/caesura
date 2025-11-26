@@ -7,12 +7,23 @@ import (
 	"github.com/stripe/stripe-go/v84"
 )
 
+const DefaultFreeTierExpireDelta = 30 * time.Minute
+
 type Subscription struct {
 	Id        string    `json:"id" firestore:"id"`
 	PriceId   string    `json:"priceId" firestore:"priceId"`
 	Created   time.Time `json:"created" firestore:"created"`
 	Expires   time.Time `json:"expires" firestore:"expires"`
 	MaxScores int       `json:"maxScores" firestore:"maxScores"`
+}
+
+func NewFreeTier() *Subscription {
+	return &Subscription{
+		Id:        RandomInsecureID(),
+		Created:   time.Now(),
+		Expires:   time.Now().Add(DefaultFreeTierExpireDelta),
+		MaxScores: 10,
+	}
 }
 
 type SubscriptionStorer interface {
