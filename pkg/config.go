@@ -77,6 +77,7 @@ type Config struct {
 	BrevoApiKey              string                `yaml:"brevo_api_key" env:"CAESURA_BREVO_API_KEY"`
 	EmailDeliveryService     string                `yaml:"email_delivery_service" env:"CAESURA_EMAIL_DELIVERY_SERVICE"`
 	GoogleCfg                GoogleConfig          `yaml:"google_config"`
+	PortalSessionProvider    string                `yaml:"portal_session_provider"`
 	Transport                http.RoundTripper     `yaml:"-"`
 	GoogleClients            GoogleClientContainer `yaml:"-"`
 }
@@ -124,6 +125,16 @@ func (c *Config) GetStripeIdProvider() StripeCustomerIdProvider {
 	default:
 		slog.Info("Using local stripe provider. Should not be used in production!")
 		return &LocalStripeCustomerIdProvider{}
+	}
+}
+
+func (c *Config) GetPortalSessionProvider() BillingPortalSessionProvider {
+	switch c.PortalSessionProvider {
+	case "fixed":
+		slog.Info("Using local portal session provider")
+		return &FixedPortalSessionProvider{Url: "http://customer-portal.no"}
+	default:
+		return &StripeBillingSessionProvider{ApiKey: c.StripeSecretKey}
 	}
 }
 

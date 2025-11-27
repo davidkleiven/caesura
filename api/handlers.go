@@ -1329,5 +1329,13 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("POST /payment", stripeWebhookHandler(store, config))
 
 	mux.Handle("GET /about", http.HandlerFunc(AboutUs))
+
+	billingHandler := BillingPortalHandler{
+		Store:                 store,
+		Timeout:               config.Timeout,
+		ReturnURL:             config.BaseURL,
+		PortalSessionProvider: config.GetPortalSessionProvider(),
+	}
+	mux.Handle("/customer-portal", adminWithoutSubscription(&billingHandler))
 	return mux
 }
