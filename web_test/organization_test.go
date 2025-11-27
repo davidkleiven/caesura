@@ -237,3 +237,15 @@ func TestSubscriptionCalledWhenOrgChanges(t *testing.T) {
 
 	}, organizationPage)(t)
 }
+
+func TestPortalRequestSentOnClick(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		btn := page.Locator("#customer-portal-btn")
+
+		timeout := playwright.PageExpectResponseOptions{
+			Timeout: playwright.Float(1000),
+		}
+		_, err := page.ExpectResponse("**/customer-portal", func() error { return btn.Click() }, timeout)
+		testutils.AssertNil(t, err)
+	}, organizationPage)(t)
+}

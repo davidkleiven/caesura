@@ -83,6 +83,7 @@ func TestMain(m *testing.M) {
 
 	config := pkg.NewDefaultConfig()
 	config.SmtpConfig.SendFn = pkg.NoOpSendFunc
+	config.PortalSessionProvider = "fixed"
 
 	// The key must match the store used to get the cookie value
 	mux := api.Setup(store, config, cookieStore)
