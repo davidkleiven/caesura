@@ -198,3 +198,42 @@ func TestSubscribe(t *testing.T) {
 		testutils.AssertEqual(t, matches, true)
 	}, organizationPage)(t)
 }
+
+func TestSubscriptionCalledWhenOrgChanges(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		orgOptions := page.Locator("select#existing-orgs option")
+
+		var (
+			count int
+			err   error
+		)
+		for range 200 {
+			count, err = orgOptions.Count()
+			testutils.AssertNil(t, err)
+			if count > 1 {
+				break
+			}
+			time.Sleep(10 * time.Millisecond)
+		}
+
+		if count <= 1 {
+			t.Fatalf("Test require at least two organizations got %d", count)
+		}
+
+		existingOrgs := page.Locator("select#existing-orgs")
+		val, err := orgOptions.Nth(1).GetAttribute("value")
+		testutils.AssertNil(t, err)
+
+		testutils.AssertNil(t, err)
+
+		timeout := playwright.PageExpectResponseOptions{
+			Timeout: playwright.Float(1000),
+		}
+		_, err = page.ExpectResponse("**/subscription", func() error {
+			_, err = existingOrgs.SelectOption(playwright.SelectOptionValues{Values: &[]string{val}})
+			return err
+		}, timeout)
+		testutils.AssertNil(t, err)
+
+	}, organizationPage)(t)
+}
