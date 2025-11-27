@@ -1260,7 +1260,6 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	sessionOpt := config.SessionOpts()
 	readRoute := RequireRead(cookieStore, sessionOpt)
 	writeRoute := RequireWrite(store, config, cookieStore, sessionOpt)
-	adminRoute := RequireAdmin(store, config, cookieStore, sessionOpt)
 	adminWithoutSubscription := RequireAdminWithoutSubscription(cookieStore, sessionOpt)
 
 	signedInRoute := RequireSignedIn(cookieStore, sessionOpt) // Require user to be signed in, but not to have a role
@@ -1308,16 +1307,16 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 
 	mux.HandleFunc("GET /organizations/form", OrganizationsHandler)
 	mux.Handle("POST /organizations", signedInRoute(OrganizationRegisterHandler(store, config.GetStripeIdProvider(), config.Timeout)))
-	mux.Handle("DELETE /organizations", adminRoute(DeleteOrganizationHandler(store, config.Timeout)))
-	mux.Handle("GET /organizations/{id}/invite", adminRoute(InviteLink(config.BaseURL, config.CookieSecretSignKey)))
+	mux.Handle("DELETE /organizations", adminWithoutSubscription(DeleteOrganizationHandler(store, config.Timeout)))
+	mux.Handle("GET /organizations/{id}/invite", adminWithoutSubscription(InviteLink(config.BaseURL, config.CookieSecretSignKey)))
 	mux.Handle("GET /organizations/options", userInfoRoute(OptionsFromSessionHandler(store, config.Timeout)))
 	mux.Handle("GET /organizations/active/session", userInfoRoute(http.HandlerFunc(ChosenOrganizationSessionHandler)))
 	mux.Handle("GET /organizations/users", readRoute(AllUsers(store, config.Timeout)))
-	mux.Handle("DELETE /organizations/users/{id}", adminRoute(DeleteUserFromOrg(store, config.Timeout)))
-	mux.Handle("POST /organizations/recipent", adminRoute(RegisterRecipent(store, config.Timeout)))
+	mux.Handle("DELETE /organizations/users/{id}", adminWithoutSubscription(DeleteUserFromOrg(store, config.Timeout)))
+	mux.Handle("POST /organizations/recipent", adminWithoutSubscription(RegisterRecipent(store, config.Timeout)))
 	mux.Handle("POST /organizations/users/{id}/groups", readRoute(GroupHandler(store, config.Timeout)))
 	mux.Handle("DELETE /organizations/users/{id}/groups", readRoute(GroupHandler(store, config.Timeout)))
-	mux.Handle("POST /organizations/users/{id}/role", adminRoute(AssignRoleHandler(store, config.Timeout)))
+	mux.Handle("POST /organizations/users/{id}/role", adminWithoutSubscription(AssignRoleHandler(store, config.Timeout)))
 
 	mux.Handle("GET /session/active-organization/name", requireAuthSession(ActiveOrganization(store, config.Timeout)))
 	mux.Handle("GET /session/logged-in", requireAuthSession(http.HandlerFunc(LoggedIn)))
