@@ -1,149 +1,267 @@
 {{define "login"}}
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="/css/output.css" />
-  <title>Caesura</title>
-  <script src="https://unpkg.com/htmx.org@{{ .Dependencies.HtmxVersion }}/dist/htmx.min.js"></script>
-</head>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="/css/output.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <title>Sign In - Caesura</title>
+    <script src="https://unpkg.com/htmx.org@{{ .Dependencies.HtmxVersion }}/dist/htmx.min.js"></script>
+  </head>
 
-<body class="bg-gray-100">
-  {{ template "header" . }}
-  <!-- Page Content Placeholder -->
-  <div id="page-content" class="flex pt-16">
-    <div class="w-full max-w-md bg-white rounded-lg shadow-md p-8">
-      <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">
-        {{ T "login.header" }}
-      </h2>
+  <body class="gradient-surface min-h-screen">
+    {{ template "header" . }}
 
-      <!-- Sign in with Google -->
-      <a
-        href="/login/google"
-        class="w-full flex items-center justify-center gap-2 text-white bg-red-500 hover:bg-red-600 font-medium py-2 px-4 rounded mb-6"
-      >
-        <svg class="w-5 h-5" viewBox="0 0 533.5 544.3">
-          <path
-            fill="#4285f4"
-            d="M533.5 278.4c0-17.7-1.6-35-4.7-51.6H272v97.8h147.1c-6.4 34.5-25.8 63.7-55 83.3v68.9h88.9c52-47.9 80.5-118.6 80.5-198.4z"
-          />
-          <path
-            fill="#34a853"
-            d="M272 544.3c72.4 0 133.1-23.8 177.5-64.4l-88.9-68.9c-24.7 16.6-56.3 26.3-88.6 26.3-67.9 0-125.3-45.8-145.9-107.5h-91.6v67.3c44.3 87.3 134.7 147.2 237.5 147.2z"
-          />
-          <path
-            fill="#fbbc04"
-            d="M126.1 329.8c-10.1-29.9-10.1-61.8 0-91.7v-67.3H34.5c-28.4 55.5-28.4 120.7 0 176.2l91.6-67.2z"
-          />
-          <path
-            fill="#ea4335"
-            d="M272 214.2c37.6-.6 73.6 14 100.7 40.3l75.1-75.1c-44.1-41.1-103-63.6-175.8-63.6-102.8 0-193.2 59.9-237.5 147.2l91.6 67.3c20.6-61.7 78-107.5 145.9-107.5z"
-          />
-        </svg>
-        {{ T "login.google" }}
-      </a>
+    <!-- Login Content -->
+    <div class="flex items-center justify-center pt-20 pb-12 px-6">
+      <div class="w-full max-w-md">
+        <!-- Login Card -->
+        <div class="card card-elevated">
+          <!-- Header -->
+          <div class="text-center mb-8">
+            <div
+              class="w-20 h-20 bg-gradient-primary rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg"
+            >
+              <svg
+                class="w-10 h-10 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                ></path>
+              </svg>
+            </div>
+            <h2 class="text-3xl font-bold text-surface-900 mb-2">
+              {{ T "login.header" }}
+            </h2>
+            <p class="text-surface-600">
+              Welcome back! Please sign in to your account.
+            </p>
+          </div>
 
-      <!-- OR separator -->
-      <div class="flex items-center my-4">
-        <div class="flex-grow border-t border-gray-300"></div>
-        <span class="mx-4 text-sm text-gray-500">{{ T "login.or" }}</span>
-        <div class="flex-grow border-t border-gray-300"></div>
-      </div>
-
-      <!-- Username/Password Form -->
-      <form
-        hx-post="/login/basic"
-        hx-target="#flashMessage"
-        hx-swap="innerHTML"
-        hx-on::after-request="document.body.dispatchEvent(new Event('loginEvent'))"
-      >
-        <div class="mb-4">
-          <label
-            class="block text-gray-700 text-sm font-medium mb-2"
-            for="email"
+          <!-- Google Sign In -->
+          <a
+            href="/login/google"
+            class="w-full flex items-center justify-center gap-3 bg-white hover:bg-surface-50 border border-surface-300 text-surface-700 font-medium py-4 px-6 rounded-2xl mb-6 transition-all duration-200 hover:shadow-md group"
           >
-            {{ T "email" }}
-          </label>
-          <input
-            type="text"
-            id="email"
-            name="email"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:ring-blue-200"
-            placeholder='{{ T "email" }}'
-          />
-        </div>
+            <svg class="w-5 h-5" viewBox="0 0 533.5 544.3">
+              <path
+                fill="#4285f4"
+                d="M533.5 278.4c0-17.7-1.6-35-4.7-51.6H272v97.8h147.1c-6.4 34.5-25.8 63.7-55 83.3v68.9h88.9c52-47.9 80.5-118.6 80.5-198.4z"
+              />
+              <path
+                fill="#34a853"
+                d="M272 544.3c72.4 0 133.1-23.8 177.5-64.4l-88.9-68.9c-24.7 16.6-56.3 26.3-88.6 26.3-67.9 0-125.3-45.8-145.9-107.5h-91.6v67.3c44.3 87.3 134.7 147.2 237.5 147.2z"
+              />
+              <path
+                fill="#fbbc04"
+                d="M126.1 329.8c-10.1-29.9-10.1-61.8 0-91.7v-67.3H34.5c-28.4 55.5-28.4 120.7 0 176.2l91.6-67.2z"
+              />
+              <path
+                fill="#ea4335"
+                d="M272 214.2c37.6-.6 73.6 14 100.7 40.3l75.1-75.1c-44.1-41.1-103-63.6-175.8-63.6-102.8 0-193.2 59.9-237.5 147.2l91.6 67.3c20.6-61.7 78-107.5 145.9-107.5z"
+              />
+            </svg>
+            <span>Continue with Google</span>
+          </a>
 
-        <div class="mb-4">
-          <label
-            class="block text-gray-700 text-sm font-medium mb-2"
-            for="password"
-          >
-            {{ T "login.password" }}
-          </label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:ring-blue-200"
-            placeholder='{{ T "login.password" }}'
-          />
-        </div>
+          <!-- Divider -->
+          <div class="flex items-center my-8">
+            <div class="flex-grow border-t border-surface-200"></div>
+            <span class="mx-4 text-sm text-surface-500 font-medium"
+              >{{ T "login.or" }}</span
+            >
+            <div class="flex-grow border-t border-surface-200"></div>
+          </div>
 
-        <div id="retyped-password" class="mb-4 hidden">
-          <label
-            class="block text-gray-700 text-sm font-medium mb-2"
-            for="retyped"
-          >
-            {{ T "login.retype_password" }}
-          </label>
-          <input
-            type="password"
-            id="retyped"
-            name="retyped"
-            class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring focus:ring-blue-200"
-            placeholder='{{ T "login.retype_password" }}'
-          />
-        </div>
-
-        <!-- Submit button -->
-        <button
-          type="submit"
-          id="login-btn"
-          class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded mt-2"
-        >
-          {{ T "login.login" }}
-        </button>
-
-        <!-- Reset password -->
-        <div class="text-right mt-2">
-          <button
-            type="button"
-            id="forgot-password-btn"
-            class="text-sm text-blue-600 hover:underline"
-            hx-post="/login/reset"
-            hx-swap="innerHTML"
+          <!-- Login Form -->
+          <form
+            hx-post="/login/basic"
             hx-target="#flashMessage"
+            hx-swap="innerHTML"
+            hx-on::after-request="document.body.dispatchEvent(new Event('loginEvent'))"
+            class="space-y-6"
           >
-            {{ T "login.forgot_password" }}
-          </button>
-          <button
-            type="button"
-            id="register-new-btn"
-            class="text-sm text-blue-600 hover:underline"
-            onclick="enterNewUserMode()"
-          >
-            {{ T "login.register_new" }}
-          </button>
+            <!-- Email Field -->
+            <div>
+              <label class="label" for="email"> {{ T "email" }} </label>
+              <div class="relative">
+                <div
+                  class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"
+                >
+                  <svg
+                    class="w-5 h-5 text-surface-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M16 12a4 4 0 10-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    ></path>
+                  </svg>
+                </div>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  class="input pl-12"
+                  placeholder='{{ T "email" }}'
+                  required
+                />
+              </div>
+            </div>
+
+            <!-- Password Field -->
+            <div>
+              <label class="label" for="password">
+                {{ T "login.password" }}
+              </label>
+              <div class="relative">
+                <div
+                  class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"
+                >
+                  <svg
+                    class="w-5 h-5 text-surface-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    ></path>
+                  </svg>
+                </div>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  class="input pl-12"
+                  placeholder='{{ T "login.password" }}'
+                  required
+                />
+              </div>
+            </div>
+
+            <!-- Retype Password Field (Hidden by default) -->
+            <div id="retyped-password" class="hidden">
+              <label class="label" for="retyped">
+                {{ T "login.retype_password" }}
+              </label>
+              <div class="relative">
+                <div
+                  class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"
+                >
+                  <svg
+                    class="w-5 h-5 text-surface-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                    ></path>
+                  </svg>
+                </div>
+                <input
+                  type="password"
+                  id="retyped"
+                  name="retyped"
+                  class="input pl-12"
+                  placeholder='{{ T "login.retype_password" }}'
+                />
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button
+              type="submit"
+              id="login-btn"
+              class="btn btn-primary btn-lg w-full shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200"
+            >
+              <svg
+                class="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
+                ></path>
+              </svg>
+              {{ T "login.login" }}
+            </button>
+
+            <!-- Action Links -->
+            <div class="flex items-center justify-between text-sm">
+              <button
+                type="button"
+                id="forgot-password-btn"
+                class="text-primary-600 hover:text-primary-700 font-medium transition-colors"
+                hx-post="/login/reset"
+                hx-swap="innerHTML"
+                hx-target="#flashMessage"
+              >
+                {{ T "login.forgot_password" }}
+              </button>
+              <button
+                type="button"
+                id="register-new-btn"
+                class="text-primary-600 hover:text-primary-700 font-medium transition-colors"
+                onclick="enterNewUserMode()"
+              >
+                {{ T "login.register_new" }}
+              </button>
+            </div>
+          </form>
         </div>
-      </form>
+
+        <!-- Sign Up Link -->
+        <div class="text-center mt-8">
+          <p class="text-surface-600">
+            Don't have an account?
+            <a
+              href="/organizations/form"
+              class="text-primary-600 hover:text-primary-700 font-semibold transition-colors"
+            >
+              Get started for free
+            </a>
+          </p>
+        </div>
+      </div>
     </div>
-  </div>
-  {{ template "footer" }}
-  <script>
-    function enterNewUserMode() {
-      const el = document.getElementById("retyped-password");
-      if (!el) return;
-      el.classList.toggle("hidden");
-    }
-  </script>
-</body>
-{{end}}
+
+    {{ template "footer" }}
+
+    <script>
+      function enterNewUserMode() {
+        const el = document.getElementById("retyped-password");
+        if (!el) return;
+        el.classList.toggle("hidden");
+      }
+    </script>
+  </body>
+  {{end}}
+</html>
