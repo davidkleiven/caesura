@@ -67,7 +67,6 @@
             id="invite-button"
             type="button"
             class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
-            hx-on::401="alert('Unauthorized')"
             onclick="generateInvite()"
           >
             📧 {{ T "org.invite" }}
@@ -79,7 +78,6 @@
             hx-swap="none"
             hx-on::after-request="htmx.ajax('GET', '/organizations/options', {target: '#existing-orgs', swap: 'innerHTML'});
                         htmx.ajax('GET', '/session/active-organization/name', {target: '#active-organization', swap: 'innerHTML'})"
-            hx-on::401="alert('Unauthorized')"
             hx-confirm='{{T "org.delete.confirm" }}?'
           >
             🗑️ {{T "org.delete" }}
