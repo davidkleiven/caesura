@@ -6,77 +6,343 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://unpkg.com/htmx.org@{{ .HtmxVersion }}/dist/htmx.min.js"></script>
     <link rel="stylesheet" href="/css/output.css" />
-    <title>Caesura</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <title>
+      Caesura - Modern Music Management for Orchestras, Bands & Choirs
+    </title>
   </head>
-  <body class="bg-gray-100">
+  <body class="bg-surface-50">
     {{ template "header" . }}
-    <!-- Page Content Placeholder -->
-    <div id="page-content" class="flex pt-16">
-      <div
-        class="w-full px-6 py-12 bg-white bg-opacity-90 rounded-2xl shadow-lg space-y-6"
-      >
-        <p class="text-4xl font-extrabold text-gray-900 leading-snug">
-          <strong>Caesura</strong>
-          <span class="italic text-indigo-600">— {{ T "index.slogan" }}</span>
-        </p>
 
-        <p class="text-lg text-gray-700 leading-relaxed">
-          {{ T "index.purpose" }}.<br />
-          <span class="text-gray-900 font-medium">Caesura</span> {{ T
-          "index.description" }}
-          <span class="font-semibold text-indigo-700"
-            >{{ T "index.store" }}</span
-          >,
-          <span class="font-semibold text-indigo-700"
-            >{{ T "index.manage" }}</span
-          >, and
-          <span class="font-semibold text-indigo-700"
-            >{{ T "index.distribute" }}</span
+    <!-- Hero Section -->
+    <section
+      class="hero-gradient min-h-screen flex items-center justify-center pt-20"
+    >
+      <div class="container-max">
+        <div class="max-w-4xl mx-auto text-center fade-in">
+          <!-- Hero Badge -->
+          <div
+            class="inline-flex items-center px-4 py-2 bg-primary-100 text-primary-700 rounded-full text-sm font-medium mb-6"
           >
-          — {{ T "index.all-in-one" }}. {{ T "index.desc-footer" }}
-        </p>
+            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8 2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"
+              ></path>
+            </svg>
+            {{ T "index.modern-solution" }}
+          </div>
 
-        <p class="text-lg text-gray-700 leading-relaxed">
-          {{ T "index.with-pre-caesura"}}
-          <span class="text-gray-900 font-medium">Caesura</span>, {{ T
-          "index.post-caesura" }}
-          <span class="text-indigo-600 font-semibold"
-            >{{ T "index.right-music" }}</span
-          >, at the
-          <span class="text-indigo-600 font-semibold"
-            >{{ T "index.right-time" }}</span
-          >, {{T "index.wherever" }}.
-        </p>
+          <!-- Main Headline -->
+          <h1
+            class="text-5xl md:text-7xl font-bold text-surface-900 mb-6 text-balance"
+          >
+            <span class="text-gradient">Caesura</span>
+          </h1>
 
-        <ul class="list-disc list-inside text-gray-800 space-y-1 pl-4">
-          <li>🎼 {{T "index.bullet.effortless" }}</li>
-          <li>👤 {{T "index.bullet.rbac" }}</li>
-          <li>🔒 {{T "index.bullet.secure" }}</li>
-          <li>📱 {{T "index.bullet.rehersal"}}</li>
-          <li>✂️ {{T "index.bullet.scan-split"}}</li>
-          <li>🗂️ {{T "index.bullet.organize" }}</li>
-        </ul>
+          <p
+            class="text-2xl md:text-3xl font-medium text-surface-600 mb-8 text-pretty"
+          >
+            {{ T "index.slogan" }}
+          </p>
 
-        <p class="text-xl font-semibold text-indigo-700 italic mt-4">
-          {{T "index.harmony" }}.
-        </p>
+          <!-- Description -->
+          <div class="prose prose-lg mx-auto text-surface-600 mb-12 max-w-3xl">
+            <p class="text-pretty">
+              {{ T "index.purpose" }}.
+              <span class="font-semibold text-surface-900">Caesura</span> {{ T
+              "index.description" }}
+              <span class="font-semibold text-primary-600"
+                >{{ T "index.store" }}</span
+              >,
+              <span class="font-semibold text-primary-600"
+                >{{ T "index.manage" }}</span
+              >, and
+              <span class="font-semibold text-primary-600"
+                >{{ T "index.distribute" }}</span
+              >
+              — {{ T "index.all-in-one" }}. {{ T "index.desc-footer" }}
+            </p>
 
-        <p class="text-lg text-gray-700">
-          {{T "index.let" }}
-          <span class="font-medium text-gray-900">Caesura</span> {{ T
+            <p class="text-pretty mt-4">
+              {{ T "index.with-pre-caesura" }}
+              <span class="font-semibold text-surface-900">Caesura</span>, {{ T
+              "index.post-caesura" }}
+              <span class="font-semibold text-primary-600"
+                >{{ T "index.right-music" }}</span
+              >, at the
+              <span class="font-semibold text-primary-600"
+                >{{ T "index.right-time" }}</span
+              >, {{T "index.wherever" }}.
+            </p>
+          </div>
+
+          <!-- CTA Buttons -->
+          <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+            <a
+              href="/login"
+              class="btn btn-primary btn-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+            >
+              <svg
+                class="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                ></path>
+              </svg>
+              🎶 {{ T "index.sign-up" }}
+            </a>
+            <a href="/about" class="btn btn-secondary btn-lg"> Learn More </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="section-padding bg-surface">
+      <div class="container-max">
+        <div class="max-w-6xl mx-auto">
+          <div class="text-center mb-16">
+            <h2 class="text-3xl md:text-4xl font-bold text-surface-900 mb-4">
+              Everything You Need to Manage Your Music
+            </h2>
+            <p class="text-xl text-surface-600 max-w-3xl mx-auto">
+              Powerful features designed for modern musical organizations
+            </p>
+          </div>
+
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Feature 1 -->
+            <div class="card card-hover text-center group">
+              <div
+                class="w-16 h-16 bg-primary-100 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-primary-200 transition-colors"
+              >
+                <svg
+                  class="w-8 h-8 text-primary-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+                  ></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-surface-900 mb-3">
+                {{T "index.bullet.effortless"}}
+              </h3>
+              <p class="text-surface-600">
+                Intuitive interface that makes managing your entire music
+                library effortless and enjoyable.
+              </p>
+            </div>
+
+            <!-- Feature 2 -->
+            <div class="card card-hover text-center group">
+              <div
+                class="w-16 h-16 bg-accent-100 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-accent-200 transition-colors"
+              >
+                <svg
+                  class="w-8 h-8 text-accent-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                  ></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-surface-900 mb-3">
+                {{T "index.bullet.rbac"}}
+              </h3>
+              <p class="text-surface-600">
+                Granular role-based access control ensures the right people have
+                the right permissions.
+              </p>
+            </div>
+
+            <!-- Feature 3 -->
+            <div class="card card-hover text-center group">
+              <div
+                class="w-16 h-16 bg-success/10 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-success/20 transition-colors"
+              >
+                <svg
+                  class="w-8 h-8 text-success"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  ></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-surface-900 mb-3">
+                {{T "index.bullet.secure"}}
+              </h3>
+              <p class="text-surface-600">
+                Enterprise-grade security keeps your valuable music collection
+                safe and protected.
+              </p>
+            </div>
+
+            <!-- Feature 4 -->
+            <div class="card card-hover text-center group">
+              <div
+                class="w-16 h-16 bg-warning/10 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-warning/20 transition-colors"
+              >
+                <svg
+                  class="w-8 h-8 text-warning"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  ></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-surface-900 mb-3">
+                {{T "index.bullet.rehersal"}}
+              </h3>
+              <p class="text-surface-600">
+                Mobile-optimized design lets you access your music anywhere,
+                perfect for rehearsals and performances.
+              </p>
+            </div>
+
+            <!-- Feature 5 -->
+            <div class="card card-hover text-center group">
+              <div
+                class="w-16 h-16 bg-info/10 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-info/20 transition-colors"
+              >
+                <svg
+                  class="w-8 h-8 text-info"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"
+                  ></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-surface-900 mb-3">
+                {{T "index.bullet.scan-split"}}
+              </h3>
+              <p class="text-surface-600">
+                Advanced PDF processing lets you scan, split, and organize sheet
+                music automatically.
+              </p>
+            </div>
+
+            <!-- Feature 6 -->
+            <div class="card card-hover text-center group">
+              <div
+                class="w-16 h-16 bg-surface-100 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:bg-surface-200 transition-colors"
+              >
+                <svg
+                  class="w-8 h-8 text-surface-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                  ></path>
+                </svg>
+              </div>
+              <h3 class="text-xl font-semibold text-surface-900 mb-3">
+                {{T "index.bullet.organize"}}
+              </h3>
+              <p class="text-surface-600">
+                Smart organization tools help you categorize, tag, and find any
+                piece of music instantly.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonial Section -->
+    <section class="section-padding gradient-primary text-white">
+      <div class="container-max text-center">
+        <blockquote
+          class="text-2xl md:text-3xl font-medium mb-6 text-pretty max-w-4xl mx-auto"
+        >
+          "{{T "index.harmony" }}."
+        </blockquote>
+        <p class="text-lg opacity-90 max-w-2xl mx-auto">
+          {{T "index.let" }} <span class="font-semibold">Caesura</span> {{ T
           "index.logistics" }}.
         </p>
+      </div>
+    </section>
 
-        <div class="pt-6">
+    <!-- Final CTA Section -->
+    <section class="section-padding bg-surface">
+      <div class="container-max text-center">
+        <div class="max-w-2xl mx-auto">
+          <h2 class="text-3xl md:text-4xl font-bold text-surface-900 mb-6">
+            Ready to Transform Your Music Management?
+          </h2>
+          <p class="text-xl text-surface-600 mb-8">
+            Join thousands of musicians who have already discovered the Caesura
+            difference.
+          </p>
           <a
             href="/login"
-            class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white text-lg font-semibold py-3 px-6 rounded-full shadow-md transition duration-300"
+            class="btn btn-primary btn-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
           >
-            🎶 {{ T "index.sign-up" }}
+            Get Started Today
+            <svg
+              class="w-5 h-5 ml-2"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M13 7l5 5m0 0l-5 5m5-5H6"
+              ></path>
+            </svg>
           </a>
         </div>
       </div>
-    </div>
+    </section>
+
     {{ template "footer" . }}
   </body>
   {{end}}
