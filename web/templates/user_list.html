@@ -8,8 +8,6 @@
       hx-post="/organizations/users/{{.Id}}/role"
       hx-trigger="change"
       hx-swap="none"
-      hx-on::401="alert('Unauthorized: only admins can change roles')"
-      hx-on::403="alert('Forbidden: you can not change your own role')"
       name="role"
     >
       {{ range .Roles }}
@@ -54,8 +52,6 @@
       hx-delete="/organizations/users/{{.Id}}"
       hx-swap="none"
       hx-confirm="Are you sure you want to delete the user?"
-      hx-on::401="alert('Unauthorized: only admins can delete users')"
-      hx-on::403="alert('Forbidden: you can not delete yourself')"
       hx-on::after-request="htmx.ajax('GET', '/organizations/users', {target: '#people-list', swap: 'innerHTML'})"
       id="delete-user-{{.Id}}-btn"
     >
