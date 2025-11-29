@@ -30,3 +30,6 @@ jobs:
     # Step 3: Run Prettier Check via npx
     - name: Prettier Lint (check formatting)
       run: npx prettier --check "**/*.{html,js,json,md}"
+
+    - name: Check all translation keys are used
+      run: go run cmd/checkTranslationsUsed/main.go web/templates/translations.yml .

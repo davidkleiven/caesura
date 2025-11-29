@@ -23,7 +23,6 @@ en:
   genre: Genre
   groups: Groups
   index.all-in-one: all in one place
-  index.bullet.distribute: Distribute parts instantly — send to members by email
   index.bullet.effortless: Effortless score management
   index.bullet.effortless-desc: >
       Intuitive interface that makes managing your entire music
@@ -37,7 +36,7 @@ en:
     Role-based access control ensures the right people have
     the right permissions.
   index.bullet.rehersal: Rehearsal-ready from any device
-  index.bullet.reheral-desc: >
+  index.bullet.rehersal-desc: >
     Accessibility-focused design lets you reach your music from anywhere —
     perfect for rehearsals and performances
   index.bullet.scan-split: Scan splitting — upload a full score and assign parts
@@ -68,7 +67,6 @@ en:
   loading: Loading
   login.enter_valid_email: "Invalid email entered"
   login.forgot_password: "Forgot password?"
-  login.google: Sign in with Google
   login.header: Login to Your Account
   login.login: "Login"
   login.or: or
@@ -79,7 +77,6 @@ en:
   login.retype_password: Retype password
   login.success: "Login success"
   login.unauthorized: Email or password is not valid
-  login.username: Username
   login.user_exists: "User {{.Email}} already exists"
   login.user_not_found: "User with email {{.Email}} not found"
   login.minimum_password_length: "The provided password is too short. Minimum length:"
@@ -89,7 +86,6 @@ en:
   nav.organizations: Organizations
   nav.overview: Overview
   nav.people: People
-  nav.pricing: Pricing
   nav.projects: Projects
   nav.upload: Upload
   next: Next
@@ -120,7 +116,6 @@ en:
     As an administrator, you can invite others to your organization by clicking the invite button.
     This generates a shareable link that grants read-only access to your organization's
     content.
-  org.invite-link-copied: Invite link copied to clipboard
   org.invite-others: Invite others
   org.join: Join an existing organization
   org.join-desc: >
@@ -144,9 +139,7 @@ en:
   org.subscripe: Subscribe
   org.subscription-expired: Subscription expired
   org.subscription-expires: Subscription expires
-  org.subscription-renewed: Subscription renewed at
   overview.add-to-project: Add to project
-  overview.init-flash-msg: Explore your archive and add items to your next project
   page: Page
   people.nn-recipent: >
     A recipient is not a regular user and cannot log in or use Caesura. However, they will still receive emails
@@ -170,7 +163,6 @@ en:
   upload.delete-mode: Delete mode
   upload.filter-groups: Filter groups
   upload.filter-groups-placeholder: Type to filter
-  upload.init-flash-msg: Ready to upload new files
 
 nb:
   about.caesura-free: Grunnleggende tilgang for å utforske Caesura. Du kan lagre opp til 10 notesett
@@ -197,7 +189,6 @@ nb:
   genre: Sjanger
   groups: Grupper
   index.all-in-one: alt på ett sted
-  index.bullet.distribute: Distribuer stemmer umiddelbart — send til medlemmer via e-post
   index.bullet.effortless: Enkel partiturhåndtering
   index.bullet.effortless-desc: >
     Brukervennlig grensesnitt som gjør det enkelt og behagelig å
@@ -210,7 +201,7 @@ nb:
   index.bullet.rbac-desc: >
     Rollebassert tilgangskontroll sikrer at de rette personene har de riktige tillatelsene
   index.bullet.rehersal: Øvelsesklar fra hvilken som helst enhet
-  index.bullet.reheral-desc: >
+  index.bullet.rehersal-desc: >
     Tilgjengelighetsfokusert design lar deg nå musikken din uansett hvor du er –
     perfekt for øvelser og opptredener
   index.bullet.scan-split: Skann splitting — last opp et komplett partitur og tildel stemmer
@@ -240,7 +231,6 @@ nb:
   loading: Laster
   login.enter_valid_email: "Skriv en gyldig epostadresse"
   login.forgot_password: "Glemt passordet?"
-  login.google: Logg inn med Google
   login.header: Logg inn
   login.login: "Logg inn"
   login.or: eller
@@ -251,7 +241,6 @@ nb:
   login.retype_password: Skriv passordet på nytt
   login.success: Innlogging OK
   login.unauthorized: Epost eller passord er ikke riktig
-  login.username: Brukernavn
   login.user_exists: "Bruker med epost {{.Email}} finnes allerede"
   login.user_not_found: "Kunne ikke finne brukere med epost {{.Email}}"
   login.minimum_password_length: "Passordet er for kort. Minste lengde: "
@@ -261,7 +250,6 @@ nb:
   nav.organizations: Organisasjoner
   nav.overview: Oversikt
   nav.people: Personer
-  nav.pricing: Priser
   nav.projects: Prosjekter
   nav.upload: Last opp
   next: Neste
@@ -291,7 +279,6 @@ nb:
     Som administrator kan du invitere andre til organisasjonen ved å klikke på invitasjonsknappen.
     Dette genererer en delbar lenke som gir leseadgang til organisasjonens
     innhold.
-  org.invite-link-copied: Invitasjonslenke kopiert til utklippstavlen
   org.invite-others: Inviter andre
   org.join: Bli med i en eksisterende organisasjon
   org.join-desc: >
@@ -312,9 +299,7 @@ nb:
   org.subscripe: Legg til abonnement
   org.subscription-expired: Abonnementet utløp
   org.subscription-expires: Abonnementet er gyldig til
-  org.subscription-renewed: Abonnemented fornyes
   overview.add-to-project: Legg til i prosjekt
-  overview.init-flash-msg: Utforsk arkivet ditt og legg til elementer i ditt neste prosjekt
   page: Side
   people.nn-recipent: >
     En mottaker er ikke en vanlig bruker og kan ikke logge inn eller bruke Caesura. De vil likevel
@@ -338,4 +323,3 @@ nb:
   upload.delete-mode: Slettemodus
   upload.filter-groups: Filtrer grupper
   upload.filter-groups-placeholder: Skriv for å filtrere
-  upload.init-flash-msg: Klar til å laste opp nye filer
