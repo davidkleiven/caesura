@@ -25,18 +25,36 @@ en:
   index.all-in-one: all in one place
   index.bullet.distribute: Distribute parts instantly — send to members by email
   index.bullet.effortless: Effortless score management
+  index.bullet.effortless-desc: >
+      Intuitive interface that makes managing your entire music
+      library effortless and enjoyable.
   index.bullet.organize: Organize pieces into projects — perfect for concerts, rehearsals, or tours
+  index.bullet.organize-desc: >
+    Smart organization tools help you categorize, tag, and find any
+    piece of music instantly.
   index.bullet.rbac: Role-based access for conductors and musicians
+  index.bullet.rbac-desc: >
+    Role-based access control ensures the right people have
+    the right permissions.
   index.bullet.rehersal: Rehearsal-ready from any device
+  index.bullet.reheral-desc: >
+    Accessibility-focused design lets you reach your music from anywhere —
+    perfect for rehearsals and performances
   index.bullet.scan-split: Scan splitting — upload a full score and assign parts
+  index.bullet.scan-split-desc: >
+    Advanced PDF processing lets you scan, split, and organize sheet
+    music automatically.
   index.bullet.secure: Secure cloud storage
+  index.bullet.secure-desc: Secure cloud storage safeguards and preserves your valuable music collection
   index.desc-footer: Say goodbye to scattered PDFs, last-minute emails, and missing parts.
   index.description: is the modern solution for orchestras, bands, and choirs to
   index.distribute: distribute music
+  index.everything-you-need: Everything You Need to Manage Your Music
   index.harmony: Harmony begins with structure
   index.let: Let
   index.logistics: handle the logistics — so you can focus on the music
   index.manage: manage
+  index.powerful-features: Powerful features designed for modern musical organizations
   index.post-caesura: your ensemble always has the
   index.purpose: Organize, share, and perform with confidence
   index.right-music: right music
@@ -181,19 +199,35 @@ nb:
   index.all-in-one: alt på ett sted
   index.bullet.distribute: Distribuer stemmer umiddelbart — send til medlemmer via e-post
   index.bullet.effortless: Enkel partiturhåndtering
+  index.bullet.effortless-desc: >
+    Brukervennlig grensesnitt som gjør det enkelt og behagelig å
+    administrere hele musikksamlingen din
   index.bullet.organize: Organiser stykker i prosjekter — perfekt for konserter, øvelser eller turnéer
+  index.bullet.organize-desc: >
+    Ryddige organiseringsverktøy hjelper deg med å kategorisere, merke og finne hvilken
+    som helst musikk umiddelbart
   index.bullet.rbac: Rollebasert tilgang for dirigenter og musikere
+  index.bullet.rbac-desc: >
+    Rollebassert tilgangskontroll sikrer at de rette personene har de riktige tillatelsene
   index.bullet.rehersal: Øvelsesklar fra hvilken som helst enhet
+  index.bullet.reheral-desc: >
+    Tilgjengelighetsfokusert design lar deg nå musikken din uansett hvor du er –
+    perfekt for øvelser og opptredener
   index.bullet.scan-split: Skann splitting — last opp et komplett partitur og tildel stemmer
+  index.bullet.scan-split-desc: >
+    Praktisk PDF-behandling lar deg skanne, dele og organisere noter automatisk
   index.bullet.secure: Sikker skylagring
+  index.bullet.secure-desc: Sikker skylagring beskytter og bevarer den verdifulle musikksamlingen din
   index.desc-footer: Si farvel til spredte PDF-filer, siste liten e-poster og manglende stemmer.
   index.description: er den moderne løsningen for orkestre, band og kor for å
   index.distribute: distribuere musikk
+  index.everything-you-need: Alt du trenger for å administrere ditt arkiv
   index.harmony: Harmoni begynner med struktur
   index.let: La
   index.logistics: håndtere logistikk — så du kan fokusere på musikken
   index.manage: administrer
   index.modern-solution: Moderne musikkadministrasjonsløsning
+  index.powerful-features: Et verktøy designet for moderne musikkorganisasjoner
   index.post-caesura: ditt ensemble har alltid
   index.purpose: Organiser, del og fremfør med selvtillit
   index.right-music: riktig musikk
