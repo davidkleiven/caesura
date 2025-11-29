@@ -12,85 +12,83 @@
   <body class="bg-gray-100">
     {{ template "header" . }}
     <!-- Page Content Placeholder -->
-    <div id="page-content" class="flex-col pt-16">
-      <form
-        id="recipent-form"
-        class="max-w-4xl mx-auto p-6 bg-white rounded-md shadow-md"
-      >
-        <label
-          for="recipent-form"
-          class="block mb-4 text-sm font-medium text-gray-700"
-        >
-          Register recipent:
-          <span
-            class="relative inline-block ml-1 group cursor-pointer align-middle"
+    <div id="page-content" class="flex-col pt-20">
+      <div class="container-max px-6">
+        <form id="recipent-form" class="card card-elevated max-w-4xl mx-auto">
+          <label
+            for="recipent-form"
+            class="block mb-4 text-sm font-medium text-gray-700"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="w-4 h-4 text-gray-500"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                fill-rule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.75a.75.75 0 10-1.5 0v1a.75.75 0 001.5 0v-1zM9.25 9a.75.75 0 011.5 0v4a.75.75 0 01-1.5 0V9z"
-                clip-rule="evenodd"
-              />
-            </svg>
-
+            Register recipent:
             <span
-              class="absolute z-10 bottom-full mb-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+              class="relative inline-block ml-1 group cursor-pointer align-middle"
             >
-              {{ T "people.nn-recipent" }}
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-4 h-4 text-gray-500"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fill-rule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-11.75a.75.75 0 10-1.5 0v1a.75.75 0 001.5 0v-1zM9.25 9a.75.75 0 011.5 0v4a.75.75 0 01-1.5 0V9z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+
+              <span
+                class="absolute z-10 bottom-full mb-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-gray-800 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+              >
+                {{ T "people.nn-recipent" }}
+              </span>
             </span>
-          </span>
-        </label>
+          </label>
 
-        <div class="flex flex-wrap gap-4">
-          <input
-            type="text"
-            id="email"
-            name="email"
-            placeholder="Enter email"
-            class="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            required
-          />
+          <div class="flex flex-wrap gap-4">
+            <input
+              type="text"
+              id="email"
+              name="email"
+              placeholder="Enter email"
+              class="input flex-1 min-w-[200px]"
+              required
+            />
 
-          <input
-            type="text"
-            id="name"
-            name="name"
-            placeholder="Enter name"
-            class="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
+            <input
+              type="text"
+              id="name"
+              name="name"
+              placeholder="Enter name"
+              class="input flex-1 min-w-[200px]"
+            />
 
-          <select
-            id="recipent-form-group-selector"
-            class="flex-1"
-            name="group"
-            hx-get="/instruments"
-            hx-trigger="load"
-            hx-target="this"
-            hx-swap="innerHTML"
-            ,
-            hx-vals='{"format": "options"}'
-          ></select>
+            <select
+              id="recipent-form-group-selector"
+              class="flex-1"
+              name="group"
+              hx-get="/instruments"
+              hx-trigger="load"
+              hx-target="this"
+              hx-swap="innerHTML"
+              ,
+              hx-vals='{"format": "options"}'
+            ></select>
 
-          <button
-            type="submit"
-            id="register-recipent-btn"
-            class="px-6 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors"
-            hx-post="/organizations/recipent"
-            hx-swap="innerHTML"
-            hx-target="#flashMessage"
-            hx-on::after-request="htmx.ajax('GET', '/organizations/users', {target: '#people-list', swap: 'innerHTML'})"
-            hx-on::401="Unauthorized: only admins can register a new recipent"
-          >
-            {{T "register" }}
-          </button>
-        </div>
-      </form>
+            <button
+              type="submit"
+              id="register-recipent-btn"
+              class="btn btn-primary"
+              hx-post="/organizations/recipent"
+              hx-swap="innerHTML"
+              hx-target="#flashMessage"
+              hx-on::after-request="htmx.ajax('GET', '/organizations/users', {target: '#people-list', swap: 'innerHTML'})"
+            >
+              {{T "register" }}
+            </button>
+          </div>
+        </form>
+      </div>
 
       <div
         class="mt-8 overflow-auto max-h-[70vh] rounded-2xl shadow-md border border-gray-200 pt-8"

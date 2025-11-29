@@ -13,8 +13,8 @@ import (
 func TestUpload(t *testing.T) {
 	index := Upload(&ScoreMetaData{}, "en")
 
-	if !bytes.Contains(index, []byte("Caesura</div>")) {
-		t.Fatal("Expected index to contain 'Caesura</div>'")
+	if !bytes.Contains(index, []byte("Composer")) {
+		t.Fatal("Expected index to contain 'Composer'")
 	}
 }
 

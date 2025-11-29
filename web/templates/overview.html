@@ -14,17 +14,20 @@
   <body class="bg-gray-100">
     {{ template "header" . }}
     <!-- Page Content Placeholder -->
-    <div id="page-content" class="flex-col pt-16">
-      <div class="flex items-center justify-center">
-        <p class="mr-2 font-semibold">{{T "search"}}:</p>
-        <input
-          type="text"
-          name="resource-filter"
-          hx-get="/overview/search"
-          hx-trigger="load, keyup changed delay:500ms"
-          hx-target="#piece-list"
-          placeholder='{{T "search-placholder"}}'
-        />
+    <div id="page-content" class="flex-col pt-20">
+      <div class="container-max px-6">
+        <div class="flex items-center justify-center mb-8">
+          <p class="mr-2 font-semibold">{{T "search"}}:</p>
+          <input
+            type="text"
+            name="resource-filter"
+            hx-get="/overview/search"
+            hx-trigger="load, keyup changed delay:500ms"
+            hx-target="#piece-list"
+            placeholder='{{T "search-placholder"}}'
+            class="input max-w-md"
+          />
+        </div>
       </div>
       {{ template "resource_table" . }}
       <button
@@ -32,7 +35,7 @@
         hx-get="/overview/project-selector"
         hx-trigger="click"
         hx-target="#project-selection-modal"
-        class="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+        class="btn btn-secondary mt-8"
       >
         {{T "overview.add-to-project" }}
       </button>
@@ -40,7 +43,7 @@
         type="button"
         id="distribute-btn"
         onclick="downloadParts(document, getCheckedIds())"
-        class="mt-8 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+        class="btn btn-primary mt-8"
       >
         {{ T "distribute"}}
       </button>
