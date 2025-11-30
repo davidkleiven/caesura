@@ -506,13 +506,8 @@ func TestSubmit(t *testing.T) {
 		assignPage(page, t)
 		populateMetaData(page, t)
 
-		if err := page.Locator("#submit-btn").Click(); err != nil {
-			t.Fatal(err)
-
-		}
-
 		waitOpts := playwright.PageExpectResponseOptions{Timeout: playwright.Float(5000)}
-		resp, err := page.ExpectResponse("**/resources**", func() error { return nil }, waitOpts)
+		resp, err := page.ExpectResponse("**/resources**", func() error { return page.Locator("#submit-btn").Click() }, waitOpts)
 		if err != nil {
 			t.Fatalf("Failed to submit form: %s", err)
 
