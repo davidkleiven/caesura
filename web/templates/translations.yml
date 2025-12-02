@@ -145,7 +145,11 @@ en:
     A recipient is not a regular user and cannot log in or use Caesura. However, they will still receive emails
     from Caesura like regular users.
   project: Project
+  project.created: Created
   project.downloadParts: "Download my sheet music"
+  project.numPieces: Num. pieces
+  project.title: Title
+  project.updated: Updated
   project-modal.select: Select Project
   project-modal.select-placeholder: Search or create project...
   project-modal.create-new: Create new project
@@ -305,7 +309,11 @@ nb:
     En mottaker er ikke en vanlig bruker og kan ikke logge inn eller bruke Caesura. De vil likevel
     motta e-poster fra Caesura som vanlige brukere.
   project: Prosjekt
+  project.created: Opprettet
   project.downloadParts: Last ned mine stemmer
+  project.numPieces: Antall stykker
+  project.title: Tittel
+  project.updated: Sist oppdatert
   project-modal.select: Velg prosjekt
   project-modal.select-placeholder: Søk eller opprett prosjekt...
   project-modal.create-new: Opprett nytt prosjekt
