@@ -65,7 +65,7 @@ func TestProjectQueryInput(t *testing.T) {
 func TestProjects(t *testing.T) {
 	projects := Projects("en")
 
-	if !bytes.Contains(projects, []byte("# pieces")) {
+	if !bytes.Contains(projects, []byte("Num. pieces")) {
 		t.Fatal("Expected projects to contain '# pieces'")
 	}
 }
