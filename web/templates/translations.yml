@@ -16,7 +16,6 @@ en:
   assignments: Assignments
   composer: Composer
   confirm: Confirm
-  distribute: Distribute
   duration: Duration
   email: Email
   free: Free
@@ -186,7 +185,6 @@ nb:
   assignments: Oppgaver
   composer: Komponist
   confirm: Bekreft
-  distribute: Distribuer
   duration: Varighet
   email: E-post
   free: Gratis
