@@ -97,10 +97,81 @@
               🎶 {{ T "index.sign-up" }}
             </a>
             <a href="/about" class="btn btn-secondary btn-lg"> Learn More </a>
+            <button
+              id="terms-and-contidions-btn"
+              onclick="showTermsModal()"
+              class="btn btn-outline btn-lg cursor-pointer"
+            >
+              <svg
+                class="w-5 h-5 mr-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                ></path>
+              </svg>
+              {{ T "terms-and-conditions" }}
+            </button>
           </div>
         </div>
       </div>
     </section>
+
+    <!-- Terms & Conditions Modal -->
+    <div
+      id="termsModal"
+      class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4"
+    >
+      <div
+        class="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden shadow-xl"
+      >
+        <div
+          class="bg-surface-900 text-white px-6 py-4 flex justify-between items-center"
+        >
+          <h3 class="text-xl font-semibold">{{ T "terms-and-conditions" }}</h3>
+          <button
+            onclick="closeTermsModal()"
+            class="text-white hover:text-gray-300 transition-colors"
+          >
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              ></path>
+            </svg>
+          </button>
+        </div>
+        <div class="p-6 overflow-y-auto max-h-[60vh]">
+          <div class="prose prose-sm max-w-none">
+            <pre
+              class="whitespace-pre-wrap text-sm text-surface-700 font-mono"
+              id="termsContent"
+            ></pre>
+          </div>
+        </div>
+        <div class="bg-surface-100 px-6 py-4 flex justify-end">
+          <button
+            id="close-btn"
+            onclick="closeTermsModal()"
+            class="btn btn-secondary"
+          >
+            {{ T "index.close" }}
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Features Section -->
     <section class="section-padding bg-surface">
@@ -329,5 +400,46 @@
 
     {{ template "footer" . }}
   </body>
+  <script>
+    // Terms & Conditions Modal functionality
+    function showTermsModal() {
+      const modal = document.getElementById("termsModal");
+      const content = document.getElementById("termsContent");
+
+      // Load terms content
+      fetch("/terms-conditions.txt")
+        .then((response) => response.text())
+        .then((text) => {
+          content.textContent = text;
+          modal.classList.remove("hidden");
+        })
+        .catch((error) => {
+          console.error("Error loading terms:", error);
+          content.textContent =
+            "Terms & Conditions could not be loaded at this time.";
+          modal.classList.remove("hidden");
+        });
+    }
+
+    function closeTermsModal() {
+      const modal = document.getElementById("termsModal");
+      modal.classList.add("hidden");
+    }
+
+    // Close modal when clicking outside
+    document.addEventListener("click", function (event) {
+      const modal = document.getElementById("termsModal");
+      if (event.target === modal) {
+        closeTermsModal();
+      }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        closeTermsModal();
+      }
+    });
+  </script>
   {{end}}
 </html>

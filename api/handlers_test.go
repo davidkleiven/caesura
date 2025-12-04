@@ -2796,3 +2796,31 @@ func TestAboutHandler(t *testing.T) {
 	AboutUs(rec, req)
 	testutils.AssertEqual(t, rec.Code, http.StatusOK)
 }
+
+func TestTermsAndConditions(t *testing.T) {
+	// Test that the static file server can serve the terms and conditions
+
+	// Create a test request
+	req := httptest.NewRequest("GET", "/terms-conditions.txt", nil)
+	w := httptest.NewRecorder()
+
+	// Serve the request
+	TermsAndConditions(w, req)
+
+	// Check the response
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	// Check that the content is not empty
+	content := w.Body.String()
+	if content == "" {
+		t.Error("Expected non-empty content")
+	}
+
+	// Check that the content contains expected text
+	expectedText := "Lumity AS"
+	if !strings.Contains(content, expectedText) {
+		t.Errorf("Expected content to contain '%s', but it didn't", expectedText)
+	}
+}

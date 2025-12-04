@@ -1,0 +1,43 @@
+Terms and Conditions
+
+Last updated: December 4, 2025
+
+1. Service Provider
+Caesura is a service provided by Lumity AS ("Lumity", "we", "us", or "our"). By using our service, you agree to these terms and conditions.
+
+2. Service Description
+Caesura is a Software as a Service (SaaS) application designed for music management by orchestras, bands, and choirs. We store and manage data on behalf of our users to facilitate efficient music organization and distribution.
+
+3. User Responsibilities
+As a user of Caesura, you are responsible for:
+- Maintaining the security of your account credentials
+- Ensuring that any content you upload or manage through our service complies with applicable laws and regulations
+- Providing accurate information when required
+
+4. Data Storage and Privacy
+- We store data on behalf of our users to provide the Caesura service
+- We implement reasonable security measures to protect your data
+- We do not claim ownership of your content
+- You retain rights to your original content and data
+
+5. Service Availability
+- We strive to maintain high service availability but cannot guarantee 100% uptime
+- We may perform maintenance that temporarily affects service availability
+- We are not liable for service interruptions beyond our reasonable control
+
+6. Limitation of Liability
+To the maximum extent permitted by law, Lumity AS shall not be liable for any indirect, incidental, special, or consequential damages resulting from your use of the Caesura service.
+
+7. Termination
+We reserve the right to terminate or suspend access to our service for users who violate these terms and conditions.
+
+8. Changes to Terms
+We may update these terms and conditions from time to time. Continued use of the service constitutes acceptance of any changes.
+
+9. Contact Information
+For questions about these terms and conditions, please contact Lumity AS.
+
+10. Governing Law
+These terms and conditions are governed by the laws of Norway and any disputes shall be resolved in accordance with Norwegian law.
+
+By using Caesura, you acknowledge that you have read, understood, and agree to be bound by these terms and conditions.
