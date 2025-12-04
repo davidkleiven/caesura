@@ -1256,6 +1256,12 @@ func AboutUs(w http.ResponseWriter, r *http.Request) {
 	web.AboutUsPage(w, lang)
 }
 
+func TermsAndConditions(w http.ResponseWriter, r *http.Request) {
+	lang := pkg.LanguageFromReq(r)
+	web.TermsAndConditionsContent(w, lang)
+
+}
+
 func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
 	sessionOpt := config.SessionOpts()
 	readRoute := RequireRead(cookieStore, sessionOpt)
@@ -1269,6 +1275,7 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.HandleFunc("/", RootHandler)
 	mux.HandleFunc("/upload", UploadHandler)
 	mux.Handle("/css/", web.CssServer())
+	mux.HandleFunc("/terms-conditions.txt", TermsAndConditions)
 	mux.HandleFunc("/instruments", InstrumentSearchHandler)
 	mux.HandleFunc("/choice", ChoiceHandler)
 	mux.HandleFunc("/js/pdf-viewer.js", JsHandler)

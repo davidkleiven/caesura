@@ -1,0 +1,59 @@
+Vilkår og betingelser
+
+Sist oppdatert: 4. desember 2025
+
+1. Tjenesteleverandør
+
+Caesura er en tjeneste levert av Lumity AS ("Lumity", "vi", "oss" eller "vår"). Ved å bruke vår tjeneste godtar du disse vilkårene og betingelsene.
+
+2. Tjenestebeskrivelse
+
+Caesura er en programvare som en tjeneste (SaaS) utviklet for musikkadministrasjon for orkestre, korps og kor. Vi lagrer og behandler data på vegne av våre brukere for å legge til rette for effektiv organisering og distribusjon av musikk.
+
+3. Brukerens ansvar
+
+Som bruker av Caesura er du ansvarlig for:
+
+Å opprettholde sikkerheten til dine kontopåloggingsopplysninger
+
+Å sørge for at innhold du laster opp eller administrerer gjennom tjenesten overholder gjeldende lover og regler
+
+Å gi korrekte og oppdaterte opplysninger når det er nødvendig
+
+4. Databehandling og personvern
+
+Vi lagrer data på vegne av våre brukere for å kunne levere Caesura-tjenesten
+
+Vi implementerer rimelige sikkerhetstiltak for å beskytte dine data
+
+Vi gjør ikke krav på eierskap til ditt innhold
+
+Du beholder alle rettigheter til ditt originale innhold og dine data
+
+5. Tjenestetilgjengelighet
+
+Vi tilstreber høy tilgjengelighet, men kan ikke garantere 100 % oppetid
+
+Vedlikeholdsarbeid kan midlertidig påvirke tjenestens tilgjengelighet
+
+Vi er ikke ansvarlige for avbrudd i tjenesten som ligger utenfor vår rimelige kontroll
+
+6. Ansvarsbegrensning
+
+Så langt loven tillater det, skal Lumity AS ikke holdes ansvarlig for indirekte, tilfeldige, spesielle eller følgeskader som oppstår som følge av din bruk av Caesura-tjenesten.
+
+7. Oppsigelse
+
+Vi forbeholder oss retten til å avslutte eller suspendere tilgangen til tjenesten for brukere som bryter disse vilkårene og betingelsene.
+
+8. Endringer i vilkårene
+
+Vi kan oppdatere disse vilkårene fra tid til annen. Videre bruk av tjenesten innebærer at du godtar eventuelle endringer.
+
+9. Kontaktinformasjon
+
+For spørsmål om disse vilkårene og betingelsene, vennligst kontakt Lumity AS.
+
+10. Lovvalg
+
+Disse vilkårene og betingelsene er underlagt norsk lov, og eventuelle tvister skal løses i henhold til norsk rett.

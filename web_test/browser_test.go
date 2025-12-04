@@ -619,3 +619,40 @@ func TestSignOutFromFrontPage(t *testing.T) {
 		testutils.AssertNil(t, err)
 	}, "/")(t)
 }
+
+func TestTermsAndConditionAppearOnClick(t *testing.T) {
+	withBrowser(func(t *testing.T, page playwright.Page) {
+		btn := page.Locator("#terms-and-contidions-btn")
+		page.SetViewportSize(1920, 1080)
+		termsModal := page.Locator("#termsModal")
+		isHidden, err := termsModal.IsHidden()
+
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, isHidden, true)
+
+		timeout := playwright.PageExpectResponseOptions{Timeout: playwright.Float(1000.0)}
+		_, err = page.ExpectResponse("**/terms-conditions**", func() error { return btn.Click() }, timeout)
+		testutils.AssertNil(t, err)
+
+		isHidden, err = termsModal.IsHidden()
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, isHidden, false)
+
+		closeBtn := page.Locator("#close-btn")
+		count, err := closeBtn.Count()
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, count, 1)
+
+		err = closeBtn.WaitFor(playwright.LocatorWaitForOptions{State: playwright.WaitForSelectorStateVisible, Timeout: playwright.Float(1000.0)})
+		testutils.AssertNil(t, err)
+
+		err = closeBtn.Click()
+		testutils.AssertNil(t, err)
+
+		err = termsModal.WaitFor(playwright.LocatorWaitForOptions{State: playwright.WaitForSelectorStateHidden, Timeout: playwright.Float(1000.0)})
+
+		isHidden, err = termsModal.IsHidden()
+		testutils.AssertNil(t, err)
+		testutils.AssertEqual(t, isHidden, true)
+	}, "/")(t)
+}

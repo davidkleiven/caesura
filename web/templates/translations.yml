@@ -44,6 +44,7 @@ en:
     music automatically.
   index.bullet.secure: Secure cloud storage
   index.bullet.secure-desc: Secure cloud storage safeguards and preserves your valuable music collection
+  index.close: Close
   index.desc-footer: Say goodbye to scattered PDFs, last-minute emails, and missing parts.
   index.description: is the modern solution for orchestras, bands, and choirs to
   index.distribute: distribute music
@@ -161,6 +162,7 @@ en:
   sign-in: Sign in
   signed-in: Signed in
   tags: Tags
+  terms-and-conditions: Terms & Conditions
   title: Title
   upload.click-to-jump: Click to jump
   upload.delete-mode: Delete mode
@@ -211,6 +213,7 @@ nb:
     Praktisk PDF-behandling lar deg skanne, dele og organisere noter automatisk
   index.bullet.secure: Sikker skylagring
   index.bullet.secure-desc: Sikker skylagring beskytter og bevarer den verdifulle musikksamlingen din
+  index.close: Lukk
   index.desc-footer: Si farvel til spredte PDF-filer, siste liten e-poster og manglende stemmer.
   index.description: er den moderne løsningen for orkestre, band og kor for å
   index.distribute: distribuere musikk
@@ -324,6 +327,7 @@ nb:
   sign-in: Logg inn
   signed-in: Logget inn
   tags: Tagger
+  terms-and-conditions: Brukervilkår
   title: Tittel
   upload.click-to-jump: Klikk for å hoppe
   upload.delete-mode: Slettemodus
