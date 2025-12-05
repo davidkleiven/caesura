@@ -257,3 +257,13 @@ func TestSuccessFullDecryption(t *testing.T) {
 	testutils.AssertNil(t, err)
 	testutils.AssertEqual(t, res.BrevoApiKey, "very-secret-key")
 }
+
+func TestGetMaxNumScoresUnknownPriceId(t *testing.T) {
+	priceIds := NewTestPriceIds()
+	testutils.AssertEqual(t, priceIds.NumScores("unknown-price-id"), 10)
+}
+
+func TestGetMaxNumScores(t *testing.T) {
+	priceIds := NewTestPriceIds()
+	testutils.AssertEqual(t, priceIds.NumScores(priceIds.Free), 10)
+}

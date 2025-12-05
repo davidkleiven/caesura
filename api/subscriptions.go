@@ -18,23 +18,9 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type StripePriceId string
-
-const (
-	FreePriceId    StripePriceId = "price_1RvOBAF9NBcrR1kwWkhZVwwX"
-	MonthlyPriceId StripePriceId = "price_1RvOAWF9NBcrR1kwDySNEUFE"
-	AnnualPriceId  StripePriceId = "price_1RvObkF9NBcrR1kwBHiYsagO"
-)
-
-var MaxNumScores = map[StripePriceId]int{
-	FreePriceId:    10,
-	MonthlyPriceId: 500,
-	AnnualPriceId:  500,
-}
-
 const SubscriptionWriteAllowed = "subscriptionWriteAllowed"
 
-func createCheckoutSessionParams(domain string, orgId string, priceId StripePriceId) *stripe.CheckoutSessionParams {
+func createCheckoutSessionParams(domain string, orgId string, priceId string) *stripe.CheckoutSessionParams {
 	return &stripe.CheckoutSessionParams{
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
@@ -47,7 +33,7 @@ func createCheckoutSessionParams(domain string, orgId string, priceId StripePric
 		CancelURL:  stripe.String(domain + "/organizations"),
 		Metadata: map[string]string{
 			"orgId":   orgId,
-			"priceId": string(priceId),
+			"priceId": priceId,
 		},
 	}
 }
@@ -63,8 +49,9 @@ func checkoutSessionHandler(config *pkg.Config) http.HandlerFunc {
 			http.Error(w, err.Error(), code)
 			return
 		}
+		priceId := config.GetPriceIds()
 
-		items := createCheckoutSessionParams(config.BaseURL, orgId, priceId(r.FormValue("subscription-plan")))
+		items := createCheckoutSessionParams(config.BaseURL, orgId, priceId.PriceIdFromSubscriptionPlan(r.FormValue("subscription-plan")))
 
 		s, err := session.New(items)
 		if err != nil {
@@ -78,20 +65,9 @@ func checkoutSessionHandler(config *pkg.Config) http.HandlerFunc {
 	}
 }
 
-func priceId(item string) StripePriceId {
-	switch item {
-	case "monthly":
-		return MonthlyPriceId
-	case "annual":
-		return AnnualPriceId
-	default:
-		return FreePriceId
-	}
-}
-
 type StripeMetadata struct {
-	OrgId   string        `json:"orgId"`
-	PriceId StripePriceId `json:"priceId"`
+	OrgId   string `json:"orgId"`
+	PriceId string `json:"priceId"`
 }
 
 func stripeWebhookHandler(store pkg.SubscriptionStorer, config *pkg.Config) http.HandlerFunc {
@@ -114,6 +90,8 @@ func stripeWebhookHandler(store pkg.SubscriptionStorer, config *pkg.Config) http
 			return
 		}
 
+		priceIds := config.GetPriceIds()
+
 		switch event.Type {
 		case "invoice.payment_succeeded":
 			var invoice stripe.Invoice
@@ -129,14 +107,15 @@ func stripeWebhookHandler(store pkg.SubscriptionStorer, config *pkg.Config) http
 			ctx, cancel := context.WithTimeout(r.Context(), config.Timeout)
 			defer cancel()
 
-			priceId := priceIdFromInvoice(&invoice)
+			defaultPriceId := priceIds.Annual
+			priceId := priceIdFromInvoice(&invoice, defaultPriceId)
 
 			subscription := pkg.Subscription{
 				Id:        invoice.ID,
 				PriceId:   string(priceId),
 				Created:   time.Now(),
 				Expires:   time.Unix(invoice.PeriodEnd, 0),
-				MaxScores: getMaxNumScores(priceId),
+				MaxScores: priceIds.NumScores(priceId),
 			}
 
 			customer := invoice.Customer
@@ -269,39 +248,30 @@ func (s *SubscriptionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func priceIdFromInvoice(invoice *stripe.Invoice) StripePriceId {
+func priceIdFromInvoice(invoice *stripe.Invoice, defaultPrice string) string {
 	lines := invoice.Lines
 	if lines == nil {
 		slog.Error("Received invoice with no lines", "invoice", invoice)
-		return AnnualPriceId
+		return defaultPrice
 	}
 	items := lines.Data
 	if len(items) == 0 {
 		slog.Error("Received invoice with no content", "invoice", invoice)
 
 		// We are nice, so we offer the customers experiencing the error an annual subscription
-		return AnnualPriceId
+		return defaultPrice
 	}
 	item := items[0]
 	pricing := item.Pricing
 	if pricing == nil {
 		slog.Error("Received invoice with no pricing information", "invoice", invoice)
-		return AnnualPriceId
+		return defaultPrice
 	}
 
 	details := pricing.PriceDetails
 	if details == nil {
 		slog.Error("Received invoice with no PriceDetails information", "invoice", invoice)
-		return AnnualPriceId
+		return defaultPrice
 	}
-	return StripePriceId(details.Price)
-}
-
-func getMaxNumScores(priceId StripePriceId) int {
-	value, ok := MaxNumScores[priceId]
-	if !ok {
-		slog.Error("Invalid price id", "priceId", value)
-		return MaxNumScores[AnnualPriceId]
-	}
-	return value
+	return details.Price
 }

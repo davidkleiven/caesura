@@ -55,6 +55,44 @@ type GoogleClientContainer struct {
 	CloudStoreClient *storage.Client
 }
 
+type PriceIds struct {
+	Free    string
+	Monthly string
+	Annual  string
+}
+
+func (p *PriceIds) NumScores(priceId string) int {
+	switch priceId {
+	case p.Monthly, p.Annual:
+		return 500
+	default:
+		return 10
+	}
+}
+
+func (p *PriceIds) PriceIdFromSubscriptionPlan(plan string) string {
+	switch plan {
+	case "monthly":
+		return p.Monthly
+	case "annual":
+		return p.Annual
+	default:
+		return p.Free
+	}
+}
+
+func NewTestPriceIds() *PriceIds {
+	return &PriceIds{
+		Free:    "price_1RvOBAF9NBcrR1kwWkhZVwwX",
+		Monthly: "price_1RvOAWF9NBcrR1kwDySNEUFE",
+		Annual:  "price_1RvObkF9NBcrR1kwBHiYsagO",
+	}
+}
+
+func NewProdPriceIds() *PriceIds {
+	return &PriceIds{}
+}
+
 type Config struct {
 	StoreType                string                `yaml:"store_type" env:"CAESURA_STORE_TYPE"`
 	LocalFS                  LocalFSStoreConfig    `yaml:"local_fs"`
@@ -135,6 +173,15 @@ func (c *Config) GetPortalSessionProvider() BillingPortalSessionProvider {
 		return &FixedPortalSessionProvider{Url: "http://customer-portal.no"}
 	default:
 		return &StripeBillingSessionProvider{ApiKey: c.StripeSecretKey}
+	}
+}
+
+func (c *Config) GetPriceIds() *PriceIds {
+	switch c.GoogleCfg.Environment {
+	case "prod":
+		return NewProdPriceIds()
+	default:
+		return NewTestPriceIds()
 	}
 }
 
