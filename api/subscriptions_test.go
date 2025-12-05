@@ -452,28 +452,21 @@ func TestSubscriptions(t *testing.T) {
 }
 
 func TestPriceIdFromInvoice(t *testing.T) {
+	priceIds := pkg.NewTestPriceIds()
 	invoice := stripe.Invoice{}
-	testutils.AssertEqual(t, priceIdFromInvoice(&invoice), AnnualPriceId)
+	testutils.AssertEqual(t, priceIdFromInvoice(&invoice, priceIds.Annual), priceIds.Annual)
 
 	invoice.Lines = &stripe.InvoiceLineItemList{}
-	testutils.AssertEqual(t, priceIdFromInvoice(&invoice), AnnualPriceId)
+	testutils.AssertEqual(t, priceIdFromInvoice(&invoice, priceIds.Annual), priceIds.Annual)
 
 	invoice.Lines.Data = []*stripe.InvoiceLineItem{{}}
-	testutils.AssertEqual(t, priceIdFromInvoice(&invoice), AnnualPriceId)
+	testutils.AssertEqual(t, priceIdFromInvoice(&invoice, priceIds.Annual), priceIds.Annual)
 
 	invoice.Lines.Data[0].Pricing = &stripe.InvoiceLineItemPricing{}
-	testutils.AssertEqual(t, priceIdFromInvoice(&invoice), AnnualPriceId)
+	testutils.AssertEqual(t, priceIdFromInvoice(&invoice, priceIds.Annual), priceIds.Annual)
 
-	invoice.Lines.Data[0].Pricing.PriceDetails = &stripe.InvoiceLineItemPricingPriceDetails{Price: string(MonthlyPriceId)}
-	testutils.AssertEqual(t, priceIdFromInvoice(&invoice), MonthlyPriceId)
-}
-
-func TestGetMaxNumScoresUnknownPriceId(t *testing.T) {
-	testutils.AssertEqual(t, getMaxNumScores("unknown-price-id"), 500)
-}
-
-func TestGetMaxNumScores(t *testing.T) {
-	testutils.AssertEqual(t, getMaxNumScores(FreePriceId), 10)
+	invoice.Lines.Data[0].Pricing.PriceDetails = &stripe.InvoiceLineItemPricingPriceDetails{Price: priceIds.Monthly}
+	testutils.AssertEqual(t, priceIdFromInvoice(&invoice, priceIds.Annual), priceIds.Monthly)
 }
 
 func TestGetCustomerIdFromStripe(t *testing.T) {
