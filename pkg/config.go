@@ -64,7 +64,7 @@ type PriceIds struct {
 func (p *PriceIds) NumScores(priceId string) int {
 	switch priceId {
 	case p.Monthly, p.Annual:
-		return 500
+		return 50000
 	default:
 		return 10
 	}
