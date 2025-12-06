@@ -75,7 +75,13 @@ func (rl *RateLimiter) Cleanup() {
 		}
 	}
 
-	slog.Info("Current maximum request count in rate limiter", "ip", maxIpAddr, "count", maxCount, "fillRate", maxCount/rl.MaxNumRequests)
+	slog.Info(
+		"Current maximum request count in rate limiter",
+		"ip", maxIpAddr,
+		"count", maxCount,
+		"fillRate", maxCount/rl.MaxNumRequests,
+		"numTrackedAddresses", len(rl.RequestCount),
+	)
 }
 
 func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
