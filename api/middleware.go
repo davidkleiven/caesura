@@ -21,7 +21,7 @@ func LogRequest(handler http.Handler) http.Handler {
 
 		// Populate context with meta information
 		ctx := context.WithValue(r.Context(), pkg.ReqIdKey, pkg.RandomInsecureID())
-		ctx = context.WithValue(ctx, pkg.HostKey, r.Host)
+		ctx = context.WithValue(ctx, pkg.HostKey, r.RemoteAddr)
 
 		// You can replace this with your logging mechanism
 		slog.InfoContext(ctx, "Received request", "method", method, "url", url, "accept", acceptHeaders, "accept-encoding", acceptEncoding)
