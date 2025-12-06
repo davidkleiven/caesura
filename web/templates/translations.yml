@@ -1,8 +1,7 @@
 en:
+  about.best-value: Best value
   about.caesura-free: Basic access to explore Caesura features for free. Store up to 10 scores.
-  about.caesura-monthly: >
-    Enjoy all features with a flexible monthly subscription.
-    You can store up to 500 scores, and if you need more, simply send us an email and we’ll handle it.
+  about.caesura-monthly: Enjoy all features with a flexible monthly subscription.
   about.caesura-annual: Best value! Pay once for a full year of Caesura features
   about.get-started: Get started
   about.month: month
@@ -10,6 +9,24 @@ en:
   about.contact: Contact Information
   about.website: Website
   about.year: year
+  about.plans-desc: >
+    All plans include core features. Choose based on your storage and
+    collaboration needs.
+  about.choose-plan: >
+    Choose the perfect plan for your musical organization. Start free,
+    upgrade when you're ready.
+  about.up-to-score: Up to 10 scores
+  about.collaboration: Collaboration tools
+  about.featured: Most flexible
+  about.unlimited: Unlimited scores
+  about.priority: Priotity Support
+  about.save: Save 158 NOK per year
+  about.mobile: Mobile access
+  about.money-back: 30-day money-back guarantee
+  about.questions: >
+    Have questions? We're here to help you choose the perfect plan for
+    your organization.
+  about.email-us: Email us
   annual: Annual
   assign: Assign
   arranger: Arranger
@@ -170,17 +187,34 @@ en:
   upload.filter-groups-placeholder: Type to filter
 
 nb:
+  about.best-value: Billigst
   about.caesura-free: Grunnleggende tilgang for å utforske Caesura. Du kan lagre opp til 10 notesett
   about.caesura-monthly: >
-    Tilgang til alle funksjoner med et fleksibelt månedlig abonnement. Du kan lagre opptil 500
-    notesett, og hvis du trenger flere, kan du bare sende oss en e-post, så ordner vi det
+    Tilgang til alle funksjoner med et fleksibelt månedlig abonnement.
   about.caesura-annual: Beste verdi! Betal én gang for ett helt år med Caesura-funksjoner.
   about.get-started: Kom i gang
   about.month: måned
   about.products: Produkter og priser
   about.contact: Kontaktinformasjon
+  about.plans-desc: >
+    Alle abonnementer inkluderer grunnleggende funksjoner.
+    Velg basert på dine behov for lagring og samarbeid
+  about.choose-plan: >
+    Velg det perfekte abonnementet for din musikkorganisasjon.
+    Start gratis og oppgrader når du er klar.
+  about.up-to-score: Inntil 10 sett
+  about.collaboration: Samarbeidsverktøy
+  about.featured: Mest fleksibelt
+  about.mobile: Tilgang fra mobil
+  about.money-back: 30 dagers åpent kjøp
   about.website: Nettside
   about.year: År
+  about.unlimited: Ubegrenset antall
+  about.priority: Prioritert hjelp
+  about.save: Spar 158 NOK per år
+  about.questions: >
+    Spørsmål? Send gjerne en epost så hjelper vi deg med å finne det riktige abonnenementet
+  about.email-us: Epost
   annual: Årlig
   assign: Tildel
   arranger: Arrangør
