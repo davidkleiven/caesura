@@ -120,6 +120,7 @@ type Config struct {
 	EmailDeliveryService     string                `yaml:"email_delivery_service" env:"CAESURA_EMAIL_DELIVERY_SERVICE"`
 	GoogleCfg                GoogleConfig          `yaml:"google_config"`
 	PortalSessionProvider    string                `yaml:"portal_session_provider"`
+	MaxNumRequestsPerMinute  float64               `yaml:"max_num_requests_per_minute"`
 	Transport                http.RoundTripper     `yaml:"-"`
 	GoogleClients            GoogleClientContainer `yaml:"-"`
 }
@@ -202,6 +203,7 @@ func NewDefaultConfig() *Config {
 		SmtpConfig: Smtp{
 			SendFn: smtp.SendMail,
 		},
+		MaxNumRequestsPerMinute: 120.0,
 	}
 }
 

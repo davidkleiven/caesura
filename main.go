@@ -61,13 +61,18 @@ func main() {
 	mux := api.Setup(pkg.GetStore(config), config, cookieStore)
 	stripe.Key = config.StripeSecretKey
 
+	rateLimiter := api.NewRateLimiter(config.MaxNumRequestsPerMinute, time.Minute)
+
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", config.Port),
-		Handler: api.LogRequest(mux),
+		Handler: rateLimiter.Middleware(api.LogRequest(mux)),
 	}
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+
+	cancelCtx, doCancel := context.WithCancel(context.Background())
+	defer doCancel()
 
 	go func() {
 		slog.Info("Starting server", "port", config.Port)
@@ -75,6 +80,19 @@ func main() {
 			slog.Error("Server failed", "error", err)
 		}
 	}()
+
+	go func(ctx context.Context) {
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				rateLimiter.Cleanup()
+			case <-ctx.Done():
+				slog.Info("Stopping rate limiter cleanup")
+			}
+		}
+	}(cancelCtx)
 
 	<-stop
 	slog.Info("Shutting down server")
