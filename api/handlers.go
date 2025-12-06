@@ -1262,6 +1262,56 @@ func TermsAndConditions(w http.ResponseWriter, r *http.Request) {
 
 }
 
+const (
+	RouteRoot                          = "/"
+	RouteUpload                        = "/upload"
+	RouteCss                           = "/css/"
+	RouteTermsConditions               = "/terms-conditions.txt"
+	RouteInstruments                   = "/instruments"
+	RouteChoice                        = "/choice"
+	RouteJsPdfViewer                   = "/js/pdf-viewer.js"
+	RouteDeleteMode                    = "/delete-mode"
+	RouteOverview                      = "/overview"
+	RouteOverviewSearch                = "/overview/search"
+	RouteOverviewProjectSelector       = "/overview/project-selector"
+	RouteProjectQueryInput             = "/project-query-input"
+	RouteProjects                      = "/projects"
+	RouteProjectsNames                 = "/projects/names"
+	RouteProjectsInfo                  = "/projects/info"
+	RouteProjectsId                    = "/projects/{id}"
+	RouteResources                     = "/resources"
+	RouteResourcesId                   = "/resources/{id}"
+	RouteResourcesIdContent            = "/resources/{id}/content"
+	RouteResourcesIdSubmitForm         = "/resources/{id}/submit-form"
+	RouteResourcesParts                = "/resources/parts"
+	RouteLogin                         = "/login"
+	RouteLoginGoogle                   = "/login/google"
+	RouteLoginBasic                    = "/login/basic"
+	RouteLoginReset                    = "/login/reset"
+	RouteLoginResetForm                = "/login/reset/form"
+	RouteLogout                        = "/logout"
+	RouteAuthCallback                  = "/auth/callback"
+	RouteOrganizations                 = "/organizations"
+	RouteOrganizationsForm             = "/organizations/form"
+	RouteOrganizationsIdInvite         = "/organizations/{id}/invite"
+	RouteOrganizationsOptions          = "/organizations/options"
+	RouteOrganizationsActiveSession    = "/organizations/active/session"
+	RouteOrganizationsUsers            = "/organizations/users"
+	RouteOrganizationsUsersId          = "/organizations/users/{id}"
+	RouteOrganizationsUsersIdGroups    = "/organizations/users/{id}/groups"
+	RouteOrganizationsUsersIdRole      = "/organizations/users/{id}/role"
+	RouteOrganizationsRecipent         = "/organizations/recipent"
+	RouteSessionActiveOrganizationName = "/session/active-organization/name"
+	RouteSessionLoggedIn               = "/session/logged-in"
+	RoutePeople                        = "/people"
+	RouteSubscriptionPage              = "/subscription-page"
+	RouteSubscription                  = "/subscription"
+	RoutePayment                       = "/payment"
+	RouteAbout                         = "/about"
+	RouteCustomerPortal                = "/customer-portal"
+	RoutePassword                      = "/password"
+)
+
 func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStore) *http.ServeMux {
 	sessionOpt := config.SessionOpts()
 	readRoute := RequireRead(cookieStore, sessionOpt)
@@ -1272,70 +1322,70 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	userInfoRoute := RequireUserInfo(cookieStore, sessionOpt) // Require the info about user, but nessecarily a active orgId
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", RootHandler)
-	mux.HandleFunc("/upload", UploadHandler)
-	mux.Handle("/css/", web.CssServer())
-	mux.HandleFunc("/terms-conditions.txt", TermsAndConditions)
-	mux.HandleFunc("/instruments", InstrumentSearchHandler)
-	mux.HandleFunc("/choice", ChoiceHandler)
-	mux.HandleFunc("/js/pdf-viewer.js", JsHandler)
-	mux.HandleFunc("/delete-mode", DeleteMode)
+	mux.HandleFunc(RouteRoot, RootHandler)
+	mux.HandleFunc(RouteUpload, UploadHandler)
+	mux.Handle(RouteCss, web.CssServer())
+	mux.HandleFunc(RouteTermsConditions, TermsAndConditions)
+	mux.HandleFunc(RouteInstruments, InstrumentSearchHandler)
+	mux.HandleFunc(RouteChoice, ChoiceHandler)
+	mux.HandleFunc(RouteJsPdfViewer, JsHandler)
+	mux.HandleFunc(RouteDeleteMode, DeleteMode)
 
-	mux.HandleFunc("/overview", OverviewHandler)
-	mux.Handle("/overview/search", readRoute(OverviewSearchHandler(store, config.Timeout)))
-	mux.HandleFunc("/overview/project-selector", ProjectSelectorModalHandler)
+	mux.HandleFunc(RouteOverview, OverviewHandler)
+	mux.Handle(RouteOverviewSearch, readRoute(OverviewSearchHandler(store, config.Timeout)))
+	mux.HandleFunc(RouteOverviewProjectSelector, ProjectSelectorModalHandler)
 
-	mux.HandleFunc("/project-query-input", ProjectQueryInputHandler)
+	mux.HandleFunc(RouteProjectQueryInput, ProjectQueryInputHandler)
 	mux.Handle("/js/", web.JsServer())
 
-	mux.HandleFunc("GET /projects", ProjectHandler)
-	mux.Handle("GET /projects/names", readRoute(SearchProjectHandler(store, config.Timeout)))
-	mux.Handle("GET /projects/info", readRoute(SearchProjectListHandler(store, config.Timeout)))
-	mux.Handle("GET /projects/{id}", readRoute(ProjectByIdHandler(store, config.Timeout)))
-	mux.Handle("POST /projects", writeRoute(ProjectSubmitHandler(store, config.Timeout)))
+	mux.HandleFunc("GET "+RouteProjects, ProjectHandler)
+	mux.Handle("GET "+RouteProjectsNames, readRoute(SearchProjectHandler(store, config.Timeout)))
+	mux.Handle("GET "+RouteProjectsInfo, readRoute(SearchProjectListHandler(store, config.Timeout)))
+	mux.Handle("GET "+RouteProjectsId, readRoute(ProjectByIdHandler(store, config.Timeout)))
+	mux.Handle("POST "+RouteProjects, writeRoute(ProjectSubmitHandler(store, config.Timeout)))
 	mux.Handle("DELETE /projects/{projectId}/{resourceId}", writeRoute(RemoveFromProject(store, config.Timeout)))
 
-	mux.Handle("GET /resources/{id}", readRoute(ResourceDownload(store, config.Timeout)))
-	mux.Handle("GET /resources/{id}/content", readRoute(ResourceContentByIdHandler(store, config.Timeout)))
-	mux.Handle("GET /resources/{id}/submit-form", readRoute(AddToResourceHandler(store, config.Timeout)))
-	mux.Handle("POST /resources", writeRoute(SubmitHandler(store, config.Timeout, int(config.MaxRequestSizeMb))))
-	mux.Handle("POST /resources/parts", writeRoute(DownloadUserParts(store, config)))
+	mux.Handle("GET "+RouteResourcesId, readRoute(ResourceDownload(store, config.Timeout)))
+	mux.Handle("GET "+RouteResourcesIdContent, readRoute(ResourceContentByIdHandler(store, config.Timeout)))
+	mux.Handle("GET "+RouteResourcesIdSubmitForm, readRoute(AddToResourceHandler(store, config.Timeout)))
+	mux.Handle("POST "+RouteResources, writeRoute(SubmitHandler(store, config.Timeout, int(config.MaxRequestSizeMb))))
+	mux.Handle("POST "+RouteResourcesParts, writeRoute(DownloadUserParts(store, config)))
 
 	oauthCfg := config.OAuthConfig()
 	requireAuthSession := RequireSession(cookieStore, AuthSession, sessionOpt)
-	mux.Handle("/login", requireAuthSession(http.HandlerFunc(LoginHandler)))
-	mux.Handle("/login/google", requireAuthSession(HandleGoogleLogin(oauthCfg)))
-	mux.Handle("/login/basic", requireAuthSession(LoginByPassword(store, config.CookieSecretSignKey, config.Timeout)))
-	mux.Handle("POST /login/reset", ResetPasswordEmail(config))
-	mux.Handle("POST /logout", requireAuthSession(http.HandlerFunc(SignOut)))
-	mux.Handle("GET /login/reset/form", requireAuthSession(http.HandlerFunc(ResetPasswordForm)))
-	mux.Handle("PUT /password", requireAuthSession(UpdatePassword(store, config.CookieSecretSignKey, config.Timeout)))
-	mux.Handle("/auth/callback", requireAuthSession(HandleGoogleCallback(store, oauthCfg, config.Timeout, config.CookieSecretSignKey, config.Transport)))
+	mux.Handle(RouteLogin, requireAuthSession(http.HandlerFunc(LoginHandler)))
+	mux.Handle(RouteLoginGoogle, requireAuthSession(HandleGoogleLogin(oauthCfg)))
+	mux.Handle(RouteLoginBasic, requireAuthSession(LoginByPassword(store, config.CookieSecretSignKey, config.Timeout)))
+	mux.Handle("POST "+RouteLoginReset, ResetPasswordEmail(config))
+	mux.Handle("POST "+RouteLogout, requireAuthSession(http.HandlerFunc(SignOut)))
+	mux.Handle("GET "+RouteLoginResetForm, requireAuthSession(http.HandlerFunc(ResetPasswordForm)))
+	mux.Handle("PUT "+RoutePassword, requireAuthSession(UpdatePassword(store, config.CookieSecretSignKey, config.Timeout)))
+	mux.Handle(RouteAuthCallback, requireAuthSession(HandleGoogleCallback(store, oauthCfg, config.Timeout, config.CookieSecretSignKey, config.Transport)))
 
-	mux.HandleFunc("GET /organizations/form", OrganizationsHandler)
-	mux.Handle("POST /organizations", signedInRoute(OrganizationRegisterHandler(store, config.GetStripeIdProvider(), config.Timeout)))
-	mux.Handle("DELETE /organizations", adminWithoutSubscription(DeleteOrganizationHandler(store, config.Timeout)))
-	mux.Handle("GET /organizations/{id}/invite", adminWithoutSubscription(InviteLink(config.BaseURL, config.CookieSecretSignKey)))
-	mux.Handle("GET /organizations/options", userInfoRoute(OptionsFromSessionHandler(store, config.Timeout)))
-	mux.Handle("GET /organizations/active/session", userInfoRoute(http.HandlerFunc(ChosenOrganizationSessionHandler)))
-	mux.Handle("GET /organizations/users", readRoute(AllUsers(store, config.Timeout)))
-	mux.Handle("DELETE /organizations/users/{id}", adminWithoutSubscription(DeleteUserFromOrg(store, config.Timeout)))
-	mux.Handle("POST /organizations/recipent", adminWithoutSubscription(RegisterRecipent(store, config.Timeout)))
-	mux.Handle("POST /organizations/users/{id}/groups", readRoute(GroupHandler(store, config.Timeout)))
-	mux.Handle("DELETE /organizations/users/{id}/groups", readRoute(GroupHandler(store, config.Timeout)))
-	mux.Handle("POST /organizations/users/{id}/role", adminWithoutSubscription(AssignRoleHandler(store, config.Timeout)))
+	mux.HandleFunc("GET "+RouteOrganizationsForm, OrganizationsHandler)
+	mux.Handle("POST "+RouteOrganizations, signedInRoute(OrganizationRegisterHandler(store, config.GetStripeIdProvider(), config.Timeout)))
+	mux.Handle("DELETE "+RouteOrganizations, adminWithoutSubscription(DeleteOrganizationHandler(store, config.Timeout)))
+	mux.Handle("GET "+RouteOrganizationsIdInvite, adminWithoutSubscription(InviteLink(config.BaseURL, config.CookieSecretSignKey)))
+	mux.Handle("GET "+RouteOrganizationsOptions, userInfoRoute(OptionsFromSessionHandler(store, config.Timeout)))
+	mux.Handle("GET "+RouteOrganizationsActiveSession, userInfoRoute(http.HandlerFunc(ChosenOrganizationSessionHandler)))
+	mux.Handle("GET "+RouteOrganizationsUsers, readRoute(AllUsers(store, config.Timeout)))
+	mux.Handle("DELETE "+RouteOrganizationsUsersId, adminWithoutSubscription(DeleteUserFromOrg(store, config.Timeout)))
+	mux.Handle("POST "+RouteOrganizationsRecipent, adminWithoutSubscription(RegisterRecipent(store, config.Timeout)))
+	mux.Handle("POST "+RouteOrganizationsUsersIdGroups, readRoute(GroupHandler(store, config.Timeout)))
+	mux.Handle("DELETE "+RouteOrganizationsUsersIdGroups, readRoute(GroupHandler(store, config.Timeout)))
+	mux.Handle("POST "+RouteOrganizationsUsersIdRole, adminWithoutSubscription(AssignRoleHandler(store, config.Timeout)))
 
-	mux.Handle("GET /session/active-organization/name", requireAuthSession(ActiveOrganization(store, config.Timeout)))
-	mux.Handle("GET /session/logged-in", requireAuthSession(http.HandlerFunc(LoggedIn)))
+	mux.Handle("GET "+RouteSessionActiveOrganizationName, requireAuthSession(ActiveOrganization(store, config.Timeout)))
+	mux.Handle("GET "+RouteSessionLoggedIn, requireAuthSession(http.HandlerFunc(LoggedIn)))
 
-	mux.HandleFunc("GET /people", PeoplePage)
-	mux.Handle("POST /subscription-page", adminWithoutSubscription(checkoutSessionHandler(config)))
+	mux.HandleFunc("GET "+RoutePeople, PeoplePage)
+	mux.Handle("POST "+RouteSubscriptionPage, adminWithoutSubscription(checkoutSessionHandler(config)))
 
 	subscriptionHandler := SubscriptionHandler{store: store, timeout: config.Timeout}
-	mux.Handle("GET /subscription", readRoute(&subscriptionHandler))
-	mux.Handle("POST /payment", stripeWebhookHandler(store, config))
+	mux.Handle("GET "+RouteSubscription, readRoute(&subscriptionHandler))
+	mux.Handle("POST "+RoutePayment, stripeWebhookHandler(store, config))
 
-	mux.Handle("GET /about", http.HandlerFunc(AboutUs))
+	mux.Handle("GET "+RouteAbout, http.HandlerFunc(AboutUs))
 
 	billingHandler := BillingPortalHandler{
 		Store:                 store,
@@ -1343,6 +1393,6 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 		ReturnURL:             config.BaseURL,
 		PortalSessionProvider: config.GetPortalSessionProvider(),
 	}
-	mux.Handle("/customer-portal", adminWithoutSubscription(&billingHandler))
+	mux.Handle(RouteCustomerPortal, adminWithoutSubscription(&billingHandler))
 	return mux
 }
