@@ -14,29 +14,24 @@ Caesura er en programvare som en tjeneste (SaaS) utviklet for musikkadministrasj
 
 Som bruker av Caesura er du ansvarlig for:
 
-Å opprettholde sikkerheten til dine kontopåloggingsopplysninger
-
-Å sørge for at innhold du laster opp eller administrerer gjennom tjenesten overholder gjeldende lover og regler
-
-Å gi korrekte og oppdaterte opplysninger når det er nødvendig
+- Å opprettholde sikkerheten til dine kontopåloggingsopplysninger
+- Å sørge for at innhold du laster opp eller administrerer gjennom tjenesten overholder gjeldende lover og regler
+- Å gi korrekte og oppdaterte opplysninger når det er nødvendig
+- Sikre at hver brukerkonto er personlig og kun brukes av den personen den er tildelt; selv om en bruker kan tilhøre flere organisasjoner, må hver organisasjon ha sitt eget abonnement, og kontoer kan ikke deles mellom organisasjoner
+- Unngå all aktivitet som kan skade tjenesten, inkludert, men ikke begrenset til, overdreven datalasting, automatisert eller skriptet tilgang, eller annen atferd som vi med rimelighet mistenker er misbruk eller i strid med disse vilkårene
 
 4. Databehandling og personvern
 
-Vi lagrer data på vegne av våre brukere for å kunne levere Caesura-tjenesten
-
-Vi implementerer rimelige sikkerhetstiltak for å beskytte dine data
-
-Vi gjør ikke krav på eierskap til ditt innhold
-
-Du beholder alle rettigheter til ditt originale innhold og dine data
+- Vi lagrer data på vegne av våre brukere for å kunne levere Caesura-tjenesten
+- Vi implementerer rimelige sikkerhetstiltak for å beskytte dine data
+- Vi gjør ikke krav på eierskap til ditt innhold
+- Du beholder alle rettigheter til ditt originale innhold og dine data
 
 5. Tjenestetilgjengelighet
 
-Vi tilstreber høy tilgjengelighet, men kan ikke garantere 100 % oppetid
-
-Vedlikeholdsarbeid kan midlertidig påvirke tjenestens tilgjengelighet
-
-Vi er ikke ansvarlige for avbrudd i tjenesten som ligger utenfor vår rimelige kontroll
+- Vi tilstreber høy tilgjengelighet, men kan ikke garantere 100 % oppetid
+- Vedlikeholdsarbeid kan midlertidig påvirke tjenestens tilgjengelighet
+- Vi er ikke ansvarlige for avbrudd i tjenesten som ligger utenfor vår rimelige kontroll
 
 6. Ansvarsbegrensning
 

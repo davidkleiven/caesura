@@ -13,6 +13,8 @@ As a user of Caesura, you are responsible for:
 - Maintaining the security of your account credentials
 - Ensuring that any content you upload or manage through our service complies with applicable laws and regulations
 - Providing accurate information when required
+- Ensuring that each user account is personal and used only by the individual to whom it is assigned; while a user may belong to multiple organizations, each organization must have its own subscription and accounts may not be shared between organizations
+- Refraining from any activity that may harm the service, including, but not limited to, excessive data uploads, automated/scripted access, or any other behavior that we reasonably suspect to be abusive or in violation of these terms
 
 4. Data Storage and Privacy
 - We store data on behalf of our users to provide the Caesura service
