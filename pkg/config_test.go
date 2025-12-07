@@ -120,7 +120,7 @@ func TestDefaultConfigWhenInvalidYamlContent(t *testing.T) {
 func TestGetStore(t *testing.T) {
 	config := NewDefaultConfig()
 
-	for _, storeType := range []string{"in-memory", "small-demo"} {
+	for _, storeType := range []string{"in-memory", "small-demo", "large-demo"} {
 		config.StoreType = storeType
 		storeResult := GetStore(config)
 		defer storeResult.Cleanup()
@@ -271,4 +271,52 @@ func TestGetMaxNumScoresUnknownPriceId(t *testing.T) {
 func TestGetMaxNumScores(t *testing.T) {
 	priceIds := NewProdPriceIds()
 	testutils.AssertEqual(t, priceIds.NumScores(priceIds.Free), 10)
+}
+
+func TestSessionOpts(t *testing.T) {
+	c := NewDefaultConfig()
+	c.SessionMaxAge = 100
+	testutils.AssertEqual(t, c.SessionOpts().MaxAge, 100)
+}
+
+func TestStripeIdProvider(t *testing.T) {
+	c := NewDefaultConfig()
+	c.StripeIdProvider = "stripe"
+	provider := c.GetStripeIdProvider()
+	_, ok := provider.(*PaymentSystemCusteromIdProvider)
+	testutils.AssertEqual(t, ok, true)
+
+	c.StripeIdProvider = "whatever"
+	provider = c.GetStripeIdProvider()
+	_, ok = provider.(*LocalStripeCustomerIdProvider)
+	testutils.AssertEqual(t, ok, true)
+}
+
+func TestGetPortalSessionProvider(t *testing.T) {
+	c := NewDefaultConfig()
+	c.PortalSessionProvider = "fixed"
+
+	provider := c.GetPortalSessionProvider()
+	_, ok := provider.(*FixedPortalSessionProvider)
+	testutils.AssertEqual(t, ok, true)
+
+	c.PortalSessionProvider = "stripe"
+
+	provider = c.GetPortalSessionProvider()
+	_, ok = provider.(*StripeBillingSessionProvider)
+	testutils.AssertEqual(t, ok, true)
+}
+
+func TestGetPriceIds(t *testing.T) {
+	c := NewDefaultConfig()
+	c.GoogleCfg.Environment = "test"
+	price1 := c.GetPriceIds()
+
+	c.GoogleCfg.Environment = "prod"
+	price2 := c.GetPriceIds()
+
+	if price1 == price2 {
+		t.Fatalf("Expected different sets of price ids in different environment. Got %v, %v", price1, price2)
+	}
+
 }
