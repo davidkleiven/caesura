@@ -155,9 +155,16 @@ func (g *GoogleStore) MetaByPattern(ctx context.Context, orgId string, pattern *
 	prefixes := []string{pattern.Title, pattern.Arranger, pattern.Composer}
 	seen := make(map[string]struct{})
 	var err error
+	allSearchFieldsEmpty := true
+	for _, p := range prefixes {
+		if p != "" {
+			allSearchFieldsEmpty = false
+			break
+		}
+	}
 
 	for i := range len(searchFields) {
-		if prefixes[i] == "" {
+		if prefixes[i] == "" && !allSearchFieldsEmpty {
 			continue
 		}
 		docIter := g.FsClient.GetDocByPrefix(ctx, metaDataCollection, orgId, searchFields[i], prefixes[i])
