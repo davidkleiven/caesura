@@ -353,6 +353,7 @@ func initGoogleStore(config *Config) StoreInitResult {
 				environment: googleConfig.Environment,
 			},
 			BucketClient: &GCSBucketClient{client: cloudStoreClient},
+			Config:       &googleConfig,
 		},
 		Err: errors.Join(err, errCloud),
 		Cleanup: func() error {
