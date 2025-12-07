@@ -9,7 +9,6 @@ jobs:
     permissions:
       id-token: write
       contents: read
-    needs: build-and-push
     uses: davidkleiven/gh-workflows/.github/workflows/gcloud-deploy.yml@main
     secrets: inherit
     with:
