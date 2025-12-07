@@ -122,7 +122,10 @@ func TestGetStore(t *testing.T) {
 
 	for _, storeType := range []string{"in-memory", "small-demo"} {
 		config.StoreType = storeType
-		store := GetStore(config)
+		storeResult := GetStore(config)
+		defer storeResult.Cleanup()
+
+		store := storeResult.Store
 		if _, ok := store.(*MultiOrgInMemoryStore); !ok {
 			t.Fatalf("expected store to be of type InMemoryStore, got %T", store)
 		}
@@ -198,7 +201,9 @@ func TestGetGoogleStoreFromConfig(t *testing.T) {
 	config := NewDefaultConfig()
 	config.StoreType = GoogleCloud
 	store := GetStore(config)
-	_, ok := store.(*GoogleStore)
+	defer store.Cleanup()
+
+	_, ok := store.Store.(*GoogleStore)
 	testutils.AssertEqual(t, ok, true)
 }
 
