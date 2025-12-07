@@ -268,8 +268,13 @@ func TestGoogleMetaByPattern(t *testing.T) {
 		},
 		{
 			pattern: &MetaData{},
-			wantNum: 0,
+			wantNum: 1,
 			desc:    "No filter",
+		},
+		{
+			pattern: &MetaData{Title: "not in title"},
+			wantNum: 0,
+			desc:    "Mistmatch in title",
 		},
 	} {
 		t.Run(test.desc, func(t *testing.T) {
