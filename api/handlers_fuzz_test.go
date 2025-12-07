@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/davidkleiven/caesura/pkg"
+	"github.com/davidkleiven/caesura/testutils"
 	"github.com/gorilla/sessions"
 )
 
@@ -88,8 +89,11 @@ func FuzzEndpoints(f *testing.F) {
 
 	f.Fuzz(func(t *testing.T, b []byte) {
 		store := pkg.GetStore(config)
+		defer store.Cleanup()
+		testutils.AssertNil(t, store.Err)
+
 		cookies := sessions.NewCookieStore([]byte("top-secret"))
-		mux := Setup(store, config, cookies)
+		mux := Setup(store.Store, config, cookies)
 		rateLimiter := NewRateLimiter(1000.0, time.Second)
 		server := httptest.NewServer(rateLimiter.Middleware(LogRequest(mux)))
 		defer server.Close()
@@ -99,7 +103,7 @@ func FuzzEndpoints(f *testing.F) {
 
 		// Collect all ids that possibly can be sent to a parametrized endpoint
 		storeIds := []string{}
-		inMemStore, ok := store.(*pkg.MultiOrgInMemoryStore)
+		inMemStore, ok := store.Store.(*pkg.MultiOrgInMemoryStore)
 		if !ok {
 			t.Fatal("Store is not of expected type")
 		}

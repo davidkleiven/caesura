@@ -1,7 +1,9 @@
 package pkg
 
 import (
+	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -50,11 +52,6 @@ func NewBrevo(password string) *Smtp {
 	}
 }
 
-type GoogleClientContainer struct {
-	FirestoreClient  *firestore.Client
-	CloudStoreClient *storage.Client
-}
-
 type PriceIds struct {
 	Free    string
 	Monthly string
@@ -98,31 +95,30 @@ func NewProdPriceIds() *PriceIds {
 }
 
 type Config struct {
-	StoreType                string                `yaml:"store_type" env:"CAESURA_STORE_TYPE"`
-	LocalFS                  LocalFSStoreConfig    `yaml:"local_fs"`
-	Timeout                  time.Duration         `yaml:"timeout" env:"CAESURA_TIMEOUT"`
-	Port                     int                   `yaml:"port" env:"CAESURA_PORT"`
-	SecretsPath              string                `yaml:"secrets_path" env:"CAESURA_SECRETS_PATH"`
-	MaxRequestSizeMb         uint                  `yaml:"max_request_size_mb" env:"CAESURA_MAX_REQUEST_SIZE_MB"`
-	GoogleAuthClientId       string                `yaml:"google_auth_client_id" env:"CAESURA_GOOGLE_AUTH_CLIENT_ID"`
-	GoogleAuthClientSecretId string                `yaml:"google_auth_client_secret_id" env:"CAESURA_GOOGLE_AUTH_CLIENT_SECRET_ID"`
-	GoogleAuthRedirectURL    string                `yaml:"google_auth_rederict_url" env:"CAESURA_GOOGLE_AUTH_REDIRECT_URL"`
-	CookieSecretSignKey      string                `yaml:"cookie_secret_sign_key" env:"CAESURA_COOKIE_SECRET_SIGN_KEY"`
-	BaseURL                  string                `yaml:"base_url" env:"CAESURA_BASE_URL"`
-	SessionMaxAge            int                   `yaml:"session_max_age" env:"CAESURA_SESSION_MAX_AGE"`
-	SmtpConfig               Smtp                  `yaml:"smtp"`
-	EmailSender              string                `yaml:"email_sender" env:"CAESURA_EMAIL_SENDER"`
-	StripeSecretKey          string                `yaml:"stripe_secret_key" env:"CAESURA_STRIPE_SECRET_KEY"`
-	StripeWebhookSignSecret  string                `yaml:"stripe_webhook_sign_secret" env:"CAESURA_STRIPE_WEBHOOK_SIGN_SECRET"`
-	StripeIdProvider         string                `yaml:"stripe_id_provider" env:"CAESURA_STRIPE_ID_PROVIDER"`
-	RequireSubscription      bool                  `yaml:"require_subscription" env:"CAUSURA_REQUIRE_SUBSCRIPTION"`
-	BrevoApiKey              string                `yaml:"brevo_api_key" env:"CAESURA_BREVO_API_KEY"`
-	EmailDeliveryService     string                `yaml:"email_delivery_service" env:"CAESURA_EMAIL_DELIVERY_SERVICE"`
-	GoogleCfg                GoogleConfig          `yaml:"google_config"`
-	PortalSessionProvider    string                `yaml:"portal_session_provider"`
-	MaxNumRequestsPerMinute  float64               `yaml:"max_num_requests_per_minute"`
-	Transport                http.RoundTripper     `yaml:"-"`
-	GoogleClients            GoogleClientContainer `yaml:"-"`
+	StoreType                string             `yaml:"store_type" env:"CAESURA_STORE_TYPE"`
+	LocalFS                  LocalFSStoreConfig `yaml:"local_fs"`
+	Timeout                  time.Duration      `yaml:"timeout" env:"CAESURA_TIMEOUT"`
+	Port                     int                `yaml:"port" env:"CAESURA_PORT"`
+	SecretsPath              string             `yaml:"secrets_path" env:"CAESURA_SECRETS_PATH"`
+	MaxRequestSizeMb         uint               `yaml:"max_request_size_mb" env:"CAESURA_MAX_REQUEST_SIZE_MB"`
+	GoogleAuthClientId       string             `yaml:"google_auth_client_id" env:"CAESURA_GOOGLE_AUTH_CLIENT_ID"`
+	GoogleAuthClientSecretId string             `yaml:"google_auth_client_secret_id" env:"CAESURA_GOOGLE_AUTH_CLIENT_SECRET_ID"`
+	GoogleAuthRedirectURL    string             `yaml:"google_auth_rederict_url" env:"CAESURA_GOOGLE_AUTH_REDIRECT_URL"`
+	CookieSecretSignKey      string             `yaml:"cookie_secret_sign_key" env:"CAESURA_COOKIE_SECRET_SIGN_KEY"`
+	BaseURL                  string             `yaml:"base_url" env:"CAESURA_BASE_URL"`
+	SessionMaxAge            int                `yaml:"session_max_age" env:"CAESURA_SESSION_MAX_AGE"`
+	SmtpConfig               Smtp               `yaml:"smtp"`
+	EmailSender              string             `yaml:"email_sender" env:"CAESURA_EMAIL_SENDER"`
+	StripeSecretKey          string             `yaml:"stripe_secret_key" env:"CAESURA_STRIPE_SECRET_KEY"`
+	StripeWebhookSignSecret  string             `yaml:"stripe_webhook_sign_secret" env:"CAESURA_STRIPE_WEBHOOK_SIGN_SECRET"`
+	StripeIdProvider         string             `yaml:"stripe_id_provider" env:"CAESURA_STRIPE_ID_PROVIDER"`
+	RequireSubscription      bool               `yaml:"require_subscription" env:"CAUSURA_REQUIRE_SUBSCRIPTION"`
+	BrevoApiKey              string             `yaml:"brevo_api_key" env:"CAESURA_BREVO_API_KEY"`
+	EmailDeliveryService     string             `yaml:"email_delivery_service" env:"CAESURA_EMAIL_DELIVERY_SERVICE"`
+	GoogleCfg                GoogleConfig       `yaml:"google_config"`
+	PortalSessionProvider    string             `yaml:"portal_session_provider"`
+	MaxNumRequestsPerMinute  float64            `yaml:"max_num_requests_per_minute"`
+	Transport                http.RoundTripper  `yaml:"-"`
 }
 
 func (c *Config) Validate() error {
@@ -299,27 +295,75 @@ func OverrideEmailDeliveryService(config *Config) (*Config, error) {
 	return config, nil
 }
 
-func GetStore(config *Config) Store {
+func noOpCleanUp() error {
+	return nil
+}
+
+type StoreInitResult struct {
+	Store   Store
+	Err     error
+	Cleanup func() error
+}
+
+func GetStore(config *Config) StoreInitResult {
 	msg := "Getting store for config"
 	key := "store"
 	switch config.StoreType {
 	case "small-demo":
 		slog.Info(msg, key, "small-demo")
-		return NewDemoStore()
+		return StoreInitResult{
+			Store:   NewDemoStore(),
+			Cleanup: noOpCleanUp,
+		}
 	case "large-demo":
 		slog.Info(msg, key, "large-demo")
-		return NewLargeDemoStore()
+		return StoreInitResult{
+			Store:   NewLargeDemoStore(),
+			Cleanup: noOpCleanUp,
+		}
 	case GoogleCloud:
 		slog.Info(msg, key, "google-cloud")
-		return &GoogleStore{
-			FsClient: &GoogleFirestoreClient{
-				client:      config.GoogleClients.FirestoreClient,
-				environment: config.GoogleCfg.Environment},
-			BucketClient: &GCSBucketClient{client: config.GoogleClients.CloudStoreClient},
-		}
+		return initGoogleStore(config)
 	default:
 		slog.Info(msg, key, "empty-store")
-		return NewMultiOrgInMemoryStore()
+		return StoreInitResult{
+			Store:   NewMultiOrgInMemoryStore(),
+			Cleanup: noOpCleanUp,
+		}
+	}
+}
+
+func initGoogleStore(config *Config) StoreInitResult {
+	googleConfig := config.GoogleCfg
+	backgroundCtx := context.Background()
+	firestoreClient, err := firestore.NewClient(backgroundCtx, googleConfig.ProjectId)
+	cleanup := []func() error{}
+	if err == nil {
+		cleanup = append(cleanup, firestoreClient.Close)
+	}
+
+	cloudStoreClient, errCloud := storage.NewClient(backgroundCtx)
+	if errCloud == nil {
+		cleanup = append(cleanup, cloudStoreClient.Close)
+	}
+	return StoreInitResult{
+		Store: &GoogleStore{
+			FsClient: &GoogleFirestoreClient{
+				client:      firestoreClient,
+				environment: googleConfig.Environment,
+			},
+			BucketClient: &GCSBucketClient{client: cloudStoreClient},
+		},
+		Err: errors.Join(err, errCloud),
+		Cleanup: func() error {
+			var cleanupErrs []error
+			for _, fn := range cleanup {
+				if err := fn(); err != nil {
+					cleanupErrs = append(cleanupErrs, err)
+				}
+			}
+			return errors.Join(cleanupErrs...)
+		},
 	}
 }
 

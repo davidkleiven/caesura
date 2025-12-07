@@ -10,8 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"cloud.google.com/go/firestore"
-	"cloud.google.com/go/storage"
 	"github.com/davidkleiven/caesura/api"
 	"github.com/davidkleiven/caesura/pkg"
 	"github.com/gorilla/sessions"
@@ -30,35 +28,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	if config.StoreType == pkg.GoogleCloud {
-		backgroundCtx := context.Background()
-		googleConfig := pkg.LoadGoogleConfig()
-		firestoreClient, err := firestore.NewClient(backgroundCtx, googleConfig.ProjectId)
-		if err != nil {
-			slog.Error("Failed to create firestore client", "error", err)
-			os.Exit(1)
-		}
-		defer firestoreClient.Close()
-
-		cloudStoreClient, err := storage.NewClient(backgroundCtx)
-		if err != nil {
-			slog.Error("Failed to create cloud storage client", "error", err)
-			os.Exit(1)
-		}
-		defer cloudStoreClient.Close()
-
-		config.GoogleClients.FirestoreClient = firestoreClient
-		config.GoogleClients.CloudStoreClient = cloudStoreClient
-		config.GoogleCfg = *googleConfig
-	}
-
 	if err := config.Validate(); err != nil {
 		slog.Error("Invalid configuration", "error", err)
 		os.Exit(1)
 	}
 
+	storeResult := pkg.GetStore(config)
+	if storeResult.Err != nil {
+		slog.Error("Store initialization failed", "error", storeResult.Err)
+		os.Exit(1)
+	}
+	defer storeResult.Cleanup()
+
 	cookieStore := sessions.NewCookieStore([]byte(config.CookieSecretSignKey))
-	mux := api.Setup(pkg.GetStore(config), config, cookieStore)
+	mux := api.Setup(storeResult.Store, config, cookieStore)
 	stripe.Key = config.StripeSecretKey
 
 	rateLimiter := api.NewRateLimiter(config.MaxNumRequestsPerMinute, time.Minute)
