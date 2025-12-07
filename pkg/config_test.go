@@ -203,8 +203,20 @@ func TestGetGoogleStoreFromConfig(t *testing.T) {
 	store := GetStore(config)
 	defer store.Cleanup()
 
-	_, ok := store.Store.(*GoogleStore)
+	gstore, ok := store.Store.(*GoogleStore)
 	testutils.AssertEqual(t, ok, true)
+
+	if gstore.BucketClient == nil {
+		t.Fatal("BucketClient should not be nil")
+	}
+
+	if gstore.FsClient == nil {
+		t.Fatal("Firestore client should not be nil")
+	}
+
+	if gstore.Config == nil {
+		t.Fatal("Config should not be nil")
+	}
 }
 
 func TestOverrideEmailDeliveryService(t *testing.T) {
