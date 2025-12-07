@@ -52,7 +52,6 @@
     {{ template "footer" }}
     <script>
       document.body.addEventListener("htmx:afterRequest", function (evt) {
-        console.log(evt);
         if (evt.target.id === "create-new-project-btn") {
           const modal = document.getElementById("project-selection-modal");
           if (modal) {
