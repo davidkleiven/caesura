@@ -20,3 +20,9 @@ run: build
 	./caesura
 reencrypt:
 	bash cmd/reencrypt.sh
+
+fuzz-quick:
+	go test -run=^$$ -fuzz=FuzzEndpoints -fuzztime=10s ./api
+
+fuzz:
+	go test -run=^$$ -fuzz=FuzzEndpoints -fuzztime=6h ./api -v
