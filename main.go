@@ -73,6 +73,7 @@ func main() {
 				rateLimiter.Cleanup()
 			case <-ctx.Done():
 				slog.Info("Stopping rate limiter cleanup")
+				return
 			}
 		}
 	}(cancelCtx)
