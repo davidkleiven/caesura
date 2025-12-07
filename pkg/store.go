@@ -62,6 +62,7 @@ type MetaData struct {
 	Tags            string      `json:"tags" firestore:"tags"`
 	Notes           string      `json:"notes" firestore:"notes"`
 	Status          StoreStatus `json:"status" firestore:"status"`
+	Deleted         bool        `json:"deleted" firestore:"deleted"`
 }
 
 func (m *MetaData) ResourceId() string {

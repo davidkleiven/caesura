@@ -186,6 +186,7 @@ func OverviewSearchHandler(fetcher pkg.MetaByPatternFetcher, timeout time.Durati
 			slog.ErrorContext(ctx, "Failed to fetch metadata", "error", err)
 			return
 		}
+		meta = slices.DeleteFunc(meta, func(m pkg.MetaData) bool { return m.Deleted })
 		web.ResourceList(w, meta)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	}
@@ -347,7 +348,9 @@ func ProjectByIdHandler(store pkg.ProjectMetaByIdGetter, timeout time.Duration) 
 			if err != nil {
 				slog.ErrorContext(ctx, "Failed to fetch metadata for project", "error", err)
 			} else {
-				metaData = append(metaData, *meta)
+				if !meta.Deleted {
+					metaData = append(metaData, *meta)
+				}
 			}
 		}
 
