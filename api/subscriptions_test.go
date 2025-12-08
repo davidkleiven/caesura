@@ -38,8 +38,10 @@ func TestCheckoutSubscriptionHandle(t *testing.T) {
 	s.Values["orgId"] = "org-id"
 
 	b := bytes.Repeat([]byte("h"), 5000)
-	config := pkg.NewDefaultConfig()
-	handler := checkoutSessionHandler(config)
+	config, err := pkg.LoadProfile("config-ci.yml")
+	testutils.AssertNil(t, err)
+	store := pkg.NewMultiOrgInMemoryStore()
+	handler := checkoutSessionHandler(config, store)
 	ctx := context.WithValue(context.Background(), sessionKey, &s)
 
 	t.Run("too large request", func(t *testing.T) {
@@ -48,6 +50,15 @@ func TestCheckoutSubscriptionHandle(t *testing.T) {
 		rec := httptest.NewRecorder()
 		handler(rec, req.WithContext(ctx))
 		testutils.AssertEqual(t, rec.Code, http.StatusRequestEntityTooLarge)
+	})
+
+	t.Run("organization not found", func(t *testing.T) {
+		req := httptest.NewRequest("POST", "/session", nil)
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		rec := httptest.NewRecorder()
+		handler(rec, req.WithContext(ctx))
+		testutils.AssertEqual(t, rec.Code, http.StatusInternalServerError)
+		testutils.AssertContains(t, rec.Body.String(), "organization not found")
 	})
 
 	t.Run("internal server error on missing api key", func(t *testing.T) {
@@ -61,6 +72,21 @@ func TestCheckoutSubscriptionHandle(t *testing.T) {
 		testutils.AssertEqual(t, rec.Code, http.StatusInternalServerError)
 	})
 
+	config.StripeIdProvider = "stripe"
+	provider := config.GetStripeIdProvider()
+	customerParams := stripe.CustomerCreateParams{
+		Email: stripe.String("customer@caesura.no"),
+		Name:  stripe.String("Customer"),
+	}
+	stripeId, err := provider.GetId(ctx, &customerParams)
+	testutils.AssertNil(t, err)
+
+	store.RegisterOrganization(context.Background(), &pkg.Organization{
+		Id:       "registered-org",
+		StripeId: stripeId,
+	})
+
+	s.Values["orgId"] = "registered-org"
 	for _, plan := range []string{"free", "monthly", "annual"} {
 		t.Run("success_"+plan, func(t *testing.T) {
 			currentStripeKey := stripe.Key
@@ -68,18 +94,12 @@ func TestCheckoutSubscriptionHandle(t *testing.T) {
 				stripe.Key = currentStripeKey
 			}()
 
-			key, ok := os.LookupEnv("CAESURA_STRIPE_SECRET_KEY")
-			ci := os.Getenv("CI")
 			if isDependabot() {
 				t.Skip("Dependabot has no access to secrets")
 				return
-			} else if !ok && ci == "" {
-				t.Skip("No secret key provided")
-				return
-			} else if !ok {
-				t.Fatalf("Must run in pipeline")
 			}
-			stripe.Key = key
+
+			stripe.Key = config.StripeSecretKey
 			form := url.Values{}
 			form.Set("subscription-plan", plan)
 			req := httptest.NewRequest("POST", "/session", bytes.NewBufferString(form.Encode()))

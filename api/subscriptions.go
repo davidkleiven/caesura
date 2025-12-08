@@ -20,8 +20,13 @@ import (
 
 const SubscriptionWriteAllowed = "subscriptionWriteAllowed"
 
-func createCheckoutSessionParams(domain string, orgId string, priceId string) *stripe.CheckoutSessionParams {
+func createCheckoutSessionParams(domain string, stripeId string, priceId string) *stripe.CheckoutSessionParams {
 	return &stripe.CheckoutSessionParams{
+		Customer: &stripeId,
+		CustomerUpdate: &stripe.CheckoutSessionCustomerUpdateParams{
+			Address: stripe.String("never"),
+			Name:    stripe.String("never"),
+		},
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
 				Price:    stripe.String(string(priceId)), // Caesura Free
@@ -31,14 +36,10 @@ func createCheckoutSessionParams(domain string, orgId string, priceId string) *s
 		Mode:       stripe.String(string(stripe.CheckoutSessionModeSubscription)),
 		SuccessURL: stripe.String(domain + "/organizations"),
 		CancelURL:  stripe.String(domain + "/organizations"),
-		Metadata: map[string]string{
-			"orgId":   orgId,
-			"priceId": priceId,
-		},
 	}
 }
 
-func checkoutSessionHandler(config *pkg.Config) http.HandlerFunc {
+func checkoutSessionHandler(config *pkg.Config, store pkg.OrganizationGetter) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		sessionCookie := MustGetSession(r)
 		orgId := MustGetOrgId(sessionCookie)
@@ -50,8 +51,17 @@ func checkoutSessionHandler(config *pkg.Config) http.HandlerFunc {
 			return
 		}
 		priceId := config.GetPriceIds()
+		ctx, cancel := context.WithTimeout(r.Context(), config.Timeout)
+		defer cancel()
 
-		items := createCheckoutSessionParams(config.BaseURL, orgId, priceId.PriceIdFromSubscriptionPlan(r.FormValue("subscription-plan")))
+		org, err := store.GetOrganization(ctx, orgId)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			slog.ErrorContext(ctx, "Failed to get organization", "error", err, "orgId", orgId)
+			return
+		}
+
+		items := createCheckoutSessionParams(config.BaseURL, org.StripeId, priceId.PriceIdFromSubscriptionPlan(r.FormValue("subscription-plan")))
 
 		s, err := session.New(items)
 		if err != nil {

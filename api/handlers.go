@@ -1382,7 +1382,7 @@ func Setup(store pkg.Store, config *pkg.Config, cookieStore *sessions.CookieStor
 	mux.Handle("GET "+RouteSessionLoggedIn, requireAuthSession(http.HandlerFunc(LoggedIn)))
 
 	mux.HandleFunc("GET "+RoutePeople, PeoplePage)
-	mux.Handle("POST "+RouteSubscriptionPage, adminWithoutSubscription(checkoutSessionHandler(config)))
+	mux.Handle("POST "+RouteSubscriptionPage, adminWithoutSubscription(checkoutSessionHandler(config, store)))
 
 	subscriptionHandler := SubscriptionHandler{store: store, timeout: config.Timeout}
 	mux.Handle("GET "+RouteSubscription, readRoute(&subscriptionHandler))
