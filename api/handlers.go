@@ -600,8 +600,8 @@ func OrganizationRegisterHandler(store pkg.IAMStore, stripeIdProvider pkg.Stripe
 
 		orgId := pkg.RandomInsecureID()
 		customerParams := stripe.CustomerCreateParams{
-			Email: stripe.String(fmt.Sprintf("%s@example.com", orgId)),
-			Name:  stripe.String(orgId),
+			Email: stripe.String("customer@caesura.no"),
+			Name:  stripe.String("Customer"),
 		}
 
 		ctx, cancel := context.WithTimeout(r.Context(), timeout)
