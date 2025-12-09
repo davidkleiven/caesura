@@ -117,15 +117,18 @@ func stripeWebhookHandler(store pkg.SubscriptionStorer, config *pkg.Config) http
 			ctx, cancel := context.WithTimeout(r.Context(), config.Timeout)
 			defer cancel()
 
-			defaultPriceId := priceIds.Annual
-			priceId := priceIdFromInvoice(&invoice, defaultPriceId)
+			defaultInvoiceDetails := InvoiceDetails{
+				PriceId: priceIds.Annual,
+				Expire:  time.Now().AddDate(1, 0, 0),
+			}
+			result := priceIdFromInvoice(&invoice, defaultInvoiceDetails)
 
 			subscription := pkg.Subscription{
 				Id:        invoice.ID,
-				PriceId:   string(priceId),
+				PriceId:   result.PriceId,
 				Created:   time.Now(),
-				Expires:   time.Unix(invoice.PeriodEnd, 0),
-				MaxScores: priceIds.NumScores(priceId),
+				Expires:   result.Expire,
+				MaxScores: priceIds.NumScores(result.PriceId),
 			}
 
 			customer := invoice.Customer
@@ -258,30 +261,43 @@ func (s *SubscriptionHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func priceIdFromInvoice(invoice *stripe.Invoice, defaultPrice string) string {
+type InvoiceDetails struct {
+	PriceId string
+	Expire  time.Time
+}
+
+func priceIdFromInvoice(invoice *stripe.Invoice, defaultInvoiceDetails InvoiceDetails) InvoiceDetails {
 	lines := invoice.Lines
 	if lines == nil {
 		slog.Error("Received invoice with no lines", "invoice", invoice)
-		return defaultPrice
+		return defaultInvoiceDetails
 	}
 	items := lines.Data
 	if len(items) == 0 {
 		slog.Error("Received invoice with no content", "invoice", invoice)
 
 		// We are nice, so we offer the customers experiencing the error an annual subscription
-		return defaultPrice
+		return defaultInvoiceDetails
 	}
 	item := items[0]
 	pricing := item.Pricing
 	if pricing == nil {
 		slog.Error("Received invoice with no pricing information", "invoice", invoice)
-		return defaultPrice
+		return defaultInvoiceDetails
 	}
+
+	period := items[0].Period
+	if period == nil {
+		slog.Error("Received invoice without period", "invoice", invoice)
+		return defaultInvoiceDetails
+	}
+	defaultInvoiceDetails.Expire = time.Unix(period.End, 0)
 
 	details := pricing.PriceDetails
 	if details == nil {
 		slog.Error("Received invoice with no PriceDetails information", "invoice", invoice)
-		return defaultPrice
+		return defaultInvoiceDetails
 	}
-	return details.Price
+	defaultInvoiceDetails.PriceId = details.Price
+	return defaultInvoiceDetails
 }
