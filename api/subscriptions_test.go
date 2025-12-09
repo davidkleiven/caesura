@@ -472,19 +472,30 @@ func TestSubscriptions(t *testing.T) {
 func TestPriceIdFromInvoice(t *testing.T) {
 	priceIds := pkg.NewTestPriceIds()
 	invoice := stripe.Invoice{}
-	testutils.AssertEqual(t, priceIdFromInvoice(&invoice, priceIds.Annual), priceIds.Annual)
+	defaultInvoice := InvoiceDetails{
+		PriceId: priceIds.Annual,
+		Expire:  time.Now().AddDate(1, 0, 0),
+	}
+	testutils.AssertEqual(t, priceIdFromInvoice(&invoice, defaultInvoice), defaultInvoice)
 
 	invoice.Lines = &stripe.InvoiceLineItemList{}
-	testutils.AssertEqual(t, priceIdFromInvoice(&invoice, priceIds.Annual), priceIds.Annual)
+	testutils.AssertEqual(t, priceIdFromInvoice(&invoice, defaultInvoice), defaultInvoice)
 
 	invoice.Lines.Data = []*stripe.InvoiceLineItem{{}}
-	testutils.AssertEqual(t, priceIdFromInvoice(&invoice, priceIds.Annual), priceIds.Annual)
+	testutils.AssertEqual(t, priceIdFromInvoice(&invoice, defaultInvoice), defaultInvoice)
 
 	invoice.Lines.Data[0].Pricing = &stripe.InvoiceLineItemPricing{}
-	testutils.AssertEqual(t, priceIdFromInvoice(&invoice, priceIds.Annual), priceIds.Annual)
+	testutils.AssertEqual(t, priceIdFromInvoice(&invoice, defaultInvoice), defaultInvoice)
+
+	invoice.Lines.Data[0].Period = &stripe.Period{End: 1700000}
+	want := InvoiceDetails{
+		PriceId: priceIds.Annual,
+		Expire:  time.Unix(1700000, 0),
+	}
+	testutils.AssertEqual(t, priceIdFromInvoice(&invoice, defaultInvoice), want)
 
 	invoice.Lines.Data[0].Pricing.PriceDetails = &stripe.InvoiceLineItemPricingPriceDetails{Price: priceIds.Monthly}
-	testutils.AssertEqual(t, priceIdFromInvoice(&invoice, priceIds.Annual), priceIds.Monthly)
+	testutils.AssertEqual(t, priceIdFromInvoice(&invoice, defaultInvoice).PriceId, priceIds.Monthly)
 }
 
 func TestGetCustomerIdFromStripe(t *testing.T) {
