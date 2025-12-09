@@ -10,7 +10,7 @@ base_url: https://test.caesura.no
 session_max_age: 1200
 email_sender: noreply@caesura.no
 stripe_secret_key: ENC[AES256_GCM,data:lsoY+iizzKaILR3GQMRIVawnZ+om1lnh9kzigZYc4kFPpR8pReTz6pwrttp5GiTC0AzkaNAntJM9JDXkj6DmIDBwp1K0yZDnhX+tVJngrJPgptXEo4I96YeYpbUo6QPPwjvSnQses8Niegw=,iv:riRymHJK8HI7L/c53GE5HETofHOelk2EFXAwmatrudI=,tag:qOlPRYCAsg+ObTc2WtT5NA==,type:str]
-stripe_webhook_sign_secret: ENC[AES256_GCM,data:xbEI9Oe53MikUjMOpdkf6XPRRSy7gZ1XqgduWGVAfKpiTzduL8XcqC49kJd2FxL5bi/rvAwame3xIA==,iv:Ra8dJ1M/lwnFK8Yc4DEQ+2utZMkiIaoZAml+JdJ5tyk=,tag:ASuTdCnYCFIB3d2YmnI+IA==,type:str]
+stripe_webhook_sign_secret: ENC[AES256_GCM,data:yAWwQqnzO6AxpCzhWSpmNjjFxiL2j52bXYUI1+CbFV7sQutI8YI=,iv:DPV+l6uD1PVkrmJjtAf+OFda6v6Qj6kuJK7zJy9WJAs=,tag:alSSbxD34gT9ARcXBLuO6g==,type:str]
 stripe_id_provider: stripe
 require_subscription: true
 brevo_api_key: ENC[AES256_GCM,data:RtzVCDZTeA7SuiuR67IirB7ti2LbgI3U/lJ4cm3V28nSrOkZedgQoNjQF7ocEtf9na4Otbs5FVD2VePZJ/Tl11snTFj1or/FWNxx62rLAb9hlzUJmEHakFUk,iv:KAcrJZzlP6bWP53Vjs/sWgZLVTaBjGL8JMS/9qNFIuQ=,tag:q+7stdESC8l0MqH3Hdmgog==,type:str]
@@ -48,7 +48,7 @@ sops:
             VTlRL25DOG8ybENobUFGY0liR2dwWjQKT3pAymg5PHcR/EsR64sTgyUKyfuXruP3
             hRe+VGjZ65QbMYuvER2nVl5xOUgAC/h8dZlWNtWl1n6RNiAl4411qg==
             -----END AGE ENCRYPTED FILE-----
-    lastmodified: "2025-11-23T18:45:44Z"
-    mac: ENC[AES256_GCM,data:ada+glJ45vIz8WnOUUU9fJ91A4hlEvVBFQtBW3BE9IPep7Dg/iCpCF6PQ+yY4oxYODGfzFAt/Zn+HjwClVEqOW+mnuhkFrvuwt5qRKLhJ1w26Mm3eo7cX+pMMgymO5eUt07coOi+HD+Bhq6AVCQIAWuQ6LIPxoLc2bguks52px8=,iv:HPY8ipHLEvon84OjjTcVDGB0F5z3plOyzhPfBrrcFcs=,tag:H6J1N50siSnh5WCJOo/9Bg==,type:str]
+    lastmodified: "2025-12-09T15:53:36Z"
+    mac: ENC[AES256_GCM,data:cfRqC1kjckmSTJxW4GDS4WZQiqVOjbhH/2WzzSyhAbQ46qGi3iM9R6Mk0Plez3+UnfRmrp/QcyG2IH8ogMcdm4jdz6PNH//oKA8zLC7lja36haC+ZO4Pq/7Xg4nvm9cfa84/Pj45OvP48FllPZ0y4iasaDPKVjtCpSD8e91hg4M=,iv:pn87m3kCQBpzNBmKvXojzDITAHnP7+EozfwBOpAqx/Q=,tag:isxXbGIy6axE6/PeSd20dg==,type:str]
     encrypted_regex: (api_key|secret|password)
     version: 3.11.0
