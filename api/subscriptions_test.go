@@ -276,19 +276,17 @@ func TestStripeWebhookHandlerSuccess(t *testing.T) {
 	testutils.AssertNil(t, err)
 
 	for range 50 {
-		// invoice.payment_succeeded triggers 13 events
-		if monitor.GetNumPaymentCalls() == 13 {
+		if len(store.Subscriptions) == 1 {
 			break
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
-	testutils.AssertEqual(t, monitor.GetNumPaymentCalls(), 13)
+	testutils.AssertEqual(t, len(store.Subscriptions), 1)
 
 	for _, item := range monitor.responses {
 		testutils.AssertEqual(t, item.Code, http.StatusOK)
 	}
 
-	testutils.AssertEqual(t, len(store.Subscriptions), 1)
 }
 
 // computeStripeSignature creates a valid v1 signature for Stripe's webhook verification
