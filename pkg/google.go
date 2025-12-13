@@ -197,6 +197,7 @@ func (g *GoogleStore) MetaById(ctx context.Context, orgId, metaId string) (*Meta
 }
 
 func (g *GoogleStore) ProjectsByName(ctx context.Context, orgId string, name string) ([]Project, error) {
+	name = strings.ToLower(name) // name_search is lower case
 	docIter := g.FsClient.GetDocByPrefix(ctx, projectCollection, orgId, "name_search", name)
 	projects := []Project{}
 	var err error
