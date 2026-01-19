@@ -10,7 +10,7 @@ require (
 	github.com/gorilla/sessions v1.4.0
 	github.com/pdfcpu/pdfcpu v0.11.1
 	github.com/playwright-community/playwright-go v0.5200.0
-	github.com/stripe/stripe-go/v84 v84.0.0
+	github.com/stripe/stripe-go/v84 v84.2.0
 	golang.org/x/crypto v0.46.0
 	golang.org/x/oauth2 v0.34.0
 	golang.org/x/sync v0.19.0
