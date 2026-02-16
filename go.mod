@@ -16,7 +16,7 @@ require (
 	golang.org/x/sync v0.19.0
 	golang.org/x/text v0.32.0
 	google.golang.org/api v0.257.0
-	google.golang.org/grpc v1.77.0
+	google.golang.org/grpc v1.79.1
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -69,7 +69,7 @@ require (
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
 	github.com/cloudflare/circl v1.6.1 // indirect
-	github.com/cncf/xds/go v0.0.0-20251110193048-8bfbf64dc13e // indirect
+	github.com/cncf/xds/go v0.0.0-20251210132809-ee656c7534f5 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/deckarep/golang-set/v2 v2.8.0 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.36.0 // indirect
